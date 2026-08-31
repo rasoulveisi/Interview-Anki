@@ -53,7 +53,21 @@ Once started, open your browser and navigate to:
 
 ---
 
-## ☁️ Environment & Firebase Configuration
+## 🔐 OAuth & Google Sign-In on localhost:3000
 
-- The app includes built-in offline fallback with local state persistence (`localStorage`).
-- If you wish to use Firebase Cloud Sync, verify the Firebase config in `src/firebase.ts` or set your environment variables if using custom Firebase projects.
+The application uses **Firebase Authentication** (`signInWithPopup` with `GoogleAuthProvider`) alongside seamless **Anonymous/Offline Authentication**:
+
+### 1. Default Behavior on `localhost:3000`
+- Firebase Authentication has `localhost` pre-configured in its **Authorized Domains** list by default.
+- When running locally at `http://localhost:3000`, clicking **"Sign in with Google"** opens the Google OAuth popup and connects directly to your Firebase Firestore sync.
+
+### 2. If using your own Firebase Project
+If you connect your own custom Firebase project via `firebase-applet-config.json` or environment variables:
+1. Open the [Firebase Console](https://console.firebase.google.com/).
+2. Go to **Authentication** -> **Settings** -> **Authorized domains**.
+3. Ensure `localhost` is listed (it is added automatically by default upon project creation).
+4. Under **Authentication** -> **Sign-in method**, ensure **Google** is enabled.
+
+### 3. Offline / Local Fallback
+- If you do not sign in, the app automatically runs in **Anonymous / Local Mode**.
+- All decks, cards, review logs, and SM-2 calculations are saved directly to `localStorage` and will sync to the cloud whenever you sign in.

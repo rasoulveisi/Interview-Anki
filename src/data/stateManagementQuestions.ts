@@ -4,171 +4,308 @@ export const stateManagementQuestions: Question[] = [
   {
     id: 'state_01',
     category: 'statemanagement',
-    topic: 'NgRx Architecture & Mental Model',
+    topic: 'NgRx Global Store & Redux Cycle',
     difficulty: 'Senior',
-    question: 'Explain the core NgRx Redux loop: Actions, Reducers, Selectors, and Effects. Why must Reducers be pure functions while Effects handle side effects?',
-    shortAnswer: 'Actions express unique events with a type and payload; Reducers are pure, synchronous functions that calculate `(state, action) => newState` via immutability; Selectors extract and memoize slices of state; Effects listen for actions, execute asynchronous side effects (HTTP, WebSockets), and dispatch new actions. Reducers must be pure to guarantee deterministic time-travel debugging and predictable state transitions.',
-    seniorPoint: 'NgRx selectors use memoization (`createSelector`). If the input slice reference has not changed, the selector returns the cached calculation result immediately without re-executing the projection function, preventing UI re-rendering overhead.',
-    spokenTip: 'Actions describe what happened; Reducers compute the new state synchronously; Effects handle asynchronous operations; Selectors query state efficiently.',
-    interviewAnswer: 'NgRx enforces a unidirectional data flow:\n1. **Actions**: Declarative descriptions of unique events (e.g. `[Auth Page] Login Submitted`).\n2. **Reducers**: Pure functions that take the current state and an action, returning a new immutable state object. Because they are pure, they have zero side effects and can be tested without mocks.\n3. **Effects**: RxJS-powered event listeners that capture actions, perform async work (such as HTTP calls or router navigation), and dispatch a success or failure action.\n4. **Selectors**: Composable, memoized queries for reading slices of state from the store.\n\nSeparating synchronous state mutations (Reducers) from async side-effects (Effects) eliminates race conditions and ensures complete reproducibility.',
-    keyPointsToMention: [
-      'Unidirectional data flow and single source of truth',
-      'Purity in Reducers: zero side effects, no Date.now(), Math.random(), or HTTP calls',
-      'Memoization in Selectors via createSelector',
-      'Effects for isolation of async API calls and orchestration'
-    ],
-    whatInterviewersLookFor: [
-      'Understanding of memoization mechanics in Selectors',
-      'Awareness of Good Action Hygiene (describing events, not commands)'
-    ],
-    codeExample: `// 1. Actions (Good Action Hygiene)
-export const AuthActions = createActionGroup({
-  source: 'Auth API',
-  events: {
-    'Login Success': props<{ user: User; token: string }>(),
-    'Login Failure': props<{ error: string }>()
-  }
-});
+    question: 'How does the Redux pattern work in NgRx? Walk through Actions, Reducers, Selectors, and Effects with purity guarantees.',
+    shortAnswer: 'The NgRx Redux loop enforces unidirectional data flow: 1) UI dispatches an **Action** (plain object describing an event); 2) **Reducers** (pure functions) take the current state and action to return a new immutable state; 3) **Selectors** query and memoize state slices; 4) **Effects** isolate side-effects (HTTP, timers), listen for actions, and dispatch new actions.',
+    interviewAnswer: 'NgRx implements the Redux pattern for Angular with strict unidirectional flow:\n1. **Actions**: Plain objects with a unique `type` identifier and optional `props`. They describe *events* that occurred (e.g. `[Auth Page] Login Submitted`), not direct commands.\n2. **Reducers**: Pure, synchronous functions `(state, action) => newState`. They must never mutate state directly or execute side effects; they produce a new state reference using object spread or immutable helpers.\n3. **Selectors**: Pure functions using `createSelector` that extract and compose specific slices of state. They provide automatic memoization—if the underlying input slices haven\'t changed, the selector returns the cached result without recomputing.\n4. **Effects**: RxJS-powered services that listen to the global action stream, perform asynchronous operations (API calls, storage), and dispatch new actions upon completion (e.g. `loginSuccess` or `loginFailure`).',
+    spokenTip: 'Unidirectional data flow: Components dispatch Actions, Reducers update State immutably, Selectors memoize queries, and Effects handle side-effects.',
+    example: {
+      language: 'typescript',
+      code: `import { createAction, props, createReducer, on, createSelector, createFeatureSelector } from '@ngrx/store';
 
-// 2. Pure Reducer
-export const authReducer = createReducer(
+// 1. Action
+export const loadProductsSuccess = createAction(
+  '[Products API] Load Products Success',
+  props<{ products: Product[] }>()
+);
+
+// 2. Reducer (Pure function)
+export interface ProductState {
+  items: Product[];
+  isLoading: boolean;
+}
+
+const initialState: ProductState = { items: [], isLoading: false };
+
+export const productReducer = createReducer(
   initialState,
-  on(AuthActions.loginSuccess, (state, { user, token }) => ({
+  on(loadProductsSuccess, (state, { products }) => ({
     ...state,
-    user,
-    token,
-    isLoading: false,
-    error: null
+    items: products,
+    isLoading: false
   }))
 );
 
 // 3. Memoized Selector
-export const selectAuthState = createFeatureSelector<AuthState>('auth');
-export const selectCurrentUser = createSelector(
-  selectAuthState,
-  (state) => state.user
-);
-export const selectIsAdmin = createSelector(
-  selectCurrentUser,
-  (user) => user?.roles.includes('ADMIN') ?? false
+export const selectProductState = createFeatureSelector<ProductState>('products');
+export const selectActiveProducts = createSelector(
+  selectProductState,
+  (state) => state.items.filter(p => p.isActive)
 );`,
-    tags: ['statemanagement', 'ngrx', 'redux', 'actions', 'reducers', 'selectors', 'effects']
+      explanation: 'Shows typed actions, pure immutable reducer updates, and memoized selectors.'
+    },
+    seniorPoint: 'Why immutability matters in NgRx: When reducers return new state references, `OnPush` components and memoized selectors instantly detect changes via shallow reference equality (`prev !== curr`), preventing expensive deep object tree traversals.',
+    followUps: [
+      {
+        question: 'Why should Actions be named as "Events" rather than "Commands"?',
+        answer: 'Event-driven naming (e.g. `[Order Page] Submit Clicked`) allows multiple independent reducers and effects to react to a single event, decoupling the UI from backend implementation details.'
+      },
+      {
+        question: 'How do you test an NgRx Reducer compared to an NgRx Effect?',
+        answer: 'Reducers are pure functions tested synchronously with simple input/output assertions. Effects involve asynchronous RxJS streams and are tested using marble testing or `jasmine-marbles` / `TestScheduler`.'
+      }
+    ],
+    keyPointsToMention: [
+      'Unidirectional data flow: Actions -> Reducers -> Store -> Selectors -> Components',
+      'Reducers must be 100% pure and synchronous',
+      'Selectors provide automatic memoization and fine-grained view subscriptions',
+      'Effects isolate asynchronous I/O and API calls'
+    ],
+    tags: ['ngrx', 'statemanagement', 'redux', 'actions', 'reducers', 'selectors', 'effects']
   },
   {
     id: 'state_02',
     category: 'statemanagement',
-    topic: 'State Architecture: Signals vs NgRx vs Services',
+    topic: 'State Architecture Landscape',
     difficulty: 'Senior',
-    question: 'When is a full NgRx Global Store overkill, and how do you choose between Signals, Services with Subjects, NgRx SignalStore, and NgRx Global Store?',
-    shortAnswer: 'Use Local Signals for component-only UI state; use Services with Signals/RxJS for feature-level shared state with moderate complexity; use `@ngrx/signals` (SignalStore) for lightweight, modular, reactive state with entity management; use the Global NgRx Store when managing massive multi-team enterprise apps with complex cross-feature synchronization, web socket streaming, caching, and strict audit/replay requirements.',
-    seniorPoint: '90% of frontend state is actually Server Cache (remote entity state) or Transient UI state. Over-engineering with boilerplate global actions for simple local CRUD slows development without architectural payoff.',
-    spokenTip: 'Default to simple Services with Signals or NgRx SignalStore; reserve full NgRx Store for complex, high-concurrency enterprise domains.',
-    interviewAnswer: 'State should live as close to where it is used as possible:\n1. **Local Component State**: Writable Signals (`signal()`). No service needed for toggle buttons or local modal state.\n2. **Feature/Shared State**: Injectable Service with Signals or `@ngrx/signals` `signalStore`. Perfect for managing a shopping cart or multi-step checkout.\n3. **NgRx SignalStore**: The modern sweet spot—combines signals reactivity, computed properties, entity adapters (`withEntities`), and async methods (`withMethods`) in a type-safe, lightweight, boilerplate-free package.\n4. **NgRx Global Store**: For large-scale distributed applications requiring time-travel debugging, complex action-driven cross-module coordination, offline sync, or shared state accessed across 10+ independent lazy-loaded features.',
-    keyPointsToMention: [
-      'State categorization: Local UI, Feature Shared, Global Domain, Server Cache',
-      'NgRx SignalStore as the modern Angular 17+ state solution',
-      'Cost-benefit analysis of Redux boilerplate vs developer velocity'
-    ],
-    whatInterviewersLookFor: [
-      'Pragmatic architectural decision-making rather than blindly prescribing Redux everywhere',
-      'Knowledge of modern NgRx SignalStore'
-    ],
-    codeExample: `import { signalStore, withState, withComputed, withMethods, withHooks } from '@ngrx/signals';
-import { withEntities, addEntity, removeEntity } from '@ngrx/signals/entities';
+    question: 'How do you choose between Signals in Services, NgRx SignalStore, and NgRx Global Store for enterprise Angular architectures?',
+    shortAnswer: 'Use **Signals in Services** for simple component trees and localized widget state. Use **NgRx SignalStore** for modular, feature-level state requiring structured methods, computed slices, and custom plugins with minimal boilerplate. Use **NgRx Global Store** for massive enterprise apps needing cross-feature event correlation, strict time-travel debugging, and audit logging.',
+    interviewAnswer: 'When architecting state in modern Angular, I match the tool to the complexity layer:\n1. **Component / Local State (Signals in Services)**: For simple features, private writable `signal()` properties inside a scoped `@Injectable()` service paired with `computed()` derived getters provide clean reactivity with zero boilerplate.\n2. **Feature / Module State (NgRx SignalStore)**: The modern sweet spot. `signalStore()` provides declarative state slices, custom `withMethods`, `withComputed`, and `withEntities`, offering type-safe structured state without the ceremony of actions/reducers.\n3. **Global Enterprise State (NgRx Global Store)**: For complex apps where 5+ distinct features react to a single event (e.g. user logout, multi-step checkout), global NgRx with Redux DevTools time-travel debugging, strict serializability, and meta-reducers is the gold standard.',
+    spokenTip: 'I use Signals in Services for local state, NgRx SignalStore for feature-level modular state, and NgRx Global Store when cross-domain event coordination is required.',
+    example: {
+      language: 'typescript',
+      code: `// Modern Feature State with NgRx SignalStore
+import { signalStore, withState, withComputed, withMethods, patchState } from '@ngrx/signals';
 import { computed, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap } from 'rxjs';
+import { ProductService } from './product.service';
 
-export interface Todo {
-  id: string;
-  title: string;
-  completed: boolean;
+export interface CatalogState {
+  products: Product[];
+  filterQuery: string;
+  loading: boolean;
 }
 
-export const TodoStore = signalStore(
+export const CatalogStore = signalStore(
   { providedIn: 'root' },
-  withEntities<Todo>(),
-  withState({ isLoading: false, filter: 'all' as 'all' | 'active' | 'completed' }),
-  withComputed(({ entities, filter }) => ({
-    filteredTodos: computed(() => {
-      const currentFilter = filter();
-      const list = entities();
-      if (currentFilter === 'active') return list.filter(t => !t.completed);
-      if (currentFilter === 'completed') return list.filter(t => t.completed);
-      return list;
-    })
+  withState<CatalogState>({ products: [], filterQuery: '', loading: false }),
+  withComputed(({ products, filterQuery }) => ({
+    filteredProducts: computed(() => 
+      products().filter(p => p.name.toLowerCase().includes(filterQuery().toLowerCase()))
+    ),
+    productCount: computed(() => products().length)
   })),
-  withMethods((store, http = inject(HttpClient)) => ({
-    loadTodos: rxMethod<void>(
-      pipe(
-        tap(() => patchState(store, { isLoading: true })),
-        switchMap(() => http.get<Todo[]>('/api/todos')),
-        tap((todos) => {
-          patchState(store, setAllEntities(todos), { isLoading: false });
-        })
-      )
-    )
+  withMethods((store, productService = inject(ProductService)) => ({
+    setFilter(query: string) {
+      patchState(store, { filterQuery: query });
+    },
+    async loadAll() {
+      patchState(store, { loading: true });
+      const items = await productService.fetchAll();
+      patchState(store, { products: items, loading: false });
+    }
   }))
 );`,
-    tags: ['statemanagement', 'signals', 'signal-store', 'ngrx', 'state-architecture']
+      explanation: 'Shows modern NgRx SignalStore with state slices, computed signals, and methods.'
+    },
+    seniorPoint: 'Avoid "State Bloat": Not all data belongs in global state. Transient form values, modal open/close states, and simple accordion toggles should remain local component signals.',
+    followUps: [
+      {
+        question: 'What is the performance difference between NgRx SignalStore and classic NgRx Store?',
+        answer: 'NgRx SignalStore updates fine-grained Signals directly at the component level without traversing the entire global selector tree, resulting in lower memory allocations and faster localized renders.'
+      },
+      {
+        question: 'How do you handle pagination and entity collections in NgRx SignalStore?',
+        answer: 'Using the `withEntities<Product>()` plugin, which provides built-in entity management helpers (`addEntity`, `setAllEntities`, `removeEntity`) similar to `@ngrx/entity`.'
+      }
+    ],
+    keyPointsToMention: [
+      'Three tiers: Signals in Services (local), SignalStore (feature/domain), Global NgRx (enterprise cross-cutting)',
+      'SignalStore provides declarative, plugin-based, type-safe state with zero boilerplate',
+      'Distinction between server state, global client state, and transient local component state'
+    ],
+    tags: ['angular', 'statemanagement', 'signals', 'signalstore', 'ngrx', 'architecture']
   },
   {
     id: 'state_03',
     category: 'statemanagement',
-    topic: 'State Normalization & Entity Adapters',
+    topic: 'State Normalization & @ngrx/entity',
     difficulty: 'Senior',
-    question: 'Why is State Normalization critical in complex frontend apps, and how does `@ngrx/entity` implement dictionary-based state?',
-    shortAnswer: 'State normalization avoids nested, duplicated data by storing entities in a flattened structure: a dictionary of `{ [id: string]: Entity }` (entities) and an ordered array of `ids: string[]`. This converts O(N) item lookups/updates into O(1) operations, eliminates inconsistencies when an item is updated in multiple places, and minimizes re-render cascades.',
-    seniorPoint: 'Nested arrays in state force developers to write deep immutable spreading (`state.authors.map(a => a.books.map(...))`), which is error-prone, garbage-collector heavy, and breaks selector memoization.',
-    spokenTip: 'Treat your frontend state like a relational database: flat tables keyed by ID with foreign key references rather than deeply nested trees.',
-    interviewAnswer: 'In complex applications, storing collections as arrays leads to problems:\n1. Updating a single item requires an `array.map()` scanning all items (O(N)).\n2. If the same entity appears in multiple lists (e.g. "Recent Posts" and "Author Posts"), updating it in one list leaves the other stale.\n\nNormalization structures state into:\n- `ids: string[]` (maintains ordering and pagination)\n- `entities: Record<string, T>` (hash map for instant O(1) access)\n\n`@ngrx/entity` provides prebuilt adapter methods (`addOne`, `updateOne`, `upsertMany`, `removeOne`) that perform immutable mutations efficiently and automatically generate memoized selectors (`selectAll`, `selectEntities`, `selectIds`, `selectTotal`).',
-    keyPointsToMention: [
-      'O(1) lookups vs O(N) array scans',
-      'Elimination of stale data anomalies when entities are shared across views',
-      '@ngrx/entity createEntityAdapter and adapter.getSelectors()',
-      'Selectors for mapping IDs back to denormalized view models for UI presentation'
-    ],
-    whatInterviewersLookFor: [
-      'Clear explanation of the dictionary + ID array pattern',
-      'Understanding of memory immutability and GC benefits'
-    ],
-    codeExample: `import { createEntityAdapter, EntityState, EntityAdapter } from '@ngrx/entity';
+    question: 'What is State Normalization, why is it critical for frontend performance, and how does @ngrx/entity achieve O(1) lookups?',
+    shortAnswer: 'State Normalization flattens nested relational data into dictionary maps indexed by ID (`{ ids: string[], entities: Record<string, T> }`). This eliminates data duplication, simplifies updates, and provides $O(1)$ constant-time lookup and mutation performance via `@ngrx/entity`.',
+    interviewAnswer: 'In complex applications, storing nested API responses (e.g. an Author containing an array of Books, which each contain an array of Comments) leads to data duplication and synchronization bugs: updating a book title in one view leaves stale titles in other views.\n\n**State Normalization** follows relational database principles:\n1. Each entity type has its own isolated table/slice in the store.\n2. Relationships are stored as arrays of IDs (e.g. `author.bookIds: [1, 2]`).\n3. `@ngrx/entity` standardizes this using `EntityState<T>` with `{ ids: [], entities: {} }`.\n4. Looking up or updating an entity by ID is $O(1)$ (`entities[id]`) instead of an $O(N)$ array scan (`items.find(x => x.id === id)`).\n5. Adapter helpers (`setAll`, `updateOne`, `removeOne`, `upsertMany`) automatically manage dictionary maps and order arrays.',
+    spokenTip: 'Normalizing state transforms nested data into flat ID-to-entity dictionaries, eliminating data duplication and enabling O(1) mutations.',
+    example: {
+      language: 'typescript',
+      code: `import { createEntityAdapter, EntityState, EntityAdapter } from '@ngrx/entity';
 import { createReducer, on } from '@ngrx/store';
 
-export interface Product {
+export interface User {
   id: string;
   name: string;
-  price: number;
+  email: string;
 }
 
-// 1. Normalized State Interface
-export interface ProductState extends EntityState<Product> {
-  selectedProductId: string | null;
-  isLoading: boolean;
-}
-
-// 2. Entity Adapter
-export const productAdapter: EntityAdapter<Product> = createEntityAdapter<Product>({
-  selectId: (product: Product) => product.id,
+// 1. Create Entity Adapter
+export const userAdapter: EntityAdapter<User> = createEntityAdapter<User>({
+  selectId: (user: User) => user.id,
   sortComparer: (a, b) => a.name.localeCompare(b.name)
 });
 
-export const initialProductState: ProductState = productAdapter.getInitialState({
-  selectedProductId: null,
-  isLoading: false
+// 2. Entity State: { ids: string[], entities: { [id: string]: User } }
+export interface UserState extends EntityState<User> {
+  selectedUserId: string | null;
+}
+
+export const initialUserState: UserState = userAdapter.getInitialState({
+  selectedUserId: null
 });
 
-// 3. Adapter operations are O(1) and immutable
-export const productReducer = createReducer(
-  initialProductState,
-  on(ProductActions.productUpdated, (state, { update }) => 
-    productAdapter.updateOne(update, state)
+// 3. O(1) Immutable Updates via Adapter
+export const userReducer = createReducer(
+  initialUserState,
+  on(UserActions.userUpdated, (state, { user }) => 
+    userAdapter.updateOne({ id: user.id, changes: user }, state) // O(1) Dictionary update!
   ),
-  on(ProductActions.productsLoaded, (state, { products }) => 
-    productAdapter.setAll(products, { ...state, isLoading: false })
+  on(UserActions.usersLoaded, (state, { users }) => 
+    userAdapter.setAll(users, state)
   )
 );`,
-    tags: ['statemanagement', 'normalization', 'entity-adapter', 'ngrx-entity', 'performance']
+      explanation: 'Demonstrates @ngrx/entity adapter setup, EntityState structure, and O(1) updateOne operations.'
+    },
+    seniorPoint: 'Denormalization (reconstructing nested view models for UI display) should happen exclusively in memoized Selectors. This keeps raw state flat while giving components rich derived data.',
+    followUps: [
+      {
+        question: 'How do you handle compound primary keys in `@ngrx/entity`?',
+        answer: 'Provide a custom `selectId` function to the adapter: `selectId: (item) => `${item.tenantId}_${item.id}``.'
+      },
+      {
+        question: 'What is the performance advantage of `updateOne` over array `.map()` in reducers?',
+        answer: 'Array `.map()` is $O(N)$ and creates a new array instance iterating over every single element. An entity dictionary update is $O(1)$ and only clones the modified entity entry.'
+      }
+    ],
+    keyPointsToMention: [
+      'Normalized schema: ids array + entities dictionary',
+      'Eliminates duplicate entities across different views',
+      'O(1) lookups and updates vs O(N) array scans',
+      'Denormalization occurs reactively inside memoized Selectors'
+    ],
+    tags: ['ngrx', 'entity', 'normalization', 'statemanagement', 'performance', 'data-structures']
+  },
+  {
+    id: 'state_04',
+    category: 'statemanagement',
+    topic: 'Zustand vs Redux Toolkit vs Signals',
+    difficulty: 'Senior',
+    question: 'Compare Zustand, Redux Toolkit, and Signals for client-side state management. Why has Zustand become the industry standard in React?',
+    shortAnswer: 'Zustand is a minimalist (<1KB), hook-based state library that requires zero Context Providers, supports fine-grained selector subscriptions (only re-renders when the selected property changes), and allows state access outside React components. Redux Toolkit has heavier action/reducer ceremony and larger bundle footprint. Signals provide automatic dependency tracking without explicit selector hooks.',
+    interviewAnswer: 'In modern state architecture:\n1. **Redux Toolkit (RTK)**: Solved classic Redux boilerplate using `createSlice` and Immer. However, it still requires wrapping the app in `<Provider store={store}>`, writing actions, and maintaining serializable state rules. It is best for massive enterprise teams requiring strict architectural guardrails.\n2. **Zustand**: Created a massive paradigm shift in React. You create a store with `create((set, get) => ({ ... }))`. Components subscribe via selectors `useStore(state => state.activeId)`. It has **no Context provider wrapper**, eliminates 80% of boilerplate, has tiny bundle overhead (<1KB), and supports async actions natively.\n3. **Signals (Angular / Preact / Solid)**: Eliminates selector subscriptions altogether. Reading `count()` dynamically subscribes the view to that specific signal at runtime with zero manual selector maintenance.',
+    spokenTip: 'Zustand won in React because it gives selector-based subscriptions and clean async actions with zero provider wrappers and under 1KB bundle size.',
+    example: {
+      language: 'typescript',
+      code: `import { create } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
+
+interface CartStore {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  clear: () => void;
+  totalCount: () => number;
+}
+
+export const useCartStore = create<CartStore>()(
+  devtools(
+    persist(
+      (set, get) => ({
+        items: [],
+        addItem: (item) => set(state => ({ items: [...state.items, item] })),
+        removeItem: (id) => set(state => ({ items: state.items.filter(i => i.id !== id) })),
+        clear: () => set({ items: [] }),
+        totalCount: () => get().items.length
+      }),
+      { name: 'cart-storage' } // Automatic LocalStorage persistence!
+    )
+  )
+);
+
+// Usage in Component: Only re-renders when itemCount changes!
+export function CartBadge() {
+  const itemCount = useCartStore(state => state.items.length);
+  return <div className="badge">{itemCount}</div>;
+}`,
+      explanation: 'Shows Zustand store with devtools and persist middleware, and fine-grained selector subscription.'
+    },
+    seniorPoint: 'Zustand allows reading and mutating state outside of React component lifecycles via `useCartStore.getState()` and `useCartStore.setState()`. This enables clean integration inside API interceptors, Web Workers, and non-React utility files.',
+    followUps: [
+      {
+        question: 'How do you prevent re-renders when selecting multiple properties from a Zustand store?',
+        answer: 'Use `useShallow` from `zustand/react/shallow`: `const { name, role } = useCartStore(useShallow(state => ({ name: state.name, role: state.role })))`.'
+      },
+      {
+        question: 'Why doesn\'t Zustand suffer from the Context re-render performance bug?',
+        answer: 'Because Zustand uses an external event-emitter subscriber pattern (via React\'s `useSyncExternalStore`) rather than React Context, notifying only the specific component instances whose selector return values have changed.'
+      }
+    ],
+    keyPointsToMention: [
+      'Zustand: Hook-based, zero Context Provider required, <1KB bundle',
+      'useSyncExternalStore under the hood for selective subscriber re-renders',
+      'Accessing state outside React via getState() / setState() (useful in HTTP interceptors)',
+      'Comparison with RTK slices and Angular Signals'
+    ],
+    tags: ['statemanagement', 'zustand', 'redux-toolkit', 'signals', 'react', 'performance']
+  },
+  {
+    id: 'state_05',
+    category: 'statemanagement',
+    topic: 'Derived State & Single Source of Truth',
+    difficulty: 'Senior',
+    question: 'What is Derived State, and why is duplicating derived calculations into writable state (e.g. syncing props to state in useEffect) a critical anti-pattern?',
+    shortAnswer: 'Derived State is any value that can be computed synchronously from existing state or props (e.g. `fullName = firstName + " " + lastName` or `filteredItems = items.filter(...)`). Duplicating derived values into a separate `useState` or `signal` creates synchronization bugs, stale data, and redundant re-renders. Always compute derived state dynamically or memoize it via `computed()` / `useMemo()`.',
+    interviewAnswer: 'A very common anti-pattern in frontend codebases is storing computed values in writable state and writing `useEffect` or `ngOnChanges` to keep them synchronized:\n\n1. **The Bug**: If you have `items` state and `filteredItems` state, updating `items` requires remembering to update `filteredItems`. If an async response arrives, or a filter dropdown changes, state easily goes out of sync, displaying stale or conflicting information.\n2. **Single Source of Truth**: Keep only the raw, foundational data in state (the `items` array and the `filterQuery` string). Calculate `filteredItems` on the fly during render or via a memoized derivation.\n3. **Modern Derivation Tools**:\n   - *Angular*: `filteredItems = computed(() => this.items().filter(...))`.\n   - *React*: `const filteredItems = useMemo(() => items.filter(...), [items, query])`.\n   - *NgRx*: Memoized Selectors (`createSelector`).',
+    spokenTip: 'Never store in state what can be calculated from existing state; use computed() or useMemo() to maintain a single source of truth.',
+    example: {
+      language: 'typescript',
+      code: `// ❌ BAD ANTI-PATTERN: Redundant state synced via effect
+function BadComponent({ users, query }: Props) {
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    // ⚠️ Extra re-render and risk of stale sync!
+    setFilteredUsers(users.filter(u => u.name.includes(query)));
+  }, [users, query]);
+
+  return <List items={filteredUsers} />;
+}
+
+// ✅ CLEAN SENIOR PATTERN: Pure Derived State (Single Source of Truth)
+function GoodComponent({ users, query }: Props) {
+  // Pure derivation during render (or memoized if array is huge)
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => u.name.toLowerCase().includes(query.toLowerCase()));
+  }, [users, query]);
+
+  return <List items={filteredUsers} />;
+}`,
+      explanation: 'Contrasts anti-pattern state synchronization via useEffect with pure derived state derivation.'
+    },
+    seniorPoint: 'In Angular Signals, `computed()` signals are **lazily evaluated and memoized**. If no template or effect reads the computed signal, it is never calculated. If its dependencies haven\'t changed, it returns the cached value in $O(1)$ time.',
+    followUps: [
+      {
+        question: 'When is it acceptable to copy a prop into local state?',
+        answer: 'Only when the prop represents an *initial seed value* for an editable form draft, where local changes are intentionally disconnected from parent prop updates (e.g. `initialDraft`).'
+      },
+      {
+        question: 'What is the "Glitch-Free" guarantee in reactive computation graphs?',
+        answer: 'It guarantees that when foundational state changes, derived signals update in topological order so that intermediate expressions never evaluate with mismatched or stale sibling state.'
+      }
+    ],
+    keyPointsToMention: [
+      'Single Source of Truth principle',
+      'Anti-pattern: syncing props or computed values to state via useEffect / ngOnChanges',
+      'Lazy memoization via computed() in Angular and useMemo in React',
+      'Glitch-free execution in modern reactive graphs'
+    ],
+    tags: ['statemanagement', 'derived-state', 'computed', 'single-source-of-truth', 'architecture', 'anti-patterns']
   }
 ];

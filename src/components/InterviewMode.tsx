@@ -38,10 +38,10 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
 }) => {
   // Session Configuration State
   const [isConfiguring, setIsConfiguring] = useState(true);
-  const [selectedCategories, setSelectedCategories] = useState<CategoryId[]>([
-    'web', 'dotnet', 'efcore', 'sql', 'apidesign', 'microservices', 'scenarios'
-  ]);
-  const [questionCount, setQuestionCount] = useState<number>(5);
+  const [selectedCategories, setSelectedCategories] = useState<CategoryId[]>(
+    Object.keys(categoriesMeta) as CategoryId[]
+  );
+  const [questionCount, setQuestionCount] = useState<number>(7);
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | 'All'>('All');
   const [onlyWeakOrUnseen, setOnlyWeakOrUnseen] = useState(false);
 
@@ -75,6 +75,27 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
     } else {
       setSelectedCategories([...selectedCategories, catId]);
     }
+  };
+
+  const selectFrontendOnly = () => {
+    const feCategories: CategoryId[] = [
+      'javascript', 'typescript', 'angular', 'rxjs', 'statemanagement',
+      'htmlcss', 'browser', 'performance', 'architecture', 'security',
+      'testing', 'patterns', 'a11y', 'tooling', 'gitworkflow',
+      'fesystemdesign', 'fescenarios', 'reactcore', 'reactadvanced'
+    ];
+    setSelectedCategories(feCategories);
+  };
+
+  const selectBackendOnly = () => {
+    const beCategories: CategoryId[] = [
+      'web', 'dotnet', 'efcore', 'sql', 'apidesign', 'microservices', 'systemdesign', 'scenarios'
+    ];
+    setSelectedCategories(beCategories);
+  };
+
+  const selectAll = () => {
+    setSelectedCategories(Object.keys(categoriesMeta) as CategoryId[]);
   };
 
   const handleStartSession = () => {
@@ -112,7 +133,9 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
 
   const handleGrade = (grade: AssessmentGrade) => {
     const newResult: MockInterviewResultItem = {
-      question: currentQuestion,
+      questionId: currentQuestion.id,
+      category: currentQuestion.category,
+      questionText: currentQuestion.question,
       grade,
       timeSpentSeconds: 120 - timerSeconds
     };
@@ -175,20 +198,46 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
             
             {/* Category Selectors */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
-                Target Topics (Select one or more)
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Target Topics ({selectedCategories.length}/{Object.keys(categoriesMeta).length} Selected)
+                </label>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                  >
+                    All (27)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectFrontendOnly}
+                    className="px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold"
+                  >
+                    Frontend (19)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectBackendOnly}
+                    className="px-2 py-0.5 rounded bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold"
+                  >
+                    Backend (8)
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50/50">
                 {(Object.keys(categoriesMeta) as CategoryId[]).map((catId) => {
                   const isSelected = selectedCategories.includes(catId);
                   return (
                     <button
                       key={catId}
                       onClick={() => toggleCategory(catId)}
-                      className={`p-3 rounded-lg text-xs font-semibold text-left border transition-all flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg text-xs font-semibold text-left border transition-all flex items-center justify-between ${
                         isSelected 
                           ? 'bg-indigo-50 border-indigo-300 text-indigo-900 shadow-xs' 
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       <span className="truncate">{categoriesMeta[catId].name}</span>
@@ -203,10 +252,10 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
-                  Question Count
+                  Question Count / Round Limit
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[3, 5, 10].map((num) => (
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[3, 5, 7, 10, 15, 999].map((num) => (
                     <button
                       key={num}
                       onClick={() => setQuestionCount(num)}
@@ -216,7 +265,7 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      {num} Questions
+                      {num === 999 ? 'All' : num}
                     </button>
                   ))}
                 </div>
@@ -232,9 +281,11 @@ export const InterviewMode: React.FC<InterviewModeProps> = ({
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="All">All Difficulties</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Strong Mid">Strong Mid</option>
+                  <option value="Senior">Senior</option>
                   <option value="Advanced">Advanced</option>
+                  <option value="Strong Mid">Strong Mid</option>
+                  <option value="Intermediate">Intermediate</option>
+                  <option value="Beginner">Beginner</option>
                 </select>
               </div>
             </div>

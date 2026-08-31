@@ -12,7 +12,9 @@ import {
   Search,
   Code2,
   Server,
-  Layers
+  Layers,
+  Zap,
+  RotateCcw
 } from 'lucide-react';
 import { Card, Deck } from '../types';
 
@@ -26,6 +28,7 @@ interface DecksViewProps {
   onExportData: () => void;
   onImportData: (file: File) => void;
   onRestoreDefaultDecks?: () => void;
+  onResetDeckSRS?: (deckId: string) => void;
 }
 
 const FRONTEND_CATEGORIES = new Set([
@@ -49,7 +52,8 @@ export function DecksView({
   onDeleteDeck,
   onExportData,
   onImportData,
-  onRestoreDefaultDecks
+  onRestoreDefaultDecks,
+  onResetDeckSRS
 }: DecksViewProps) {
   const [activeMenuDeckId, setActiveMenuDeckId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -237,6 +241,20 @@ export function DecksView({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {onRestoreDefaultDecks && (
+            <button
+              onClick={() => {
+                if (confirm('Reload all 27 built-in interview decks with the latest expanded questions?')) {
+                  onRestoreDefaultDecks();
+                }
+              }}
+              className="p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:bg-slate-700 text-indigo-300 text-xs flex items-center gap-1 active:scale-95 transition-all"
+              title="Reload & Refresh All Built-in Question Decks"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <label className="p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:bg-slate-700 text-slate-300 cursor-pointer text-xs flex items-center gap-1 active:scale-95 transition-all" title="Import JSON / Cards">
             <Upload className="w-3.5 h-3.5" />
             <input type="file" accept=".json,.csv" onChange={handleFileChange} className="hidden" />
@@ -283,7 +301,7 @@ export function DecksView({
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Sync & Load All 19 Frontend Decks</span>
+                  <span>Load All 27 Built-in Interview Decks</span>
                 </button>
               )}
             </div>
@@ -363,7 +381,7 @@ export function DecksView({
 
                 {/* Context Dropdown Menu */}
                 {isMenuOpen && (
-                  <div className="absolute right-3 top-14 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 min-w-[180px] space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-3 top-14 z-30 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 min-w-[200px] space-y-1 animate-in fade-in zoom-in-95 duration-100">
                     <button
                       onClick={() => {
                         onSelectDeckToStudy(deck);
@@ -374,6 +392,32 @@ export function DecksView({
                       <Play className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Study Deck ({totalDue} due)</span>
                     </button>
+
+                    <button
+                      onClick={() => {
+                        onSelectDeckToStudy(deck);
+                        setActiveMenuDeckId(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-amber-300 hover:bg-slate-800 text-left"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Practice All Cards ({totalCards})</span>
+                    </button>
+
+                    {onResetDeckSRS && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Reset progress for "${deck.name}" to review all cards fresh?`)) {
+                            onResetDeckSRS(deck.id);
+                          }
+                          setActiveMenuDeckId(null);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 text-left"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Reset Deck Progress</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {

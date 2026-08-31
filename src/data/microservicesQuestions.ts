@@ -28,6 +28,10 @@ Operational Overhead  | Low                            | High (Kubernetes, Traci
       {
         question: 'What is a Modular Monolith?',
         answer: 'A single deployable unit where code is strictly divided into decoupled domain modules with explicit interfaces, allowing easy extraction into microservices later if scaling demands it.'
+      },
+      {
+        question: 'What is Conway\'s Law and how does it relate to Microservices?',
+        answer: 'Conway\'s Law states that system architectures mirror the communication structures of the organization. Microservices succeed when cross-functional autonomous teams align 1-to-1 with individual domain services.'
       }
     ],
     keyPointsToMention: [
@@ -81,6 +85,10 @@ public class OrderService
       {
         question: 'What is the difference between an Event and a Command?',
         answer: 'A Command is an instruction to do something directed to a single handler (e.g. `ChargeCreditCardCommand`). An Event is a notification that something has already happened, broadcast to zero or many subscribers (e.g. `OrderPlacedEvent`).'
+      },
+      {
+        question: 'How do you prevent duplicate message processing in asynchronous consumers?',
+        answer: 'Implement Idempotent Consumer patterns using a unique message ID check in Redis or a SQL deduplication table before executing business logic.'
       }
     ],
     keyPointsToMention: [
@@ -121,6 +129,10 @@ builder.Services.AddHttpClient<IPaymentClient, PaymentClient>()
       {
         question: 'What is the Bulkhead Pattern?',
         answer: 'Isolating resources (like separate thread pools or HTTP connection pools) for different services so an outage in one downstream service cannot consume all system resources.'
+      },
+      {
+        question: 'What should a Circuit Breaker return when in the Open state?',
+        answer: 'Either fail fast immediately with a `503 Service Unavailable` / `BrokenCircuitException`, or execute a fallback policy returning cached or default data.'
       }
     ],
     keyPointsToMention: [
@@ -157,6 +169,10 @@ builder.Services.AddHttpClient<IPaymentClient, PaymentClient>()
       {
         question: 'When is Saga Orchestration preferred over Choreography?',
         answer: 'When the business workflow is complex with many steps (5+ services) or conditional branching. Orchestration prevents "spaghetti event dependencies" and makes the whole flow observable from a single coordinator.'
+      },
+      {
+        question: 'How does MassTransit or Temporal simplify Saga implementation in .NET?',
+        answer: 'MassTransit State Machines (`MassTransit.Automatonymous`) and Temporal provide state persistence, automatic compensation triggers, and timeout handling out of the box.'
       }
     ],
     keyPointsToMention: [
@@ -204,6 +220,10 @@ await transaction.CommitAsync();
       {
         question: 'What delivery guarantee does the Outbox pattern provide?',
         answer: 'At-least-once delivery. Consumers may receive duplicate messages if the publisher crashes after sending but before updating the Outbox table, so consumers must be idempotent.'
+      },
+      {
+        question: 'What is Change Data Capture (CDC) with Debezium as an alternative to polling the Outbox table?',
+        answer: 'Debezium reads the database transaction log directly (Postgres WAL / SQL Server CDC) and streams Outbox table inserts directly to Kafka without polling database tables.'
       }
     ],
     keyPointsToMention: [
@@ -240,6 +260,10 @@ builder.Services.AddOpenTelemetry()
       {
         question: 'What is the W3C Trace Context standard format?',
         answer: 'The `traceparent` header format: `00-{trace-id}-{parent-span-id}-{trace-flags}`.'
+      },
+      {
+        question: 'How do you configure Serilog to enrich all logs with the active OpenTelemetry TraceId?',
+        answer: 'Use `LogContext.PushProperty("TraceId", Activity.Current?.TraceId.ToString())` or Serilog\'s OpenTelemetry enricher package.'
       }
     ],
     keyPointsToMention: [
@@ -250,5 +274,57 @@ builder.Services.AddOpenTelemetry()
       'Display Correlation ID in error notifications for instant log triage'
     ],
     tags: ['Observability', 'Tracing', 'OpenTelemetry', 'Microservices', 'Angular']
+  },
+  {
+    id: 'ms-database-per-service-joins',
+    category: 'microservices',
+    topic: 'Cross-Service Data Queries (API Composition vs CQRS)',
+    difficulty: 'Senior',
+    question: 'In a Microservices architecture with Database-per-Service, you cannot perform SQL JOINs across databases. How do you query and aggregate data across services (API Composition vs CQRS/Materialized Views)?',
+    shortAnswer: 'Two main patterns replace cross-database SQL JOINs: 1) **API Composition**: An API Gateway or aggregator service calls multiple microservices concurrently via HTTP/gRPC and joins the responses in memory. 2) **CQRS with Materialized Read Models**: Services publish domain events to Kafka/RabbitMQ whenever data changes, and a dedicated Read/Query Service projects and denormalizes the data into an optimized read database.',
+    interviewAnswer: 'In a microservices architecture where each service strictly owns its own private database, fetching a single UI screen that displays Order, Customer, and Shipping details cannot be done with `SELECT * FROM Orders JOIN Customers JOIN Shipping`. We solve this using two primary architectural patterns:\n\n1. **API Composition (Aggregator Pattern)**:\n   - An API Gateway or Backend-for-Frontend (BFF) receives the client request.\n   - It invokes `OrderService`, `CustomerService`, and `ShippingService` concurrently (using `Task.WhenAll` in .NET or `forkJoin` in Angular).\n   - It stitches the three JSON responses together in memory and returns a single unified View Model to the UI.\n   - *Pros*: Simple to build, always 100% real-time fresh.\n   - *Cons*: Higher latency (bounded by the slowest service), inefficient for complex multi-table sorting or pagination.\n\n2. **CQRS & Materialized Read Model (Recommended for High Scale)**:\n   - Write services (`OrderService`, `CustomerService`) maintain their private normalized transactional DBs.\n   - Whenever state changes, they publish domain events to RabbitMQ/Kafka (`OrderPlaced`, `CustomerProfileUpdated`).\n   - A dedicated **Reporting / Query Service** subscribes to these events and writes denormalized, pre-joined documents directly into an Elasticsearch or PostgreSQL read database.\n   - UI queries hit this single pre-joined read model in sub-10ms with full pagination and search support.',
+    spokenTip: 'Use API Composition (Task.WhenAll / BFF) for simple real-time aggregation, and CQRS Materialized Read Models via Kafka events for high-scale complex queries and pagination.',
+    example: {
+      language: 'csharp',
+      code: `// 1. API Composition via Backend-For-Frontend (BFF) in ASP.NET Core
+[HttpGet("dashboard/{userId}")]
+public async Task<ActionResult<UserDashboardViewModel>> GetDashboard(string userId, CancellationToken ct)
+{
+    // Fire concurrent HTTP calls to independent microservices
+    var userTask = _userClient.GetUserAsync(userId, ct);
+    var ordersTask = _orderClient.GetRecentOrdersAsync(userId, ct);
+    var notificationsTask = _notifClient.GetUnreadCountAsync(userId, ct);
+
+    await Task.WhenAll(userTask, ordersTask, notificationsTask);
+
+    // In-memory composition into clean UI View Model
+    return Ok(new UserDashboardViewModel
+    {
+        Profile = await userTask,
+        RecentOrders = await ordersTask,
+        UnreadNotifications = await notificationsTask
+    });
+}`,
+      explanation: 'API Composition pattern running parallel microservice calls using Task.WhenAll.'
+    },
+    seniorPoint: 'Materialized Read Models introduce **Eventual Consistency**. If a customer updates their address, there may be a 200ms-500ms lag before the query read model updates via the event stream. Design the frontend UI with optimistic updates so the user perceives instant changes.',
+    followUps: [
+      {
+        question: 'What is the biggest risk of API Composition across 5+ services?',
+        answer: 'Availability multiplication: If each of the 5 services has 99% uptime, the composed endpoint has only $0.99^5 \\approx 95.1\\%$ uptime, and latency is strictly determined by the slowest microservice.'
+      },
+      {
+        question: 'How does the Backend-For-Frontend (BFF) pattern relate to API Composition?',
+        answer: 'A BFF is a specialized API Gateway tailored to a specific client (e.g. Angular Web BFF vs Mobile App BFF) that handles API composition, payload reduction, and cookie authentication translation.'
+      }
+    ],
+    keyPointsToMention: [
+      'Database-per-service prevents cross-database SQL joins',
+      'API Composition (in-memory aggregation via Task.WhenAll / BFF)',
+      'CQRS with Materialized Read Models (event-driven denormalization via Kafka/RabbitMQ)',
+      'Eventual consistency trade-off in CQRS read models',
+      'Availability degradation risk with multi-service synchronous composition'
+    ],
+    tags: ['Microservices', 'CQRS', 'API Composition', 'BFF', 'Architecture', 'System Design']
   }
 ];

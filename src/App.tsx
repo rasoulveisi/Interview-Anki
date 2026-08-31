@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Deck, ReviewRating, UserProfile } from './types';
-import { auth, DatabaseService } from './firebase';
+import { auth, DatabaseService, generateDefaultDecksAndCards } from './firebase';
 import { onAuthStateChanged, signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { calculateNextReview } from './utils/srs';
 import { MobileHeader } from './components/MobileHeader';
@@ -14,9 +14,17 @@ import { UserProfileModal } from './components/UserProfileModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [decks, setDecks] = useState<Deck[]>([]);
-  const [cards, setCards] = useState<Card[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(() => DatabaseService.getLocalProfile());
+  const [decks, setDecks] = useState<Deck[]>(() => {
+    const local = DatabaseService.getLocalDecks();
+    if (local && local.length > 0) return local;
+    return generateDefaultDecksAndCards('local_user').decks;
+  });
+  const [cards, setCards] = useState<Card[]>(() => {
+    const local = DatabaseService.getLocalCards();
+    if (local && local.length > 0) return local;
+    return generateDefaultDecksAndCards('local_user').cards;
+  });
   const [currentTab, setCurrentTab] = useState<'decks' | 'study' | 'add' | 'browser' | 'stats'>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
@@ -221,14 +229,45 @@ export default function App() {
     await DatabaseService.deleteDeck(deckId, currentUser?.uid || 'local_user');
   };
 
-  // Sync / Restore All Default 27 Decks
+  const handleResetDeckSRS = async (deckId: string) => {
+    const nowTime = Date.now();
+    const updatedCards = cards.map(c => {
+      if (c.deckId === deckId) {
+        return {
+          ...c,
+          state: 'new' as const,
+          due: nowTime,
+          interval: 0,
+          easeFactor: 2.5,
+          repetitions: 0,
+          lapses: 0,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return c;
+    });
+
+    setCards(updatedCards);
+    for (const c of updatedCards.filter(c => c.deckId === deckId)) {
+      await DatabaseService.saveCard(c);
+    }
+  };
+
+  // Sync / Restore All Default 27 Decks (Optimistic instant response)
   const handleSyncDefaultDecks = async () => {
+    const userId = currentUser?.uid || 'local_user';
+    const { decks: freshDecks, cards: freshCards } = generateDefaultDecksAndCards(userId);
+    
+    // 1. Instant 0ms local state update
+    setDecks(freshDecks);
+    setCards(freshCards);
+    DatabaseService.saveLocalDecks(freshDecks);
+    DatabaseService.saveLocalCards(freshCards);
     setSyncStatus('syncing');
+
+    // 2. Non-blocking cloud sync in background
     try {
-      const userId = currentUser?.uid || 'local_user';
-      const result = await DatabaseService.syncAllDefaultDecks(userId);
-      setDecks(result.decks);
-      setCards(result.cards);
+      await DatabaseService.syncAllDefaultDecks(userId);
       setSyncStatus('synced');
     } catch (err) {
       console.warn('Sync default decks error:', err);
@@ -332,6 +371,7 @@ export default function App() {
             onExportData={handleExportData}
             onImportData={handleImportData}
             onRestoreDefaultDecks={handleSyncDefaultDecks}
+            onResetDeckSRS={handleResetDeckSRS}
           />
         )}
 
@@ -339,9 +379,12 @@ export default function App() {
           <StudySessionView
             deck={selectedDeck}
             cards={cards}
+            allDecks={decks}
+            onSelectDeck={(d) => setSelectedDeck(d)}
             onReviewCard={handleReviewCard}
             onEditCard={handleEditCardModal}
             onToggleFavorite={handleToggleFavorite}
+            onResetDeckSRS={handleResetDeckSRS}
             onBackToDecks={() => {
               setCurrentTab('decks');
             }}
@@ -395,7 +438,7 @@ export default function App() {
         onDelete={handleDeleteCard}
       />
 
-      {/* User Profile & Firebase Sync Modal */}
+      {/* User Profile, Daily Limits & Firebase Sync Modal */}
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -405,6 +448,10 @@ export default function App() {
         totalDecks={decks.length}
         onExportData={handleExportData}
         onImportData={handleImportData}
+        onUpdateProfile={async (updatedProfile) => {
+          setProfile(updatedProfile);
+          await DatabaseService.saveUserProfile(updatedProfile);
+        }}
         onForceSync={async () => {
           if (currentUser) {
             setSyncStatus('syncing');

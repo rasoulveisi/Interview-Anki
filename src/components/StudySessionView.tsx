@@ -3,18 +3,17 @@ import {
   Volume2, 
   VolumeX, 
   Star, 
-  RotateCcw, 
-  Sparkles, 
-  CheckCircle2, 
   Edit3, 
-  ChevronRight, 
   Code, 
-  Flame, 
-  Layers,
   ArrowLeft,
-  Info
+  ChevronLeft,
+  ChevronRight,
+  Shuffle,
+  RotateCcw,
+  Sparkles,
+  Layers,
+  CheckCircle2
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { Card, Deck, ReviewRating } from '../types';
 import { calculateNextReview, getCardBadgeColor } from '../utils/srs';
 import { speakText, stopSpeaking } from '../utils/speech';
@@ -22,43 +21,65 @@ import { speakText, stopSpeaking } from '../utils/speech';
 interface StudySessionViewProps {
   deck: Deck | null;
   cards: Card[];
+  allDecks?: Deck[];
+  onSelectDeck?: (deck: Deck) => void;
   onReviewCard: (card: Card, rating: ReviewRating, timeSpentMs: number) => void;
   onEditCard: (card: Card) => void;
   onToggleFavorite: (card: Card) => void;
   onBackToDecks: () => void;
+  onResetDeckSRS?: (deckId: string) => void;
 }
 
 export function StudySessionView({
   deck,
   cards,
+  allDecks = [],
+  onSelectDeck,
   onReviewCard,
   onEditCard,
   onToggleFavorite,
-  onBackToDecks
+  onBackToDecks,
+  onResetDeckSRS
 }: StudySessionViewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [cardStartTime, setCardStartTime] = useState<number>(Date.now());
-  const [sessionCompleted, setSessionCompleted] = useState(false);
   const [sessionReviewCount, setSessionReviewCount] = useState(0);
+  const [shuffledOrder, setShuffledOrder] = useState<string[] | null>(null);
 
-  const now = Date.now();
-
-  // Filter study queue for active deck or all decks
-  const studyQueue = useMemo(() => {
-    let filtered = deck ? cards.filter(c => c.deckId === deck.id) : [...cards];
-    // Due cards or new cards
-    return filtered.filter(c => c.state === 'new' || c.state === 'learning' || c.state === 'relearning' || (c.state === 'review' && c.due <= now));
+  // All cards for the current deck (or all cards if All Decks selected) - Never limited or filtered out
+  const rawDeckCards = useMemo(() => {
+    return deck ? cards.filter(c => c.deckId === deck.id) : [...cards];
   }, [deck, cards]);
 
-  const currentCard = studyQueue[currentIndex] || null;
+  // Handle optional shuffle ordering
+  const activeCards = useMemo(() => {
+    if (!shuffledOrder) return rawDeckCards;
+    const cardMap = new Map<string, Card>(rawDeckCards.map(c => [c.id, c]));
+    const ordered: Card[] = [];
+    shuffledOrder.forEach(id => {
+      const c = cardMap.get(id);
+      if (c) ordered.push(c);
+    });
+    // Add any newly added cards that weren't in shuffle list
+    rawDeckCards.forEach(c => {
+      if (!shuffledOrder.includes(c.id)) ordered.push(c);
+    });
+    return ordered;
+  }, [rawDeckCards, shuffledOrder]);
 
-  // Track session progress counts
-  const remainingNew = studyQueue.filter(c => c.state === 'new').length;
-  const remainingLearn = studyQueue.filter(c => c.state === 'learning' || c.state === 'relearning').length;
-  const remainingReview = studyQueue.filter(c => c.state === 'review' && c.due <= now).length;
+  // Reset index when switching decks
+  useEffect(() => {
+    setCurrentIndex(0);
+    setShuffledOrder(null);
+    setIsFlipped(false);
+    setShowNotes(false);
+    setCardStartTime(Date.now());
+  }, [deck?.id]);
+
+  const currentCard = activeCards[currentIndex] || activeCards[0] || null;
 
   useEffect(() => {
     setIsFlipped(false);
@@ -68,18 +89,7 @@ export function StudySessionView({
     setIsSpeaking(false);
   }, [currentIndex, currentCard?.id]);
 
-  useEffect(() => {
-    if (studyQueue.length === 0 && sessionReviewCount > 0 && !sessionCompleted) {
-      setSessionCompleted(true);
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-  }, [studyQueue.length, sessionReviewCount, sessionCompleted]);
-
-  // SM-2 Next intervals preview for buttons
+  // Next intervals preview for SM-2 buttons
   const intervals = useMemo(() => {
     if (!currentCard) return null;
     return {
@@ -94,19 +104,47 @@ export function StudySessionView({
     setIsFlipped(prev => !prev);
   }, []);
 
+  const handleNext = useCallback(() => {
+    if (activeCards.length === 0) return;
+    setCurrentIndex(prev => (prev + 1) % activeCards.length);
+  }, [activeCards.length]);
+
+  const handlePrev = useCallback(() => {
+    if (activeCards.length === 0) return;
+    setCurrentIndex(prev => (prev - 1 + activeCards.length) % activeCards.length);
+  }, [activeCards.length]);
+
   const handleRate = useCallback((rating: ReviewRating) => {
-    if (!currentCard) return;
+    if (!currentCard || activeCards.length === 0) return;
+
     const timeSpent = Math.max(500, Date.now() - cardStartTime);
+    
+    // Save review rating and update SRS state
     onReviewCard(currentCard, rating, timeSpent);
     setSessionReviewCount(prev => prev + 1);
 
-    // Advance or loop in queue
-    if (currentIndex >= studyQueue.length - 1) {
-      setCurrentIndex(0);
-    }
-  }, [currentCard, cardStartTime, onReviewCard, currentIndex, studyQueue.length]);
+    // Smoothly advance to next card (continuous loop)
+    handleNext();
+  }, [currentCard, activeCards.length, cardStartTime, onReviewCard, handleNext]);
 
-  // Keyboard Shortcuts (Space = Flip, 1=Again, 2=Hard, 3=Good, 4=Easy)
+  const handleShuffle = () => {
+    const ids = rawDeckCards.map(c => c.id);
+    const shuffled = [...ids].sort(() => Math.random() - 0.5);
+    setShuffledOrder(shuffled);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
+
+  const handleResetProgress = () => {
+    if (deck && onResetDeckSRS) {
+      if (confirm(`Reset SRS progress for "${deck.name}"? All cards will be marked as new.`)) {
+        onResetDeckSRS(deck.id);
+        setCurrentIndex(0);
+      }
+    }
+  };
+
+  // Keyboard Shortcuts (Space = Flip, Left/Right = Prev/Next, 1=Again, 2=Hard, 3=Good, 4=Easy)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -114,6 +152,12 @@ export function StudySessionView({
       if (e.code === 'Space' || e.key === 'Enter') {
         e.preventDefault();
         handleFlip();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
       } else if (isFlipped) {
         if (e.key === '1') handleRate('again');
         if (e.key === '2') handleRate('hard');
@@ -124,7 +168,7 @@ export function StudySessionView({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFlipped, handleFlip, handleRate]);
+  }, [isFlipped, handleFlip, handleRate, handleNext, handlePrev]);
 
   const handleSpeak = (text: string) => {
     if (isSpeaking) {
@@ -136,76 +180,84 @@ export function StudySessionView({
     }
   };
 
-  // Completion screen
-  if (studyQueue.length === 0 || sessionCompleted) {
+  // Empty custom deck safety state
+  if (!currentCard || activeCards.length === 0) {
     return (
-      <div className="max-w-md mx-auto px-4 py-10 pb-24 text-center space-y-6 animate-in fade-in duration-300">
-        <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-xl shadow-emerald-500/10">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="text-2xl font-black text-white">
-            Congratulations!
-          </h2>
-          <p className="text-sm text-slate-400">
-            You've finished all due cards for {deck ? `"${deck.name}"` : 'all decks'} today!
-          </p>
-        </div>
-
-        <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 grid grid-cols-2 gap-3 text-center">
-          <div className="bg-slate-900/60 rounded-xl p-3">
-            <div className="text-xs text-slate-400 font-semibold uppercase">Reviewed Today</div>
-            <div className="text-2xl font-black text-indigo-400">{sessionReviewCount}</div>
-          </div>
-          <div className="bg-slate-900/60 rounded-xl p-3">
-            <div className="text-xs text-slate-400 font-semibold uppercase">Retention Rate</div>
-            <div className="text-2xl font-black text-emerald-400">92%</div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 pt-2">
-          <button
-            onClick={onBackToDecks}
-            className="w-full py-3 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
-          >
-            Back to Deck List
-          </button>
-        </div>
+      <div className="max-w-md mx-auto px-4 py-12 text-center space-y-4">
+        <Layers className="w-12 h-12 text-slate-500 mx-auto" />
+        <h2 className="text-xl font-bold text-white">No cards in this deck</h2>
+        <p className="text-xs text-slate-400">
+          This deck does not have any cards yet.
+        </p>
+        <button
+          onClick={onBackToDecks}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all"
+        >
+          Back to Decks
+        </button>
       </div>
     );
   }
-
-  if (!currentCard) return null;
 
   const badge = getCardBadgeColor(currentCard.state);
 
   return (
     <div className="max-w-xl mx-auto px-3 sm:px-4 py-3 pb-28 space-y-3">
       
-      {/* Top Deck & Session Status Bar */}
-      <div className="flex items-center justify-between gap-2 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2">
-        <button
-          onClick={onBackToDecks}
-          className="flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="truncate max-w-[120px] sm:max-w-[200px]">
-            {deck ? deck.name : 'All Decks'}
-          </span>
-        </button>
+      {/* Top Deck Status & Navigation Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBackToDecks}
+            className="flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="truncate max-w-[120px] sm:max-w-[180px] font-bold">
+              {deck ? deck.name : 'All Decks'}
+            </span>
+          </button>
 
-        {/* Anki Progress Counters */}
-        <div className="flex items-center gap-1.5 bg-slate-900/80 px-2 py-1 rounded-lg border border-slate-700/50 text-xs font-black">
-          <span className="text-blue-400" title="New cards">{remainingNew}</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-amber-400" title="Learning cards">{remainingLearn}</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-emerald-400" title="Due review cards">{remainingReview}</span>
+          {/* Quick Deck Switcher Dropdown if allDecks provided */}
+          {allDecks && allDecks.length > 0 && onSelectDeck && (
+            <select
+              value={deck?.id || ''}
+              onChange={(e) => {
+                const targetDeck = allDecks.find(d => d.id === e.target.value);
+                if (targetDeck) onSelectDeck(targetDeck);
+              }}
+              className="bg-slate-900 border border-slate-700 text-slate-300 text-[11px] rounded-lg px-2 py-0.5 focus:outline-none focus:border-indigo-500 max-w-[130px] truncate"
+            >
+              {allDecks.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {/* Action icons */}
-        <div className="flex items-center gap-1">
+        {/* Card Counter & Shuffle/Reset Actions */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-mono font-bold text-indigo-300 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
+            {currentIndex + 1} / {activeCards.length}
+          </span>
+
+          <button
+            onClick={handleShuffle}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors"
+            title="Shuffle cards order"
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+          </button>
+
+          {deck && onResetDeckSRS && (
+            <button
+              onClick={handleResetProgress}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors"
+              title="Reset deck progress to new"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
             onClick={() => onToggleFavorite(currentCard)}
             className={`p-1.5 rounded-lg transition-colors ${
@@ -218,18 +270,18 @@ export function StudySessionView({
 
           <button
             onClick={() => onEditCard(currentCard)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 transition-colors"
             title="Edit card"
           >
-            <Edit3 className="w-4 h-4" />
+            <Edit3 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Main Flashcard Card Container */}
+      {/* Main Flashcard Container */}
       <div 
         onClick={!isFlipped ? handleFlip : undefined}
-        className={`bg-slate-800/90 border border-slate-700 rounded-2xl p-5 sm:p-6 shadow-2xl transition-all duration-200 min-h-[320px] flex flex-col justify-between ${
+        className={`bg-slate-800/90 border border-slate-700 rounded-2xl p-5 sm:p-6 shadow-2xl transition-all duration-200 min-h-[340px] flex flex-col justify-between ${
           !isFlipped ? 'cursor-pointer hover:border-slate-600 active:scale-[0.99]' : ''
         }`}
       >
@@ -244,6 +296,11 @@ export function StudySessionView({
               {currentCard.difficulty && (
                 <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300">
                   {currentCard.difficulty}
+                </span>
+              )}
+              {currentCard.tags && currentCard.tags.length > 0 && (
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-900/60 text-slate-400 border border-slate-700/50">
+                  {currentCard.tags[0]}
                 </span>
               )}
             </div>
@@ -266,7 +323,7 @@ export function StudySessionView({
           {/* Card Front / Question */}
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">
-              Question
+              Question ({currentIndex + 1}/{activeCards.length})
             </span>
             <h3 className="text-lg sm:text-xl font-bold text-white leading-snug">
               {currentCard.front}
@@ -333,7 +390,30 @@ export function StudySessionView({
         )}
       </div>
 
-      {/* Bottom Rating Bar (Anki SM-2 4 Buttons) */}
+      {/* Prev / Next Navigation Arrows */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <button
+          onClick={handlePrev}
+          className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-colors"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span>Previous</span>
+        </button>
+
+        <span className="text-[11px] text-slate-500 font-mono">
+          Reviews this session: <b className="text-slate-300">{sessionReviewCount}</b>
+        </span>
+
+        <button
+          onClick={handleNext}
+          className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 transition-colors"
+        >
+          <span>Next</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Bottom Rating Bar (Anki SM-2 4 Buttons: Again, Hard, Good, Easy) */}
       {isFlipped ? (
         <div className="grid grid-cols-4 gap-2 pt-1">
           

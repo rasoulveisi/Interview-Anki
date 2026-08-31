@@ -31,6 +31,14 @@ POST   /api/deleteCustomerById?id=42`,
       {
         question: 'Should endpoint URLs use plural or singular nouns?',
         answer: 'Plural nouns (`/api/users`, `/api/products`) are the industry standard because `/api/users` represents the collection and `/api/users/{id}` represents a single item in that collection.'
+      },
+      {
+        question: 'How deep should nested resource URLs go?',
+        answer: 'Limit nesting to maximum 2 levels deep (e.g. `/orders/{id}/items`). Beyond 2 levels (e.g. `/users/1/orders/2/items/3/taxes`), flatten the endpoint to top-level resources: `/order-items/{id}/taxes`.'
+      },
+      {
+        question: 'What is HATEOAS (Hypermedia As The Engine Of Application State)?',
+        answer: 'A REST constraint where API responses include hypermedia links (`_links`) pointing clients to valid subsequent actions (e.g. payment link, cancel link), reducing client-side hardcoded endpoint coupling.'
       }
     ],
     keyPointsToMention: [
@@ -74,6 +82,10 @@ public class OrdersController : ControllerBase
       {
         question: 'What is the `Sunset` HTTP Header?',
         answer: 'An HTTP response header (RFC 8594) returning a future date when an API endpoint or version will be permanently shut down.'
+      },
+      {
+        question: 'What are the pros and cons of Header Versioning vs URI Versioning?',
+        answer: 'Header versioning keeps URLs clean and REST-pure, but breaks browser URL testing, complicates CDN caching, and makes Postman/Swagger exploration harder.'
       }
     ],
     keyPointsToMention: [
@@ -123,6 +135,10 @@ public async Task<IActionResult> CreateOrder(
       {
         question: 'Why should prices never be sent in the client request body?',
         answer: 'Because any user can modify client-side JavaScript or intercept requests via DevTools/Postman and change an item price from $500 to $1.'
+      },
+      {
+        question: 'What is the Asynchronous Request-Reply pattern in REST APIs?',
+        answer: 'The server accepts a long-running request, returns `202 Accepted` with a `Location` header to a status check endpoint, and processes the job asynchronously in a background worker.'
       }
     ],
     keyPointsToMention: [
@@ -179,6 +195,10 @@ public async Task<PaymentResultDto> ProcessPaymentAsync(PaymentRequestDto req, s
       {
         question: 'What is the difference between RxJS `exhaustMap` and `switchMap` for a payment button?',
         answer: '`exhaustMap` ignores all new clicks until the current HTTP request finishes (preventing double submission). `switchMap` cancels the previous request and starts a new one (great for search typeaheads, but dangerous for payments).'
+      },
+      {
+        question: 'How long should idempotency keys be retained in Redis / Database?',
+        answer: 'Typically 24 to 48 hours with a TTL. After 24 hours, checkout sessions expire and duplicate attempts should be treated as fresh new transactions.'
       }
     ],
     keyPointsToMention: [
@@ -232,6 +252,10 @@ public IActionResult Login([FromBody] LoginDto dto) => Ok();`,
       {
         question: 'What is the difference between Fixed Window and Sliding Window rate limiting?',
         answer: 'Fixed Window can allow 2x traffic spikes at window boundaries (e.g. 100 requests at 0:59 and 100 requests at 1:01). Sliding Window divides the window into segments to provide smooth continuous enforcement.'
+      },
+      {
+        question: 'What is the Token Bucket algorithm and when is it best used?',
+        answer: 'A bucket holds tokens up to a capacity and refills at a constant rate. Requests consume a token. It allows temporary bursts of traffic while enforcing a steady long-term rate limit.'
       }
     ],
     keyPointsToMention: [

@@ -33,6 +33,14 @@ export const efCoreQuestions: Question[] = [
       {
         question: 'What design patterns are implemented inside EF Core?',
         answer: 'Unit of Work (via DbContext and SaveChanges), Repository (via DbSet<T>), Identity Map, and Data Mapper.'
+      },
+      {
+        question: 'What is the difference between Fluent API and Data Annotations for entity configuration?',
+        answer: 'Data Annotations use C# attributes on entity classes (e.g. `[Required]`, `[MaxLength(50)]`). Fluent API configures mappings in `OnModelCreating`, keeping domain entities pure POCOs without database concerns and supporting advanced mappings like composite keys, shadow properties, and table splitting.'
+      },
+      {
+        question: 'What is DbContext Pooling (`AddDbContextPool`)?',
+        answer: 'DbContext Pooling reuses DbContext instances from an internal pool across requests rather than allocating a new instance per HTTP request, reducing memory allocations in high-throughput APIs.'
       }
     ],
     keyPointsToMention: [
@@ -71,6 +79,14 @@ var filtered = allOrders.Where(o => o.Status == "Shipped").ToList();`,
       {
         question: 'What happens if you use a C# method inside a LINQ where clause that EF Core cannot translate to SQL?',
         answer: 'In modern EF Core 3+, it throws an InvalidOperationException at runtime. (Older versions silently did client evaluation, which caused severe performance bugs).'
+      },
+      {
+        question: 'How do you compose dynamic search queries conditionally with IQueryable?',
+        answer: 'Chain `.Where()` calls: `if (!string.IsNullOrEmpty(search)) query = query.Where(p => p.Name.Contains(search));` without calling `ToListAsync()` until all filters are attached.'
+      },
+      {
+        question: 'What is the difference between `FirstAsync()`, `FirstOrDefaultAsync()`, `SingleAsync()`, and `SingleOrDefaultAsync()`?',
+        answer: '`FirstAsync` takes the first match and throws if empty; `FirstOrDefaultAsync` returns null if empty. `SingleAsync` generates `TOP 2` SQL and throws if there is more than 1 match; `SingleOrDefaultAsync` throws if more than 1 match exists.'
       }
     ],
     keyPointsToMention: [
@@ -80,7 +96,7 @@ var filtered = allOrders.Where(o => o.Status == "Shipped").ToList();`,
       'Premature AsEnumerable() or ToList() causes massive network and memory waste',
       'Dynamic query composition on IQueryable before materialization'
     ],
-    tags: ['LINQ', 'IQueryable', 'IEnumerable', 'EF Core', 'Performance']
+    tags: ['LINQ', 'IQueryable', 'IEnumerable', 'EF Core', 'Performance', 'C#']
   },
   {
     id: 'efcore-change-tracking-asnotracking',
@@ -110,6 +126,10 @@ public async Task<ActionResult<List<ProductDto>>> GetProducts()
       {
         question: 'What is `AsNoTrackingWithIdentityResolution()`?',
         answer: 'It disables change tracking but preserves the Identity Map so that if the same entity appears multiple times in a graph query (e.g. multiple orders having the same customer), only one instance is instantiated in memory.'
+      },
+      {
+        question: 'How can you set `AsNoTracking` globally as the default behavior in DbContext?',
+        answer: 'In `OnConfiguring` or DI registration: `options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);`. Individual write operations opt in using `.AsTracking()`.'
       }
     ],
     keyPointsToMention: [
@@ -155,6 +175,10 @@ var blogSummaries = await _db.Blogs
       {
         question: 'When is `.AsSplitQuery()` recommended?',
         answer: 'When eager-loading multiple collections on a single entity to avoid cartesian explosion, while balancing the risk of concurrent data updates between split queries.'
+      },
+      {
+        question: 'What is Filtered Include in EF Core?',
+        answer: 'Applying a `.Where()` or `.OrderBy()` inside `.Include()`: `.Include(b => b.Posts.Where(p => p.IsPublished))` to load only a filtered subset of child records.'
       }
     ],
     keyPointsToMention: [
@@ -193,6 +217,10 @@ var highSpenders = await connection.QueryAsync<CustomerReportDto>(
       {
         question: 'Can you use EF Core and Dapper together in the same project?',
         answer: 'Yes! Both can share the same database connection and transaction via `_dbContext.Database.GetDbConnection()`.'
+      },
+      {
+        question: 'What are EF Core Compiled Queries (`EF.CompileAsyncQuery`)?',
+        answer: 'A technique that compiles LINQ expression trees into delegate functions once, skipping the expression tree parsing overhead on subsequent query executions for sub-millisecond hot paths.'
       }
     ],
     keyPointsToMention: [
@@ -241,6 +269,10 @@ catch (DbUpdateConcurrencyException ex)
       {
         question: 'When would you still use Pessimistic locking?',
         answer: 'In high-contention financial systems or ticket reservations where conflicts are extremely frequent and retrying optimistic transactions would cause excessive rollbacks.'
+      },
+      {
+        question: 'How do you implement client-wins or database-wins conflict resolution in EF Core?',
+        answer: 'Catch `DbUpdateConcurrencyException`, call `entry.GetDatabaseValuesAsync()`, and overwrite either current values with database values (store-wins) or refresh the original version snapshot and call `SaveChanges` again (client-wins).'
       }
     ],
     keyPointsToMention: [
@@ -251,5 +283,92 @@ catch (DbUpdateConcurrencyException ex)
       'Crucial for stateless REST API transactions'
     ],
     tags: ['EF Core', 'Concurrency', 'Transactions', 'Database', 'ASP.NET Core']
+  },
+  {
+    id: 'efcore-bulk-operations',
+    category: 'efcore',
+    topic: 'Bulk Operations (ExecuteUpdate & ExecuteDelete)',
+    difficulty: 'Senior',
+    question: 'How do ExecuteUpdateAsync and ExecuteDeleteAsync in EF Core 7/8 perform bulk database modifications, and how do they differ from traditional SaveChangesAsync?',
+    shortAnswer: '`ExecuteUpdateAsync` and `ExecuteDeleteAsync` translate directly into single SQL `UPDATE` and `DELETE` commands executed on the database server without loading entities into memory or attaching them to the `ChangeTracker`. This runs orders of magnitude faster ($O(1)$ network roundtrip) for bulk operations than the traditional approach of loading 10,000 entities into RAM and calling `SaveChangesAsync()`.',
+    interviewAnswer: 'Historically, doing bulk updates in EF Core required fetching entities into memory, modifying properties on each C# object, and calling `SaveChangesAsync()`. If updating 10,000 records, this meant downloading 10,000 rows into RAM, creating 10,000 change tracker snapshots, and executing 10,000 individual SQL statements or a massive batch.\n\nIn EF Core 7 and 8+:\n1. **`ExecuteUpdateAsync`**: Generates a direct SQL `UPDATE Users SET Status = \\\'Inactive\\\' WHERE LastLogin < @date` on the database server.\n2. **`ExecuteDeleteAsync`**: Generates a direct SQL `DELETE FROM AuditLogs WHERE CreatedAt < @cutoff`.\n3. **Trade-offs & Warnings**:\n   - Because entities bypass the `ChangeTracker`, in-memory entity instances are NOT updated.\n   - Database interceptors and entity events (like auditing timestamps in `SaveChanges`) are bypassed unless handled explicitly in the SQL expression.',
+    spokenTip: 'ExecuteUpdateAsync and ExecuteDeleteAsync run direct SQL updates on the database without loading entities into memory or using the ChangeTracker.',
+    example: {
+      language: 'csharp',
+      code: `// ✅ Modern EF Core 7/8+: Direct bulk update on database server
+var cutoffDate = DateTime.UtcNow.AddMonths(-6);
+
+int affectedRows = await _db.Accounts
+    .Where(a => a.LastActivityAt < cutoffDate && a.IsActive)
+    .ExecuteUpdateAsync(setters => setters
+        .SetProperty(a => a.IsActive, false)
+        .SetProperty(a => a.DeactivatedAt, DateTime.UtcNow)
+    );
+
+// Bulk Delete: Single SQL DELETE statement
+await _db.TempUploads
+    .Where(t => t.ExpiresAt < DateTime.UtcNow)
+    .ExecuteDeleteAsync();`,
+      explanation: 'Uses ExecuteUpdateAsync and ExecuteDeleteAsync for high-performance direct SQL execution.'
+    },
+    seniorPoint: 'If you have loaded entities currently tracked in `DbContext.ChangeTracker` that match the updated rows, their in-memory values will become stale after calling `ExecuteUpdateAsync`. Call `_db.ChangeTracker.Clear()` to avoid inconsistencies.',
+    followUps: [
+      {
+        question: 'Can you use navigation properties and subqueries inside `ExecuteUpdateAsync`?',
+        answer: 'Yes! EF Core translates complex LINQ expressions, navigation joins, and mathematical calculations (e.g. `SetProperty(p => p.Price, p => p.Price * 1.1m)`) into valid SQL expressions.'
+      },
+      {
+        question: 'Why do `ExecuteUpdateAsync` and `ExecuteDeleteAsync` bypass EF Core concurrency tokens (`RowVersion`)?',
+        answer: 'Because they operate as direct bulk SQL commands across sets of rows rather than inspecting individual entity snapshots in the change tracker.'
+      }
+    ],
+    keyPointsToMention: [
+      'Direct SQL translation on DB server without materializing entities into memory',
+      'Bypasses EF Core Change Tracker (O(1) memory and single round-trip execution)',
+      'ChangeTracker in-memory entities become stale (call ChangeTracker.Clear())',
+      'Bypasses SaveChanges interceptors and entity lifecycle events'
+    ],
+    tags: ['EF Core', 'Bulk Operations', 'ExecuteUpdate', 'ExecuteDelete', 'Performance', 'SQL']
+  },
+  {
+    id: 'efcore-database-migrations-cicd',
+    category: 'efcore',
+    topic: 'Database Migrations & CI/CD Pipelines',
+    difficulty: 'Senior',
+    question: 'How do you architect EF Core Database Migrations for zero-downtime CI/CD production deployments? Why is context.Database.Migrate() at startup dangerous?',
+    shortAnswer: 'Running `context.Database.Migrate()` on application startup in production is dangerous because multiple container instances booting concurrently will race and deadlock on the `__EFMigrationsHistory` table, and a failed migration can crash all web pods. Instead, generate idempotent SQL scripts (`dotnet ef migrations script --idempotent`) and execute them in your CI/CD deployment pipeline or via a dedicated Kubernetes init-container/migration job.',
+    interviewAnswer: 'In enterprise production deployments, managing database migrations safely requires strict separation of concerns:\n\n1. **The Startup Migration Anti-Pattern (`context.Database.Migrate()`)**:\n   - *Race Conditions*: In a Kubernetes cluster with 5 replica pods starting at once, all 5 attempt to run migrations simultaneously, causing transaction lock contention, corrupted migration history, and app crashes.\n   - *Permissions Violation*: Web API applications should connect to the database with least-privilege users (DML: `SELECT`, `INSERT`, `UPDATE`, `DELETE`), NOT schema-modifying admin rights (DDL: `CREATE TABLE`, `ALTER TABLE`).\n2. **Production Best Practice: CI/CD Migration Scripts / Migration Bundles**:\n   - Generate an idempotent SQL script in the build pipeline: `dotnet ef migrations script --idempotent --output migration.sql`.\n   - Or build an executable **EF Core Migration Bundle**: `dotnet ef migrations bundle`.\n   - Run the migration bundle once inside the CI/CD pipeline (or a dedicated single-instance Kubernetes Job) using an elevated DB administrator connection before new application pods are deployed.\n3. **Zero-Downtime Expand/Contract Pattern**:\n   - Never rename or drop columns in a single release. Step 1 (Expand): Add new nullable column. Step 2: Deploy new app version writing to both. Step 3 (Contract): Backfill data and drop old column in a later release.',
+    spokenTip: 'Never run migrations inside app startup in production. Generate idempotent SQL scripts or Migration Bundles and run them in your CI/CD pipeline before deploying pods.',
+    example: {
+      language: 'bash',
+      code: `# 1. Generate self-contained Migration Executable Bundle in CI/CD pipeline
+dotnet ef migrations bundle --output ./bundle/migrate --self-contained -r linux-x64
+
+# 2. In CI/CD Deploy Stage (GitHub Actions / GitLab CI):
+# Run migration bundle once using admin connection string
+./bundle/migrate --connection "$DATABASE_ADMIN_CONNECTION_STRING"
+
+# 3. Deploy Kubernetes pods with least-privilege runtime connection strings`,
+      explanation: 'Builds and executes an EF Core Migration Bundle in a CI/CD deployment stage.'
+    },
+    seniorPoint: 'Always follow the **Expand/Contract Pattern** (Parallel Change) for zero-downtime deployments. Old application pods and new application pods run concurrently during rolling updates; schema changes must remain backward-compatible with the old application version.',
+    followUps: [
+      {
+        question: 'What is an Idempotent migration script (`--idempotent`)?',
+        answer: 'A SQL script containing `IF NOT EXISTS` checks against the `__EFMigrationsHistory` table for every migration block, ensuring the script can be run multiple times safely without applying duplicate changes.'
+      },
+      {
+        question: 'How do you handle data seeding for lookups (like Country or Role tables) in EF Core?',
+        answer: 'Use `HasData()` in `OnModelCreating` for static lookup metadata (which generates migration `INSERT` statements) or run a dedicated idempotent data seeder in CI/CD.'
+      }
+    ],
+    keyPointsToMention: [
+      'Danger of context.Database.Migrate() at startup: race conditions across multi-pod replicas and permission violations',
+      'Least-privilege runtime DB users (DML only) vs DDL migration users',
+      'EF Core Migration Bundles (dotnet ef migrations bundle) for CI/CD',
+      'Idempotent SQL script generation (--idempotent)',
+      'Expand/Contract (Parallel Change) pattern for zero-downtime database upgrades'
+    ],
+    tags: ['EF Core', 'Migrations', 'CI/CD', 'DevOps', 'Zero-Downtime', 'Kubernetes', 'Architecture']
   }
 ];

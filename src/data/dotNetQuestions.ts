@@ -25,8 +25,16 @@ app.Run();`,
     seniorPoint: 'Modern .NET eliminated the GAC (Global Assembly Cache) and machine-wide dependencies; apps are self-contained or framework-dependent deployments easily packaged in Docker Alpine/Debian distroless images.',
     followUps: [
       {
-        question: 'What is Kestrel?',
+        question: 'What is Kestrel in ASP.NET Core?',
         answer: 'Kestrel is ASP.NET Core\'s cross-platform, event-driven, high-performance web server based on Libuv and managed sockets.'
+      },
+      {
+        question: 'What is the difference between Controllers and Minimal APIs in .NET 8?',
+        answer: 'Controllers use reflection, action filters, and model binding within the MVC pipeline (great for large traditional CRUD APIs). Minimal APIs map routes directly to lambdas with minimal overhead and faster startup time (great for microservices and cloud functions).'
+      },
+      {
+        question: 'What is Native AOT (Ahead-Of-Time compilation) in .NET 8/9?',
+        answer: 'Native AOT compiles .NET C# directly into native machine code instead of IL bytecode and JIT, resulting in instant startup (<10ms), lower memory usage, and zero JIT overhead.'
       }
     ],
     keyPointsToMention: [
@@ -36,7 +44,7 @@ app.Run();`,
       'High-performance Kestrel web server',
       'Lightweight memory footprint compared to legacy System.Web'
     ],
-    tags: ['ASP.NET Core', '.NET', 'Architecture', 'C#']
+    tags: ['ASP.NET Core', '.NET', 'Architecture', 'C#', 'Cross-Platform']
   },
   {
     id: 'dotnet-middleware-pipeline',
@@ -76,6 +84,14 @@ app.MapControllers();`,
       {
         question: 'What is the difference between Middleware and Action Filters in ASP.NET Core?',
         answer: 'Middleware is global to all HTTP requests at the raw HttpContext level. Filters run inside the MVC/Controller pipeline and have access to MVC-specific context like action parameters, ModelState, and ActionResult.'
+      },
+      {
+        question: 'What happens if you place `app.UseCors()` after `app.UseAuthentication()`?',
+        answer: 'Unauthorized requests will fail auth before CORS headers get attached to the response, causing the browser to show a confusing "CORS policy error" instead of the real 401/403 status code.'
+      },
+      {
+        question: 'How do you write a custom inline middleware in Program.cs?',
+        answer: 'Use `app.Use(async (context, next) => { ... await next(context); ... });`.'
       }
     ],
     keyPointsToMention: [
@@ -85,7 +101,7 @@ app.MapControllers();`,
       'Critical order: ExceptionHandler -> CORS -> AuthN -> AuthZ -> Endpoints',
       'Difference from MVC Filters (HttpContext vs ActionContext)'
     ],
-    tags: ['Middleware', 'Pipeline', 'ASP.NET Core', 'C#']
+    tags: ['Middleware', 'Pipeline', 'ASP.NET Core', 'C#', 'HTTP']
   },
   {
     id: 'dotnet-dependency-injection-lifetimes',
@@ -117,6 +133,10 @@ builder.Services.AddSingleton<ICacheService, InMemoryCache>();    // 1 shared ac
       {
         question: 'What is the Service Locator anti-pattern?',
         answer: 'Injecting `IServiceProvider` and calling `provider.GetService<T>()` manually inside classes. It hides dependencies, makes unit testing difficult, and bypasses constructor contracts.'
+      },
+      {
+        question: 'How do you safely use a Scoped DbContext inside a Singleton BackgroundService?',
+        answer: 'Inject `IServiceScopeFactory`, call `using var scope = _scopeFactory.CreateScope();`, and resolve the DbContext from `scope.ServiceProvider.GetRequiredService<AppDbContext>()`.'
       }
     ],
     keyPointsToMention: [
@@ -126,7 +146,7 @@ builder.Services.AddSingleton<ICacheService, InMemoryCache>();    // 1 shared ac
       'Captive Dependency: Singleton holding a Scoped reference',
       'Scope validation in ASP.NET Core development environment'
     ],
-    tags: ['Dependency Injection', 'ASP.NET Core', 'C#', 'DbContext']
+    tags: ['Dependency Injection', 'ASP.NET Core', 'C#', 'DbContext', 'Architecture']
   },
   {
     id: 'dotnet-async-await-threadpool',
@@ -163,6 +183,10 @@ public async Task<ActionResult<OrderDto>> GetOrder(int id, CancellationToken ct)
       {
         question: 'Does async/await make an individual query run faster?',
         answer: 'No, it actually has tiny state machine overhead. Its benefit is server scalability and throughput, allowing the server to handle vastly more concurrent users.'
+      },
+      {
+        question: 'What is `ConfigureAwait(false)` and is it needed in ASP.NET Core?',
+        answer: '`ConfigureAwait(false)` avoids capturing the SynchronizationContext. ASP.NET Core has no SynchronizationContext (unlike legacy ASP.NET on IIS or WPF/WinForms), so `ConfigureAwait(false)` is not strictly needed in web apps, though still recommended in class libraries.'
       }
     ],
     keyPointsToMention: [
@@ -224,6 +248,14 @@ public class GlobalExceptionHandler : IExceptionHandler
       {
         question: 'What is RFC 7807 ProblemDetails?',
         answer: 'A standardized JSON specification for HTTP API error responses containing type, title, status, detail, and instance fields.'
+      },
+      {
+        question: 'How do you prevent stack traces from leaking in production?',
+        answer: 'Only return `ex.StackTrace` if `app.Environment.IsDevelopment()` is true; in production, return generic user-friendly messages and log the stack trace internally.'
+      },
+      {
+        question: 'Can you chain multiple `IExceptionHandler` implementations in .NET 8?',
+        answer: 'Yes. If `TryHandleAsync` returns `false`, .NET passes the exception to the next registered handler in the DI container until one returns `true`.'
       }
     ],
     keyPointsToMention: [
@@ -233,7 +265,7 @@ public class GlobalExceptionHandler : IExceptionHandler
       'Never expose raw stack traces in production',
       'Structured logging with Correlation IDs for traceability'
     ],
-    tags: ['Error Handling', 'Logging', 'ASP.NET Core', 'Security']
+    tags: ['Error Handling', 'Logging', 'ASP.NET Core', 'Security', 'ProblemDetails']
   },
   {
     id: 'dotnet-jwt-auth-claims-roles-policies',
@@ -266,6 +298,14 @@ public IActionResult ApproveBudget() => Ok();`,
       {
         question: 'What is the difference between Access Token and Refresh Token?',
         answer: 'Access tokens are short-lived (e.g. 15 mins) and sent on every API call. Refresh tokens are long-lived, securely stored (HttpOnly cookie or database), and used solely to obtain a new access token without re-prompting for credentials.'
+      },
+      {
+        question: 'What happens if a JWT secret key is shorter than 256 bits (32 bytes)?',
+        answer: 'The HMAC-SHA256 algorithm will throw an `ArgumentOutOfRangeException` on startup because cryptographic standards require at least 256 bits for security.'
+      },
+      {
+        question: 'What is Resource-Based Authorization in ASP.NET Core?',
+        answer: 'Evaluating authorization against a specific data entity at runtime (e.g. verifying `document.AuthorId == user.Id`) via `IAuthorizationService.AuthorizeAsync(User, document, "EditPolicy")`.'
       }
     ],
     keyPointsToMention: [
@@ -275,7 +315,7 @@ public IActionResult ApproveBudget() => Ok();`,
       'Custom AuthorizationHandler for complex business logic',
       'Short-lived Access Tokens paired with Refresh Tokens'
     ],
-    tags: ['Auth', 'JWT', 'Security', 'ASP.NET Core', 'C#']
+    tags: ['Auth', 'JWT', 'Security', 'ASP.NET Core', 'C#', 'Policies']
   },
   {
     id: 'dotnet-options-pattern-config',
@@ -315,6 +355,14 @@ public class EmailService
       {
         question: 'In what order does ASP.NET Core load configuration providers?',
         answer: 'appsettings.json -> appsettings.{Environment}.json -> User Secrets (Dev only) -> Environment Variables -> Command line arguments (last one wins).'
+      },
+      {
+        question: 'How do you validate Options on application startup?',
+        answer: 'Use `.ValidateDataAnnotations()` with attributes like `[Required, Range]` or `.Validate(opt => opt.Port > 0, "Port must be positive")` paired with `.ValidateOnStart()`.'
+      },
+      {
+        question: 'Why should `IOptionsSnapshot` NOT be injected into a Singleton service?',
+        answer: 'Because `IOptionsSnapshot` is a Scoped service, injecting it into a Singleton creates a Captive Dependency; use `IOptionsMonitor` in Singletons instead.'
       }
     ],
     keyPointsToMention: [
@@ -323,6 +371,141 @@ public class EmailService
       'Hierarchical config override order (Environment variables override appsettings.json)',
       'Secret management: dotnet user-secrets in dev, Key Vault/Env vars in prod'
     ],
-    tags: ['Configuration', 'Options Pattern', 'ASP.NET Core', 'Best Practices']
+    tags: ['Configuration', 'Options Pattern', 'ASP.NET Core', 'Best Practices', 'C#']
+  },
+  {
+    id: 'dotnet-minimal-api-vs-controllers',
+    category: 'dotnet',
+    topic: 'Minimal APIs vs Controllers',
+    difficulty: 'Strong Mid',
+    question: 'Compare Minimal APIs and Controller-based APIs in modern ASP.NET Core (.NET 8/9). How do Endpoint Filters, performance, and structure differ?',
+    shortAnswer: 'Minimal APIs use direct route lambdas (`app.MapGet()`), eliminating the heavy MVC controller pipeline, reducing memory overhead, and improving startup performance by ~30%. Controllers provide structured class-based organization, automatic model validation attributes, and Action Filters. Use Minimal APIs for microservices and cloud functions; use Controllers for large enterprise monoliths with complex shared filter pipelines.',
+    interviewAnswer: 'In modern .NET 8/9:\n1. **Minimal APIs**: Introduced in .NET 6 and expanded in .NET 8 with Typed Results (`TypedResults.Ok()`) and Route Groups (`app.MapGroup("/api/v1/users")`). They bypass MVC reflection overhead, model binders, and action selectors, mapping HTTP endpoints directly to lightweight delegates.\n2. **Endpoint Filters (`AddEndpointFilter`)**: Minimal APIs use endpoint filters that run before and after route execution, similar to MVC Action Filters. They provide clean cross-cutting validation (via FluentValidation) and logging.\n3. **Controllers (`[ApiController]`)**: Ideal for large enterprise apps with 100+ endpoints where class-based grouping, constructor injection, and legacy filters provide familiar organizational structure.\n4. **Performance Difference**: Minimal APIs have lower allocations and faster cold-start times, making them the standard choice for Docker container microservices and AWS Lambda / Azure Functions.',
+    spokenTip: 'Minimal APIs map routes directly to lambdas with lower memory and faster startup; Controllers offer class-based structure for large monolithic APIs.',
+    example: {
+      language: 'csharp',
+      code: `// Modern Minimal API with Route Group, FluentValidation Filter, and TypedResults
+var group = app.MapGroup("/api/products")
+    .WithTags("Products")
+    .AddEndpointFilter(async (invocationContext, next) => {
+        // Endpoint Filter for cross-cutting logging or validation
+        var stopwatch = Stopwatch.StartNew();
+        var result = await next(invocationContext);
+        stopwatch.Stop();
+        app.Logger.LogInformation("Request executed in {Elapsed}ms", stopwatch.ElapsedMilliseconds);
+        return result;
+    });
+
+group.MapGet("/", async (AppDbContext db, CancellationToken ct) => 
+    TypedResults.Ok(await db.Products.AsNoTracking().ToListAsync(ct)));
+
+group.MapPost("/", async (ProductCreateDto dto, AppDbContext db, IValidator<ProductCreateDto> validator) => {
+    var validationResult = await validator.ValidateAsync(dto);
+    if (!validationResult.IsValid) return Results.ValidationProblem(validationResult.ToDictionary());
+
+    var product = new Product { Name = dto.Name, Price = dto.Price };
+    db.Products.Add(product);
+    await db.SaveChangesAsync();
+    return TypedResults.Created($"/api/products/{product.Id}", product);
+});`,
+      explanation: 'Shows .NET 8 Route Groups, TypedResults, and Endpoint Filters.'
+    },
+    seniorPoint: 'To avoid massive 2,000-line `Program.cs` files when using Minimal APIs, organize endpoints into extension methods or feature slices using libraries like FastEndpoints or custom `IEndpoint` module interfaces.',
+    followUps: [
+      {
+        question: 'What are TypedResults in .NET 8 and why are they preferred over `Results.Ok()` in Minimal APIs?',
+        answer: '`TypedResults` return strongly typed implementation types (`Ok<Product>`, `NotFound`) rather than `IResult`, enabling compile-time type safety and automatic OpenAPI / Swagger response schema generation without needing `[ProducesResponseType]` attributes.'
+      },
+      {
+        question: 'Can you use both Controllers and Minimal APIs in the same ASP.NET Core project?',
+        answer: 'Yes! You can call both `builder.Services.AddControllers()` and `app.MapControllers()` alongside `app.MapGet()` in the same `Program.cs`.'
+      }
+    ],
+    keyPointsToMention: [
+      'Minimal APIs: lower memory allocations, faster startup, no MVC reflection',
+      'Route Groups (app.MapGroup) for versioning and URL prefixing',
+      'Endpoint Filters for cross-cutting validation and timing',
+      'TypedResults for automatic OpenAPI schema inference and unit testability'
+    ],
+    tags: ['ASP.NET Core', 'Minimal APIs', 'Controllers', 'C#', '.NET', 'Performance']
+  },
+  {
+    id: 'dotnet-background-service-hosted',
+    category: 'dotnet',
+    topic: 'Background Tasks & Worker Services',
+    difficulty: 'Strong Mid',
+    question: 'How do you implement long-running background tasks in ASP.NET Core using BackgroundService? How do you resolve scoped dependencies safely?',
+    shortAnswer: 'Inherit from `BackgroundService` and override `ExecuteAsync(CancellationToken stoppingToken)`. Because `BackgroundService` is registered as a Singleton, you must inject `IServiceScopeFactory`, create an explicit scope (`using var scope = _scopeFactory.CreateScope()`), and resolve Scoped services (`DbContext`) inside the loop, while respecting the cancellation token for graceful shutdown.',
+    interviewAnswer: 'In ASP.NET Core, background processing (like queue consumers, message bus listeners, or periodic cleanup tasks) is implemented using `BackgroundService` (an abstract implementation of `IHostedService`):\n\n1. **Lifecycle & Execution**: The framework invokes `ExecuteAsync(stoppingToken)` at application startup. The method runs on a background Thread Pool task in a non-blocking `while (!stoppingToken.IsCancellationRequested)` loop.\n2. **Scoped Dependency Resolution (Captive Dependency Fix)**: You cannot inject a Scoped `DbContext` directly into a Singleton `BackgroundService` constructor. Instead, inject `IServiceScopeFactory`. Inside the loop, create a new scope: `using var scope = _scopeFactory.CreateScope()`. Resolve `scope.ServiceProvider.GetRequiredService<AppDbContext>()`. When the loop iteration finishes, the scope disposes, cleaning up database connections and memory.\n3. **Graceful Shutdown**: When the application shuts down (SIGTERM or container stop), ASP.NET Core signals the `CancellationToken`. The background worker stops taking new jobs, finishes in-flight records, and exits cleanly without data corruption.',
+    spokenTip: 'Inherit from BackgroundService, create explicit scopes via IServiceScopeFactory to resolve DbContext, and always listen to stoppingToken for graceful shutdown.',
+    example: {
+      language: 'csharp',
+      code: `public class OutboxMessagePublisher : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<OutboxMessagePublisher> _logger;
+
+    public OutboxMessagePublisher(IServiceScopeFactory scopeFactory, ILogger<OutboxMessagePublisher> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Outbox Publisher worker started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Create an explicit scope to resolve Scoped DbContext safely!
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var pendingMessages = await db.OutboxMessages
+                    .Where(m => m.ProcessedAt == null)
+                    .Take(20)
+                    .ToListAsync(stoppingToken);
+
+                foreach (var msg in pendingMessages)
+                {
+                    // Publish to RabbitMQ / Azure Service Bus...
+                    msg.ProcessedAt = DateTime.UtcNow;
+                }
+
+                await db.SaveChangesAsync(stoppingToken);
+            }
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogError(ex, "Error processing outbox messages");
+            }
+
+            // Periodic delay respecting cancellation token
+            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        }
+    }
+}`,
+      explanation: 'BackgroundService creating manual IServiceScopeFactory scopes to resolve DbContext safely.'
+    },
+    seniorPoint: 'ASP.NET Core provides a default 30-second shutdown timeout (`HostOptions.ShutdownTimeout`). If your background worker is processing a massive batch and takes 45 seconds, the host will forcibly kill the process unless `ShutdownTimeout` is configured accordingly.',
+    followUps: [
+      {
+        question: 'What is the difference between `IHostedService` and `BackgroundService`?',
+        answer: '`IHostedService` requires implementing `StartAsync` and `StopAsync` manually. `BackgroundService` implements `IHostedService` and provides the simpler `ExecuteAsync` cancellation-loop abstraction.'
+      },
+      {
+        question: 'How do you run recurring cron-like jobs in .NET without third-party libraries?',
+        answer: 'Use `PeriodicTimer` in .NET 6+: `using var timer = new PeriodicTimer(TimeSpan.FromMinutes(10)); while (await timer.WaitForNextTickAsync(stoppingToken)) { ... }`.'
+      }
+    ],
+    keyPointsToMention: [
+      'BackgroundService / IHostedService for background asynchronous tasks',
+      'Resolving Scoped dependencies (DbContext) via IServiceScopeFactory',
+      'Graceful shutdown coordination via CancellationToken',
+      'HostOptions.ShutdownTimeout configuration',
+      'PeriodicTimer in modern .NET for reliable scheduled ticks'
+    ],
+    tags: ['ASP.NET Core', 'BackgroundService', 'IHostedService', 'Threading', 'C#', 'Dependency Injection']
   }
 ];

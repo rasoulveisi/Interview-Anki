@@ -4,133 +4,169 @@ export const securityQuestions: Question[] = [
   {
     id: 'sec_01',
     category: 'security',
-    topic: 'XSS & DomSanitizer Risks',
+    topic: 'XSS & Content Security Policy (CSP)',
     difficulty: 'Senior',
-    question: 'Explain the 3 types of XSS (Stored, Reflected, DOM-based). How does Angular/React protect against them by default, and what are the security risks of `DomSanitizer.bypassSecurityTrust*` or `dangerouslySetInnerHTML`?',
-    shortAnswer: 'Stored XSS persists malicious scripts in the database; Reflected XSS reflects scripts from URL parameters/requests; DOM-based XSS executes scripts through client-side DOM sinks (`innerHTML`, `eval`, `document.write`). Modern frameworks auto-escape template bindings (`{{}}` or `{}`) by default. Bypassing sanitization tells the framework to trust untrusted input, opening direct XSS vulnerabilities.',
-    seniorPoint: 'Never pass unsanitized user inputs or rich text payloads into `bypassSecurityTrustHtml()`. If rich markdown/HTML must be rendered, run the HTML through a certified sanitizer library like **DOMPurify** before trusting it, and enforce a strict Content Security Policy (CSP).',
-    spokenTip: 'Frameworks treat all values as untrusted strings by default; manual sanitization bypasses are the primary source of modern frontend XSS.',
-    interviewAnswer: '1. **Stored XSS**: Attacker injects malicious JS into a database (e.g. comment field) that is later served to all users.\n2. **Reflected XSS**: Script is delivered via a crafted phishing link (e.g. `?search=<script>...`) and reflected by the server without encoding.\n3. **DOM-based XSS**: Vulnerability entirely in client-side code where untrusted input from a source (`location.hash`, query param) is written directly to a DOM sink (`element.innerHTML`, `location.href = userInput`).\n\nAngular and React treat all interpolated strings as untrusted text, escaping HTML characters (`<`, `>`, `&`). If a developer uses Angular\'s `bypassSecurityTrustHtml()` or React\'s `dangerouslySetInnerHTML`, the framework stops escaping. If untrusted input enters that sink, the attacker can execute arbitrary JavaScript, steal session cookies/tokens, or make malicious API requests on the user\'s behalf.',
-    keyPointsToMention: [
-      'Stored, Reflected, and DOM-based XSS definitions',
-      'Automatic contextual escaping in Angular/React template engines',
-      'Risks of DomSanitizer bypassSecurityTrust* and dangerouslySetInnerHTML',
-      'Sanitizing rich text using DOMPurify before rendering',
-      'Enforcing strict Content Security Policy (CSP)'
-    ],
-    whatInterviewersLookFor: [
-      'Identification of DOM sinks (innerHTML, eval, document.write, location.href)',
-      'Best practice recommendation of using DOMPurify'
-    ],
-    codeExample: `import { Component, SecurityContext, inject } from '@angular/core';
+    question: 'How do Stored, Reflected, and DOM-based XSS differ? How does Angular prevent XSS, when is DomSanitizer dangerous, and what is Content Security Policy (CSP)?',
+    shortAnswer: 'Stored XSS persists in a DB; Reflected XSS is echoed from URL queries; DOM-based XSS manipulates client DOM sinks (`innerHTML`). Angular sanitizes template values automatically by default. Bypassing it with `DomSanitizer.bypassSecurityTrust*()` is dangerous and requires DOMPurify. **Content Security Policy (CSP)** is an HTTP header restricting which domains can execute scripts, fonts, and styles.',
+    interviewAnswer: 'Cross-Site Scripting (XSS) allows attackers to execute malicious JavaScript in a victim\'s browser session:\n- **Stored XSS**: Malicious payload is permanently saved in the backend database (e.g. comment box) and served to all users.\n- **Reflected XSS**: Payload is reflected in a search query or URL parameter and returned by the server.\n- **DOM-based XSS**: Attack happens entirely on the client when JavaScript writes unsanitized data into an unsafe sink (`element.innerHTML`, `document.write`, `eval()`).\n\n**Angular Built-in Protection**:\nAngular treats all template values as untrusted by default, automatically sanitizing bindings (`[innerHTML]`, `[src]`, `[href]`). Calling `DomSanitizer.bypassSecurityTrustHtml()` completely disables this protection and should only be used after running the string through an audited sanitization library like **DOMPurify**.\n\n**Content Security Policy (CSP)**:\nA critical defense-in-depth HTTP header: `Content-Security-Policy: default-src \'self\'; script-src \'self\' https://trusted.cdn.com; object-src \'none\';`. It instructs the browser to block inline scripts, `eval()`, and unauthorized external domains even if an XSS vulnerability exists.',
+    spokenTip: 'Angular automatically sanitizes template bindings by default. Never call bypassSecurityTrustHtml without DOMPurify, and always enforce strict CSP headers.',
+    example: {
+      language: 'typescript',
+      code: `import { Component, inject, SecurityContext } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
 
 @Component({
-  selector: 'app-markdown-viewer',
+  selector: 'app-user-bio',
   standalone: true,
   template: \`
-    <!-- Safely sanitized and trusted HTML rendering -->
-    <div [innerHTML]="trustedContent"></div>
+    <!-- ✅ Safe: DOMPurify strips malicious <script> / onerror payloads! -->
+    <div [innerHTML]="sanitizedBio"></div>
   \`
 })
-export class MarkdownViewerComponent {
+export class UserBioComponent {
   private sanitizer = inject(DomSanitizer);
-  trustedContent: SafeHtml = '';
+  sanitizedBio: SafeHtml = '';
 
-  renderUserMarkdown(rawHtmlFromBackend: string) {
-    // 1. Sanitize with DOMPurify first to strip dangerous tags/scripts
-    const cleanHtml = DOMPurify.sanitize(rawHtmlFromBackend, {
-      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'code', 'pre'],
-      ALLOWED_ATTR: ['href', 'target']
-    });
+  setRawUserContent(untrustedHtml: string) {
+    // 1. Sanitize untrusted user input with DOMPurify
+    const cleanHtml = DOMPurify.sanitize(untrustedHtml);
 
-    // 2. Safely trust only AFTER purification
-    this.trustedContent = this.sanitizer.bypassSecurityTrustHtml(cleanHtml);
+    // 2. Safely trust the purified HTML for Angular rendering
+    this.sanitizedBio = this.sanitizer.bypassSecurityTrustHtml(cleanHtml);
   }
 }`,
-    tags: ['security', 'xss', 'dom-sanitizer', 'dompurify', 'csp', 'innerhtml']
+      explanation: 'Uses DOMPurify to strip malicious scripts before calling DomSanitizer.bypassSecurityTrustHtml.'
+    },
+    seniorPoint: "A strict CSP policy with `script-src 'nonce-xyz'` (cryptographic nonce per request) completely blocks injected XSS scripts because the attacker cannot predict the unique per-request nonce generated by the server.",
+    followUps: [
+      {
+        question: 'Why does `bypassSecurityTrustUrl` need careful handling for `href` links?',
+        answer: 'If an attacker inputs `javascript:stealTokens()`, a browser clicking that link executes the script. Bypassing URL security trust without validation allows `javascript:` pseudo-protocol attacks.'
+      },
+      {
+        question: 'What is the difference between `default-src` and specific directives like `script-src` in CSP?',
+        answer: '`default-src` serves as the fallback policy for all resource types. Specific directives like `script-src` or `img-src` override the default for that specific resource category.'
+      }
+    ],
+    keyPointsToMention: [
+      '3 types of XSS: Stored (DB), Reflected (URL params), DOM-based (client sinks)',
+      'Angular automatic sanitization on template interpolation and property bindings',
+      'Risks of DomSanitizer.bypassSecurityTrust* and mitigation via DOMPurify',
+      'Content-Security-Policy (CSP) headers as defense-in-depth'
+    ],
+    tags: ['security', 'xss', 'csp', 'domsanitizer', 'dompurify', 'angular', 'web-security']
   },
   {
     id: 'sec_02',
     category: 'security',
-    topic: 'JWT Storage & Authentication Security',
+    topic: 'Secure JWT & Token Storage',
     difficulty: 'Senior',
-    question: 'Where should you store JWT Access Tokens and Refresh Tokens in a Frontend Single Page Application? Why is `localStorage` dangerous, and how do `HttpOnly` Cookies prevent token theft?',
-    shortAnswer: 'Storing tokens in `localStorage` or `sessionStorage` makes them vulnerable to total extraction via any XSS vulnerability (including third-party npm scripts). The most secure pattern is: 1) Store the short-lived Access Token in JavaScript in-memory variable/state, and 2) Store the Refresh Token in an `HttpOnly`, `Secure`, `SameSite=Strict/Lax` cookie inaccessible to client JavaScript.',
-    seniorPoint: 'With `HttpOnly` cookies, JavaScript running on the page (even via a malicious XSS script) cannot read or export the cookie (`document.cookie` returns empty). Combining this with `SameSite=Strict` completely mitigates CSRF while protecting tokens from XSS theft.',
-    spokenTip: 'Access token in memory, refresh token in an `HttpOnly` cookie with `SameSite=Strict`.',
-    interviewAnswer: 'In SPAs, token storage is a critical security architecture decision:\n- **The `localStorage` Anti-Pattern**: Any JS running on the origin (or any compromised npm dependency in `node_modules`) can execute `localStorage.getItem("token")` and exfiltrate the JWT to an attacker\'s server.\n- **The Secure Architecture**:\n  1. **Short-Lived Access Token (e.g. 10 mins)**: Kept in memory (Angular service / React state). Destroyed on page refresh or tab close.\n  2. **Long-Lived Refresh Token (e.g. 7 days)**: Sent by the server in an `Set-Cookie` response with `HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh`.\n  3. **Silent Refresh**: On app bootstrap or when the in-memory access token expires, an HTTP interceptor calls `/api/auth/refresh`. The browser attaches the `HttpOnly` cookie automatically, receives a fresh in-memory access token, and continues without user interruption.',
-    keyPointsToMention: [
-      'Why localStorage is vulnerable to XSS token theft',
-      'HttpOnly flag prevents JavaScript access via document.cookie',
-      'SameSite=Strict/Lax flag prevents CSRF attacks',
-      'In-memory access token + HttpOnly cookie refresh token pattern'
-    ],
-    whatInterviewersLookFor: [
-      'Clear understanding of the silent refresh flow',
-      'Distinction between XSS risks and CSRF mitigations'
-    ],
-    codeExample: `// Secure Cookie Header sent by Server:
-// Set-Cookie: refreshToken=abc123xyz; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=604800
-
-// In-Memory Frontend Token Manager (Never written to localStorage!)
+    question: 'Where should JWT Access and Refresh tokens be stored in Single Page Applications? Compare localStorage, in-memory, and HttpOnly cookies.',
+    shortAnswer: 'Store short-lived Access Tokens (5-15 min) **in memory** (inside a private TypeScript service variable) and long-lived Refresh Tokens in an **`HttpOnly; Secure; SameSite=Strict` cookie**. This makes the refresh token immune to JavaScript XSS theft while eliminating CSRF risks for standard API calls.',
+    interviewAnswer: 'Client-side token storage involves trade-offs between XSS (Cross-Site Scripting) and CSRF (Cross-Site Request Forgery):\n1. **`localStorage` (Vulnerable to XSS)**: Accessible to ANY JavaScript running on the page. If a third-party npm dependency or XSS flaw exists, the attacker can execute `localStorage.getItem("token")` and exfiltrate the token forever.\n2. **`HttpOnly` Cookies (Immune to XSS, Vulnerable to CSRF)**: JavaScript cannot read `HttpOnly` cookies. However, because browsers automatically attach cookies to matching requests, the app is vulnerable to CSRF unless protected by `SameSite=Strict` or custom CSRF tokens (`X-XSRF-TOKEN`).\n3. **Senior Best Practice (In-Memory Access Token + HttpOnly Refresh Cookie)**:\n   - The short-lived **Access Token** (5-15 min lifespan) is stored strictly in memory (in a private Angular/React service variable). If an XSS vulnerability occurs, the stolen token expires in minutes.\n   - The long-lived **Refresh Token** (7-30 days) is stored in an `HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh` cookie.\n   - On page refresh or 401 error, the app calls the refresh endpoint to obtain a fresh in-memory access token seamlessly.',
+    spokenTip: 'Store short-lived access tokens in memory and long-lived refresh tokens in HttpOnly; Secure; SameSite=Strict cookies.',
+    example: {
+      language: 'typescript',
+      code: `// Angular In-Memory Auth Service
 @Injectable({ providedIn: 'root' })
-export class TokenStorageService {
-  // Stored purely in memory (cleared on tab close/refresh)
-  private inMemoryAccessToken: string | null = null;
+export class AuthService {
+  private http = inject(HttpClient);
 
-  setAccessToken(token: string) {
-    this.inMemoryAccessToken = token;
-  }
+  // Stored strictly in memory (Zero localStorage / sessionStorage exposure!)
+  private accessToken: string | null = null;
 
   getAccessToken(): string | null {
-    return this.inMemoryAccessToken;
+    return this.accessToken;
   }
 
-  clear() {
-    this.inMemoryAccessToken = null;
+  // Called on app initialization (APP_INITIALIZER) or 401 interceptor
+  silentRefresh(): Observable<string> {
+    // Browser automatically sends HttpOnly refresh token cookie with request!
+    return this.http.post<{ accessToken: string }>(
+      '/api/auth/refresh', 
+      {}, 
+      { withCredentials: true } // Ensures HttpOnly cookies are attached
+    ).pipe(
+      tap(res => {
+        this.accessToken = res.accessToken;
+      }),
+      map(res => res.accessToken)
+    );
   }
 }`,
-    tags: ['security', 'jwt', 'auth', 'httponly-cookies', 'localstorage', 'tokens', 'csrf']
+      explanation: 'Implements in-memory access token storage with silent refresh using HttpOnly cookies.'
+    },
+    seniorPoint: 'Setting `Path=/api/auth/refresh` on the refresh cookie ensures the browser only sends the refresh cookie to that single endpoint, preventing it from being sent on every normal API request and further reducing attack surfaces.',
+    followUps: [
+      {
+        question: 'What is the difference between `SameSite=Strict` and `SameSite=Lax` for cookies?',
+        answer: '`Strict` never sends the cookie on cross-site requests, even when following an external link. `Lax` allows the cookie on top-level GET navigation from external sites (e.g. clicking a link from an email) while blocking cross-site POST requests.'
+      },
+      {
+        question: 'How do you handle page reloads if the access token is in memory?',
+        answer: 'Use Angular `APP_INITIALIZER` (or top-level effect) to call `/api/auth/refresh` before rendering protected routes, repopulating the in-memory access token before child routes mount.'
+      }
+    ],
+    keyPointsToMention: [
+      'localStorage vulnerability to XSS token theft',
+      'HttpOnly cookies protect against XSS; SameSite flags protect against CSRF',
+      'In-memory access token + HttpOnly refresh cookie architecture',
+      'Path-scoped refresh cookies and withCredentials: true'
+    ],
+    tags: ['security', 'jwt', 'auth', 'cookies', 'httponly', 'xss', 'csrf', 'tokens']
   },
   {
     id: 'sec_03',
     category: 'security',
-    topic: 'Frontend Authorization vs Backend Security',
+    topic: 'Route Guards vs Backend Authorization',
     difficulty: 'Senior',
-    question: 'Why are Angular Route Guards (`canActivate`) and conditional UI rendering (`*ngIf="isAdmin"`) purely UX conveniences and NOT actual security mechanisms?',
-    shortAnswer: 'Client-side code runs in an untrusted environment controlled entirely by the user. A user can open DevTools, modify JavaScript memory variables, bypass Route Guards, or edit DOM elements to view hidden admin buttons. Real security and authorization MUST strictly be enforced on backend API endpoints via server-side token validation and role checks.',
-    seniorPoint: 'Frontend guards and button toggles exist to provide smooth UX (preventing users from accidentally clicking actions they cannot execute), not to protect sensitive data. Every backend endpoint must authorize the caller independently.',
-    spokenTip: 'Frontend authorization is for user experience; backend authorization is for actual security.',
-    interviewAnswer: 'All client-side code runs on hardware and a runtime controlled by the client. An attacker can:\n1. Inspect and edit frontend JS in DevTools Sources tab.\n2. Override the `AuthGuard` return value in memory.\n3. Make direct HTTP requests using cURL, Postman, or fetch, bypassing the UI entirely.\n\nTherefore, Angular Route Guards (`canActivate`, `canMatch`) and UI button disguises (`*ngIf="user.role === \\\'ADMIN\\\'"`) are merely UX helpers to guide authorized users. The true security boundary is the backend API, where every single request decrypts the session/JWT, validates permissions in database/scopes, and responds with `403 Forbidden` if unauthorized.',
-    keyPointsToMention: [
-      'Client environment is completely untrusted and inspectable via DevTools',
-      'Route guards and *ngIf are for user experience and navigation routing',
-      'Every backend API endpoint must enforce authorization independently',
-      'Defense in depth: UI guidance + API enforcement'
-    ],
-    whatInterviewersLookFor: [
-      'Immediate rejection of the idea that frontend guards protect data',
-      'Understanding of Defense-in-Depth principles'
-    ],
-    codeExample: `// Frontend Guard (UX Only!)
+    question: 'Why are Frontend Route Guards strictly for User Experience (UX) and not Security? How do you enforce Role-Based (RBAC) and Policy-Based (PBAC) Access Control?',
+    shortAnswer: 'Frontend Route Guards run entirely on the client, where JavaScript, routing tables, and memory can be modified by the user via DevTools. Route guards provide a smooth UX (redirecting to login/forbidden). Real security MUST be enforced by backend API middleware checking cryptographically signed JWT claims or database permissions on every endpoint.',
+    interviewAnswer: "In technical architecture, we emphasize **Defense in Depth**:\n1. **Frontend Route Guards (UX Layer)**:\n   - Angular functional `canActivate` and `canMatch` guards inspect user roles (e.g. `roles.includes(\"Admin\")`) to prevent accidental navigation, show loading spinners, and redirect unauthenticated users to `/login`.\n   - However, any user can open Chrome DevTools, override `canActivate` to return `true`, or manually unhide admin HTML elements. Client-side guards provide **zero** security guarantees.\n2. **Backend API Authorization (Enforcement Layer)**:\n   - Every API request must validate the cryptographic JWT signature and enforce Role-Based Access Control (`[Authorize(Roles = \"Admin\")]` in ASP.NET Core) or Policy-Based Authorization (`[Authorize(Policy = \"RequireManagerLevel\")]`).\n   - If a user bypasses the frontend guard and loads the admin page, all API calls return `401 Unauthorized` or `403 Forbidden`, preventing access to data.\n3. **RBAC vs PBAC**: RBAC checks static role strings (`Admin`, `Editor`). PBAC evaluates dynamic business rules (e.g. \"User can only edit an order if `order.tenantId === user.tenantId` AND `order.status === 'Draft'`\").",
+    spokenTip: 'Client route guards provide UX redirects, but real authorization must always be enforced on backend API endpoints.',
+    example: {
+      language: 'typescript',
+      code: `// 1. Frontend UX Route Guard (Angular Functional canActivate)
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from './auth.service';
+
 export const adminGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // User can easily bypass this in DevTools by modifying local memory!
-  if (authService.hasRole('ADMIN')) {
-    return true;
+  if (authService.hasRole('Admin')) {
+    return true; // Smooth UX: allows navigation
   }
 
-  router.navigate(['/unauthorized']);
-  return false;
+  // Redirect to forbidden page
+  return router.createUrlTree(['/forbidden']);
 };
 
-// Real Security: Backend API Gateway / Controller (Node / .NET / Java)
-// [Authorize(Roles = "Admin")]
-// app.delete('/api/admin/users/:id', verifyAdminRole, deleteUserHandler);`,
-    tags: ['security', 'authorization', 'guards', 'defense-in-depth', 'backend-security']
+// 2. Real Security Enforcement: Backend ASP.NET Core Controller
+// [Authorize(Policy = "AdminOnly")] // Validated cryptographically on every API call!
+// [HttpDelete("api/users/{id}")]
+// public async Task<IActionResult> DeleteUser(string id) => Ok();`,
+      explanation: 'Contrasts client-side functional canActivate guard with real backend API authorization policy.'
+    },
+    seniorPoint: 'Using Angular functional `canMatch` guards instead of `canActivate` prevents the lazy-loaded JavaScript chunk for an admin module from even downloading to an unauthorized user\'s browser network tab.',
+    followUps: [
+      {
+        question: 'What is the difference between `canActivate` and `canMatch` in modern Angular?',
+        answer: '`canActivate` downloads the route\'s lazy-loaded JS chunk and then runs the guard. `canMatch` runs before downloading the chunk; if it returns `false`, Angular skips the route and keeps matching other routes, preventing chunk downloading.'
+      },
+      {
+        question: 'What HTTP status code should the backend return for an unauthenticated user vs an unauthorized user?',
+        answer: 'Return `401 Unauthorized` when the user is not authenticated (missing/expired token). Return `403 Forbidden` when the user is authenticated but lacks required permissions.'
+      }
+    ],
+    keyPointsToMention: [
+      'Client-side code can be modified via DevTools; guards provide UX, not security',
+      'Backend API endpoint enforcement via JWT claims and authorization policies',
+      'RBAC (roles) vs PBAC (dynamic policy/claims evaluation)',
+      'canMatch vs canActivate for lazy-chunk download prevention'
+    ],
+    tags: ['security', 'route-guards', 'rbac', 'pbac', 'authorization', 'angular', 'defense-in-depth']
   }
 ];

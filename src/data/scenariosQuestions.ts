@@ -13,8 +13,16 @@ export const scenariosQuestions: Question[] = [
     example: {
       language: 'typescript',
       code: `// Angular 18+ Reactive Search Component
+import { Component, inject } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Observable, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap, catchError } from 'rxjs/operators';
+import { AsyncPipe, NgFor } from '@angular/common';
+
 @Component({
   selector: 'app-product-search',
+  standalone: true,
+  imports: [ReactiveFormsModule, AsyncPipe, NgFor],
   template: \`<input [formControl]="searchControl" placeholder="Search products..." />
              <div *ngFor="let item of results$ | async">{{ item.name }}</div>\`
 })
@@ -40,6 +48,10 @@ export class ProductSearchComponent {
       {
         question: 'What is the difference between `switchMap`, `mergeMap`, and `concatMap` for this use case?',
         answer: '`switchMap` cancels the previous HTTP request (perfect for search typeaheads). `mergeMap` runs all requests in parallel (creates race conditions). `concatMap` queues requests sequentially (causes severe lag for user typing).'
+      },
+      {
+        question: 'How do you test this reactive search pipeline in Angular unit tests?',
+        answer: 'Use `fakeAsync` and `tick(300)` with `HttpTestingController` to advance the virtual debounce clock and assert that only a single HTTP request was made.'
       }
     ],
     keyPointsToMention: [
@@ -77,6 +89,10 @@ Conclusion: DB query took only 12ms, but waiting to GET a connection from the po
       {
         question: 'How do you detect connection pool leaks in EF Core?',
         answer: 'Check if DbContext is inadvertently registered as Singleton or if raw ADO.NET `SqlConnection` objects are created without a `using` statement or proper async disposal.'
+      },
+      {
+        question: 'How do you configure HTTP timeouts using Polly or HttpClient in .NET?',
+        answer: 'Configure `HttpClient.Timeout = TimeSpan.FromSeconds(3)` or apply a Polly `TimeoutPolicy` so slow downstream dependencies fail fast rather than hanging web threads.'
       }
     ],
     keyPointsToMention: [
@@ -113,6 +129,10 @@ Conclusion: DB query took only 12ms, but waiting to GET a connection from the po
       {
         question: 'How do you cache CORS preflight requests?',
         answer: 'Set the `Access-Control-Max-Age: 86400` header in the backend CORS policy so browsers don\'t repeat OPTIONS preflights for 24 hours.'
+      },
+      {
+        question: 'Why does enabling HTTP/2 resolve browser connection queueing?',
+        answer: 'HTTP/2 multiplexes hundreds of concurrent requests over a single TCP connection, eliminating the browser\'s 6-connection-per-domain queueing stall in HTTP/1.1.'
       }
     ],
     keyPointsToMention: [
@@ -162,6 +182,10 @@ catch (BrokenCircuitException) // Circuit breaker open!
       {
         question: 'What if inventory was reserved but payment fails permanently later?',
         answer: 'Execute a compensating transaction in the Saga to release the reserved inventory back to the warehouse.'
+      },
+      {
+        question: 'How do you inform the frontend in real time when background payment finishes?',
+        answer: 'Use SignalR WebSockets: when the background worker completes the payment, broadcast an event to the client\'s connection ID to update the UI from "Processing" to "Confirmed".'
       }
     ],
     keyPointsToMention: [

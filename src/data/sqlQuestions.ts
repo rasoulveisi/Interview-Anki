@@ -38,6 +38,10 @@ INCLUDE (Email, Id);`,
       {
         question: 'Why should you avoid indexing columns with very low cardinality (like boolean IsActive)?',
         answer: 'Because the query optimizer will determine that scanning the index is not selective enough and will fall back to a full table scan anyway, while still penalizing write performance.'
+      },
+      {
+        question: 'What is Index Fragmentation and how do you resolve it?',
+        answer: 'Fragmentation happens when page splits occur due to random inserts/updates. Fix via `ALTER INDEX REORGANIZE` (for 5-30% fragmentation) or `ALTER INDEX REBUILD` (for >30% fragmentation).'
       }
     ],
     keyPointsToMention: [
@@ -75,6 +79,14 @@ Serializable      | Prevented  | Prevented           | Prevented
       {
         question: 'What is a Dirty Read?',
         answer: 'When Transaction A reads data modified by Transaction B before Transaction B commits. If Transaction B rolls back, Transaction A acted on invalid data.'
+      },
+      {
+        question: 'What is a Phantom Read?',
+        answer: 'When Transaction A runs a range query (e.g. `WHERE Salary > 50000`), and Transaction B inserts a new row matching that range and commits. When Transaction A runs the exact same query again in the same transaction, a new "phantom" row appears.'
+      },
+      {
+        question: 'What is the performance overhead of Snapshot Isolation / RCSI?',
+        answer: 'Snapshot isolation uses row versioning in tempdb / undo log, increasing disk/tempdb I/O and RAM overhead to store row modification histories.'
       }
     ],
     keyPointsToMention: [
@@ -122,6 +134,10 @@ FROM Employees;`,
       {
         question: 'What is a Common Table Expression (CTE)?',
         answer: 'A temporary named result set defined using `WITH Name AS (...)` that exists only during query execution, making complex queries readable and supporting recursive queries.'
+      },
+      {
+        question: 'What is the difference between `ROW_NUMBER()`, `RANK()`, and `DENSE_RANK()`?',
+        answer: '`ROW_NUMBER()` assigns consecutive unique integers (1, 2, 3). `RANK()` assigns identical ranks to ties and skips subsequent numbers (1, 2, 2, 4). `DENSE_RANK()` assigns identical ranks to ties without skipping numbers (1, 2, 2, 3).'
       }
     ],
     keyPointsToMention: [
@@ -158,6 +174,10 @@ WHERE OrderDate >= '2026-01-01' AND OrderDate < '2027-01-01';`,
       {
         question: 'What are database Statistics, and why do they cause sudden query slowdowns?',
         answer: 'Statistics are statistical distributions of column values used by the Query Optimizer to choose the best execution plan. Outdated statistics cause the optimizer to choose a slow nested-loop join or table scan instead of an index seek.'
+      },
+      {
+        question: 'What is Parameter Sniffing in SQL Server?',
+        answer: 'When the query optimizer compiles an execution plan tailored to the parameter value of the first execution (e.g. a rare customer ID), and reuses that suboptimal plan for all subsequent executions with common customer IDs.'
       }
     ],
     keyPointsToMention: [
@@ -201,6 +221,10 @@ await retryPolicy.ExecuteAsync(async () => {
       {
         question: 'Why should you never make external HTTP API calls inside a database transaction?',
         answer: 'Because an external HTTP call takes 100ms-5000ms. Holding open database row locks for seconds exhausts connection pools and causes massive lock queues and deadlocks across the entire system.'
+      },
+      {
+        question: 'How do you capture and view SQL Deadlock graph XML in production?',
+        answer: 'Enable SQL Server Extended Events (`system_health` session) or query `sys.fn_xe_file_target_read_file` to extract the deadlock graph XML showing the conflicting queries and lock types.'
       }
     ],
     keyPointsToMention: [
@@ -212,5 +236,96 @@ await retryPolicy.ExecuteAsync(async () => {
       'Use retry policies (Polly) with jitter for transient deadlock recovery'
     ],
     tags: ['SQL', 'Deadlocks', 'Transactions', 'Concurrency', 'Reliability']
+  },
+  {
+    id: 'sql-cursor-vs-keyset-pagination',
+    category: 'sql',
+    topic: 'Pagination Architecture (OFFSET vs Keyset/Cursor)',
+    difficulty: 'Senior',
+    question: 'Why does OFFSET / FETCH pagination break at scale (e.g. Page 10,000), and how does Keyset (Cursor-Based) Pagination achieve constant O(1) query time?',
+    shortAnswer: '`OFFSET 100000` forces the database engine to scan and discard 100,000 rows from disk before returning the 20 requested rows ($O(N)$ execution time). **Keyset (Cursor-Based) Pagination** uses a `WHERE Id > @lastSeenId ORDER BY Id ASC LIMIT 20` predicate to jump directly to the target row using an index seek in $O(1)$ constant time.',
+    interviewAnswer: 'In high-volume applications, pagination design is critical:\n\n1. **The Offset Degradation Problem (`OFFSET / SKIP`)**:\n   - When executing `SELECT * FROM Orders ORDER BY CreatedAt DESC OFFSET 500000 ROWS FETCH NEXT 20 ROWS ONLY`, the database engine cannot simply jump to row 500,000. It must traverse the index, read 500,020 rows, discard 500,000 in RAM, and return 20. Query time increases linearly ($O(N)$), causing timeouts on deep pages.\n   - *Data Drift*: If a new order is inserted while the user clicks page 2, rows shift and the user sees duplicate records.\n2. **Keyset / Cursor Pagination ($O(1)$)**:\n   - The client passes a cursor containing the last seen values (e.g. `?cursor=2026-03-01T12:00:00Z,94820`).\n   - SQL uses an index seek: `WHERE (CreatedAt < @lastDate) OR (CreatedAt = @lastDate AND Id < @lastId) ORDER BY CreatedAt DESC, Id DESC LIMIT 20`.\n   - Executes in **sub-millisecond $O(1)$ constant time** regardless of whether requesting page 1 or page 50,000, with zero data drift.',
+    spokenTip: 'OFFSET reads and throws away thousands of rows; Keyset cursor pagination uses index seeks to jump directly to the last seen ID in O(1) time.',
+    example: {
+      language: 'sql',
+      code: `-- ❌ SLOW: Offset pagination on deep page (Scans 500,020 rows!)
+SELECT Id, Title, CreatedAt 
+FROM Articles 
+ORDER BY CreatedAt DESC, Id DESC 
+OFFSET 500000 ROWS FETCH NEXT 20 ROWS ONLY; -- 4,200ms latency!
+
+-- ✅ FAST: Keyset / Cursor pagination (Direct B-Tree Index Seek!)
+SELECT TOP (20) Id, Title, CreatedAt 
+FROM Articles 
+WHERE (CreatedAt < @LastSeenCreatedAt) 
+   OR (CreatedAt = @LastSeenCreatedAt AND Id < @LastSeenId)
+ORDER BY CreatedAt DESC, Id DESC; -- 2ms latency!`,
+      explanation: 'Contrasts slow OFFSET scanning with instantaneous Keyset index seeking.'
+    },
+    seniorPoint: 'Infinite scroll feeds in modern web apps (Angular/React) should always use Keyset Cursor pagination. Offset pagination is only acceptable for internal admin tables where users genuinely jump to arbitrary page numbers (e.g. "Page 4") on small datasets.',
+    followUps: [
+      {
+        question: 'What is the downside of Keyset Cursor Pagination?',
+        answer: 'You cannot jump directly to an arbitrary page (e.g. "Jump to Page 50"); users can only navigate sequentially forward (`Next`) and backward (`Prev`).'
+      },
+      {
+        question: 'How do you encode cursors safely for frontend clients?',
+        answer: 'Serialize the tuple `{ createdAt, id }` to JSON and encode it as a Base64 string opaque token passed in the API URL (`?cursor=eyJjcmVhdGVkQXQiOi...`).'
+      }
+    ],
+    keyPointsToMention: [
+      'OFFSET forces DB to read and discard N previous rows (linear O(N) degradation)',
+      'Data drift bugs with offset pagination on real-time inserting feeds',
+      'Keyset / Cursor pagination uses indexed WHERE clauses for constant O(1) index seeks',
+      'Ideal for infinite scroll feeds and high-throughput APIs',
+      'Trade-off: Cannot jump to arbitrary random page numbers'
+    ],
+    tags: ['SQL', 'Pagination', 'Cursor', 'Performance', 'Indexes', 'Database']
+  },
+  {
+    id: 'sql-stored-procs-vs-orm-queries',
+    category: 'sql',
+    topic: 'Stored Procedures vs ORM Generated Queries',
+    difficulty: 'Strong Mid',
+    question: 'How do Stored Procedures compare to ORM-generated LINQ queries? What are the architectural trade-offs in modern full-stack systems?',
+    shortAnswer: 'Stored Procedures execute pre-compiled SQL logic directly on the database server, offering strict DBA access control, reduced network payload for multi-step batches, and isolation of DB schema. ORMs (EF Core) provide compile-time C# type safety, seamless Git version control, faster developer velocity, and database vendor portability.',
+    interviewAnswer: 'In modern enterprise software engineering:\n1. **ORM / LINQ Advantages (EF Core)**:\n   - *Developer Velocity & Type Safety*: LINQ queries are strongly typed in C#. Refactoring a column name in C# automatically updates all queries with zero runtime SQL syntax errors.\n   - *Version Control*: Migrations and business logic live in the Git repository alongside application code, making CI/CD testing and branching seamless.\n   - *Security*: Parameterized SQL is generated automatically, preventing SQL injection.\n2. **Stored Procedure Advantages**:\n   - *Complex Multi-Step ETL / Batch Operations*: Stored procedures can run multiple SQL operations inside the database engine without multiple network roundtrips between the web server and database.\n   - *Fine-Grained Security*: DBAs can grant `EXECUTE` permissions on stored procedures while denying direct `SELECT`/`UPDATE` table access to the application service user.\n3. **Modern Hybrid Consensus**: Use EF Core LINQ for 90% of business CRUD operations; use Stored Procedures or raw SQL for complex batch reports, legacy database integrations, or high-volume ETL pipelines.',
+    spokenTip: 'I use EF Core for type-safe business CRUD and migrations, and reserve Stored Procedures for complex multi-step batch operations and high-volume ETL.',
+    example: {
+      language: 'csharp',
+      code: `// 1. Calling a Stored Procedure from EF Core
+var startDate = new SqlParameter("@StartDate", DateTime.UtcNow.AddDays(-30));
+var reportData = await _db.Database
+    .SqlQueryRaw<MonthlyRevenueDto>("EXEC dbo.CalculateMonthlyRevenue @StartDate", startDate)
+    .ToListAsync();
+
+// 2. Equivalent Type-Safe LINQ Query in C# (Compiled and Parameterized)
+var revenue = await _db.Orders
+    .AsNoTracking()
+    .Where(o => o.CreatedAt >= DateTime.UtcNow.AddDays(-30) && o.Status == OrderStatus.Completed)
+    .GroupBy(o => o.CreatedAt.Month)
+    .Select(g => new MonthlyRevenueDto { Month = g.Key, Total = g.Sum(x => x.TotalAmount) })
+    .ToListAsync();`,
+      explanation: 'Contrasts executing stored procedures in EF Core with pure type-safe LINQ queries.'
+    },
+    seniorPoint: 'A legacy myth was that Stored Procedures are vastly faster than ORM queries because they are pre-compiled. Modern SQL Server and PostgreSQL cache execution plans for parameterized ad-hoc SQL statements just as effectively as stored procedures.',
+    followUps: [
+      {
+        question: 'Why does business logic inside Stored Procedures make testing difficult?',
+        answer: 'Stored procedures cannot be unit tested with standard C# mocking frameworks (xUnit/Moq) in-memory; they require deploying a live relational database instance in the test pipeline.'
+      },
+      {
+        question: 'How do you prevent SQL Injection when executing raw SQL or Stored Procedures in EF Core?',
+        answer: 'Always use parameterized SQL queries (`FromSqlInterpolated` or `SqlParameter` objects) and never concatenate raw strings into the SQL text (`FromSqlRaw($"SELECT ... {input}")`).'
+      }
+    ],
+    keyPointsToMention: [
+      'LINQ / ORM: C# compile-time type safety, Git versioning, faster feature delivery',
+      'Stored Procedures: reduced network hops for multi-step batches, DBA access restriction',
+      'Plan caching myth: parameterized ORM SQL caches execution plans just like stored procs',
+      'Unit testing friction with stored procedures vs in-memory/containerized ORM tests',
+      'Hybrid enterprise standard'
+    ],
+    tags: ['SQL', 'Stored Procedures', 'EF Core', 'Architecture', 'Performance', 'Security']
   }
 ];

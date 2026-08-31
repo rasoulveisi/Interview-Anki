@@ -27,28 +27,53 @@ import {
 import { Card, Deck, ReviewLog, UserProfile } from './types';
 import { allQuestions, categoriesMeta } from './data';
 
-// Import Firebase config
-import firebaseConfig from '../firebase-applet-config.json';
+// Import Firebase fallback config (AI Studio default)
+import appletConfig from '../firebase-applet-config.json';
+
+// Resolve configuration: environment variables (.env / .env.local) take priority
+const hasCustomEnv = !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || appletConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || appletConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || appletConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || appletConfig.appId,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || appletConfig.measurementId || ''
+};
+
+// When user provides custom project in .env, use standard (default) database unless explicitly overridden
+const customDbId = import.meta.env.VITE_FIREBASE_DATABASE_ID || (hasCustomEnv ? undefined : appletConfig.firestoreDatabaseId);
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = customDbId && customDbId !== '(default)'
+  ? getFirestore(app, customDbId)
+  : getFirestore(app);
 
 const LOCAL_STORAGE_DECKS_KEY = 'ankidroid_decks_v2';
 const LOCAL_STORAGE_CARDS_KEY = 'ankidroid_cards_v2';
 const LOCAL_STORAGE_USER_KEY = 'ankidroid_user_v2';
 
-// Helper to chunk batch writes to avoid Firestore 500 limits
+// Helper to chunk batch writes to avoid Firestore 500 limits (parallelized)
 async function batchWriteItems(items: Array<{ ref: any; data: any }>) {
-  const chunkSize = 350;
+  if (!items || items.length === 0) return;
+  const chunkSize = 400;
+  const chunks: Array<Array<{ ref: any; data: any }>> = [];
   for (let i = 0; i < items.length; i += chunkSize) {
-    const chunk = items.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
-    for (const item of chunk) {
-      batch.set(item.ref, item.data, { merge: true });
-    }
-    await batch.commit();
+    chunks.push(items.slice(i, i + chunkSize));
   }
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const batch = writeBatch(db);
+      for (const item of chunk) {
+        batch.set(item.ref, item.data, { merge: true });
+      }
+      return batch.commit();
+    })
+  );
 }
 
 // Seed default decks and cards from data directory if new user
@@ -192,6 +217,36 @@ export class DatabaseService {
     }
   }
 
+  static getLocalProfile(): UserProfile | null {
+    try {
+      const data = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  static saveLocalProfile(profile: UserProfile) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(profile));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+  }
+
+  static async saveUserProfile(profile: UserProfile): Promise<void> {
+    this.saveLocalProfile(profile);
+    const userId = profile.userId;
+    if (userId && userId !== 'local_user') {
+      try {
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, profile, { merge: true });
+      } catch (err) {
+        console.warn('Failed to sync profile to Firestore:', err);
+      }
+    }
+  }
+
   // Initialize or Seed Firestore
   static async initializeUserData(user: FirebaseUser): Promise<{ decks: Deck[]; cards: Card[]; profile: UserProfile }> {
     const userId = user.uid;
@@ -317,8 +372,15 @@ export class DatabaseService {
     const missingDecks = defaultDecks.filter(d => !existingDeckIds.has(d.id));
     const missingCards = defaultCards.filter(c => !existingCardIds.has(c.id));
 
-    const mergedDecks = [...currentDecks, ...missingDecks];
     const mergedCards = [...currentCards, ...missingCards];
+    const mergedDecks = defaultDecks.map(d => {
+      const count = mergedCards.filter(c => c.deckId === d.id).length;
+      return {
+        ...d,
+        totalCards: count,
+        newCount: count
+      };
+    });
 
     this.saveLocalDecks(mergedDecks);
     this.saveLocalCards(mergedCards);

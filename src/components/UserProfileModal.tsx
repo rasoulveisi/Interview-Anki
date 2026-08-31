@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { 
   X, 
-  Cloud, 
   CloudCheck, 
-  ShieldCheck, 
   Download, 
   Upload, 
   LogOut, 
   LogIn, 
-  User, 
-  Database,
-  Flame,
-  CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Sliders,
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { auth } from '../firebase';
@@ -28,6 +25,7 @@ interface UserProfileModalProps {
   onExportData: () => void;
   onImportData: (file: File) => void;
   onForceSync: () => void;
+  onUpdateProfile?: (updatedProfile: UserProfile) => void;
 }
 
 export function UserProfileModal({
@@ -39,10 +37,16 @@ export function UserProfileModal({
   totalDecks,
   onExportData,
   onImportData,
-  onForceSync
+  onForceSync,
+  onUpdateProfile
 }: UserProfileModalProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+
+  // Daily Limits State
+  const [dailyNewLimit, setDailyNewLimit] = useState<number>(profile?.dailyNewLimit || 20);
+  const [dailyReviewLimit, setDailyReviewLimit] = useState<number>(profile?.dailyReviewLimit || 100);
+  const [isSaved, setIsSaved] = useState(false);
 
   if (!isOpen) return null;
 
@@ -80,6 +84,21 @@ export function UserProfileModal({
     }
   };
 
+  const handleSaveLimits = () => {
+    if (!profile) return;
+    const updated: UserProfile = {
+      ...profile,
+      dailyNewLimit,
+      dailyReviewLimit,
+      updatedAt: new Date().toISOString()
+    };
+    if (onUpdateProfile) {
+      onUpdateProfile(updated);
+    }
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-5 sm:p-6 shadow-2xl space-y-4 my-auto">
@@ -92,10 +111,10 @@ export function UserProfileModal({
             </div>
             <div>
               <h3 className="text-base font-bold text-white leading-none">
-                Firebase Cloud Sync
+                Settings & Cloud Sync
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Permanent database storage
+                Daily limits and database storage
               </p>
             </div>
           </div>
@@ -119,11 +138,84 @@ export function UserProfileModal({
 
           <button
             onClick={onForceSync}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold active:scale-95 transition-all"
           >
             <RefreshCw className="w-3 h-3" />
             <span>Sync Now</span>
           </button>
+        </div>
+
+        {/* Daily Limitations & Study Goals */}
+        <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Daily Study Limitations</span>
+            </div>
+            {isSaved && (
+              <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
+                <Check className="w-3 h-3" /> Saved!
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            <div>
+              <div className="flex items-center justify-between text-slate-300 mb-1">
+                <span>Daily New Cards Target</span>
+                <span className="font-bold text-indigo-400">
+                  {dailyNewLimit >= 999 ? 'Unlimited' : `${dailyNewLimit} cards/day`}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {[5, 10, 20, 50, 999].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setDailyNewLimit(num)}
+                    className={`py-1 rounded-lg font-bold text-[11px] border transition-all ${
+                      dailyNewLimit === num
+                        ? 'bg-indigo-600 border-indigo-500 text-white'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {num === 999 ? 'No Limit' : num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between text-slate-300 mb-1">
+                <span>Daily Review Cards Target</span>
+                <span className="font-bold text-indigo-400">
+                  {dailyReviewLimit >= 999 ? 'Unlimited' : `${dailyReviewLimit} cards/day`}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {[20, 50, 100, 200, 999].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setDailyReviewLimit(num)}
+                    className={`py-1 rounded-lg font-bold text-[11px] border transition-all ${
+                      dailyReviewLimit === num
+                        ? 'bg-indigo-600 border-indigo-500 text-white'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {num === 999 ? 'No Limit' : num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveLimits}
+              className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs active:scale-95 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Save Study Limits</span>
+            </button>
+          </div>
         </div>
 
         {/* User Account Details */}
@@ -143,7 +235,7 @@ export function UserProfileModal({
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400">Database Records</span>
+            <span className="text-slate-400">Total Flashcards</span>
             <span className="font-bold text-indigo-400">
               {totalDecks} Decks &bull; {totalCards} Cards
             </span>

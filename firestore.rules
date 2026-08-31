@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated and matches userId
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Match any document or subcollection under /users/{userId}
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /decks/{deckId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /cards/{cardId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /reviews/{reviewId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

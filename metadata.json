@@ -1,0 +1,6 @@
+{
+  "name": "AnkiDroid Web - Cloud Flashcards & SRS",
+  "description": "Mobile-first Anki-style spaced repetition flashcard app with real-time Firebase cloud synchronization, custom deck builder, SM-2 review engine, and comprehensive Senior Frontend & Full-Stack interview mastery suites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

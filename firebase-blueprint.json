@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with SRS preferences and synchronization stats",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Auth UID" },
+        "displayName": { "type": "string", "description": "User display name or email" },
+        "email": { "type": "string", "description": "User email address" },
+        "dailyNewLimit": { "type": "number", "description": "Daily new cards target" },
+        "dailyReviewLimit": { "type": "number", "description": "Daily review cards limit" },
+        "streak": { "type": "number", "description": "Current consecutive study streak" },
+        "lastStudyDate": { "type": "string", "description": "YYYY-MM-DD" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId"]
+    },
+    "Deck": {
+      "title": "Deck",
+      "description": "A flashcard deck collection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique deck identifier" },
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "name": { "type": "string", "description": "Deck title" },
+        "description": { "type": "string", "description": "Deck description" },
+        "category": { "type": "string", "description": "Category or topic" },
+        "color": { "type": "string", "description": "Hex or Tailwind color name" },
+        "icon": { "type": "string", "description": "Icon identifier" },
+        "totalCards": { "type": "number", "description": "Total cards in deck" },
+        "newCount": { "type": "number", "description": "New cards due" },
+        "learnCount": { "type": "number", "description": "Learning cards due" },
+        "reviewCount": { "type": "number", "description": "Review cards due" },
+        "isDefault": { "type": "boolean", "description": "Whether this is a built-in preseeded deck" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name"]
+    },
+    "Card": {
+      "title": "Card",
+      "description": "Individual flashcard with Anki SM-2 spaced repetition state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique card identifier" },
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "deckId": { "type": "string", "description": "Deck reference ID" },
+        "front": { "type": "string", "description": "Card question / front side" },
+        "back": { "type": "string", "description": "Card answer / back side" },
+        "notes": { "type": "string", "description": "Additional notes, explanation, or code sample" },
+        "spokenTip": { "type": "string", "description": "Verbal opening phrase or pronunciation tip" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "List of tags" },
+        "difficulty": { "type": "string", "enum": ["Basic", "Intermediate", "Advanced", "Senior"] },
+        "state": { "type": "string", "enum": ["new", "learning", "review", "relearning", "suspended"] },
+        "due": { "type": "number", "description": "Unix timestamp in ms when the card is next due" },
+        "interval": { "type": "number", "description": "Current interval in days" },
+        "easeFactor": { "type": "number", "description": "SM-2 ease factor (starts at 2.50)" },
+        "repetitions": { "type": "number", "description": "Number of consecutive successful reviews" },
+        "lapses": { "type": "number", "description": "Number of times card failed ('Again' clicked)" },
+        "lastReviewedAt": { "type": "number", "description": "Timestamp in ms of last review" },
+        "isFavorite": { "type": "boolean", "description": "Star flag" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "deckId", "front", "back", "state", "due", "interval", "easeFactor"]
+    },
+    "ReviewLog": {
+      "title": "ReviewLog",
+      "description": "Historical audit of each flashcard review for statistics & heatmaps",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "cardId": { "type": "string" },
+        "deckId": { "type": "string" },
+        "rating": { "type": "string", "enum": ["again", "hard", "good", "easy"] },
+        "timeSpentMs": { "type": "number" },
+        "previousInterval": { "type": "number" },
+        "newInterval": { "type": "number" },
+        "previousEase": { "type": "number" },
+        "newEase": { "type": "number" },
+        "reviewedAt": { "type": "number" }
+      },
+      "required": ["id", "userId", "cardId", "rating", "reviewedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "/users/{userId}/decks/{deckId}": {
+      "schema": "Deck",
+      "description": "Decks owned by the user"
+    },
+    "/users/{userId}/cards/{cardId}": {
+      "schema": "Card",
+      "description": "Cards belonging to the user"
+    },
+    "/users/{userId}/reviews/{reviewId}": {
+      "schema": "ReviewLog",
+      "description": "Review logs for user stats and heatmaps"
+    }
+  }
+}

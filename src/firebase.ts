@@ -56,6 +56,21 @@ const LOCAL_STORAGE_DECKS_KEY = 'ankidroid_decks_v2';
 const LOCAL_STORAGE_CARDS_KEY = 'ankidroid_cards_v2';
 const LOCAL_STORAGE_USER_KEY = 'ankidroid_user_v2';
 
+// Helper to sanitize objects for Firestore (removes undefined fields which Firestore rejects)
+function sanitizeForFirestore<T extends Record<string, any>>(data: T): T {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        clean[key] = sanitizeForFirestore(value);
+      } else {
+        clean[key] = value;
+      }
+    }
+  }
+  return clean as T;
+}
+
 // Helper to chunk batch writes to avoid Firestore 500 limits (parallelized)
 async function batchWriteItems(items: Array<{ ref: any; data: any }>) {
   if (!items || items.length === 0) return;
@@ -69,7 +84,7 @@ async function batchWriteItems(items: Array<{ ref: any; data: any }>) {
     chunks.map(async (chunk) => {
       const batch = writeBatch(db);
       for (const item of chunk) {
-        batch.set(item.ref, item.data, { merge: true });
+        batch.set(item.ref, sanitizeForFirestore(item.data), { merge: true });
       }
       return batch.commit();
     })
@@ -240,7 +255,7 @@ export class DatabaseService {
     if (userId && userId !== 'local_user') {
       try {
         const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, profile, { merge: true });
+        await setDoc(userRef, sanitizeForFirestore(profile), { merge: true });
       } catch (err) {
         console.warn('Failed to sync profile to Firestore:', err);
       }
@@ -261,7 +276,7 @@ export class DatabaseService {
         profile = {
           userId,
           displayName: user.displayName || (user.isAnonymous ? 'Mobile Explorer' : user.email?.split('@')[0] || 'Anki Scholar'),
-          email: user.email || undefined,
+          email: user.email || '',
           isAnonymous: user.isAnonymous,
           dailyNewLimit: 20,
           dailyReviewLimit: 100,
@@ -271,7 +286,7 @@ export class DatabaseService {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        await setDoc(userDocRef, profile);
+        await setDoc(userDocRef, sanitizeForFirestore(profile));
 
         // Seed all default decks & cards in batch
         const itemsToWrite: Array<{ ref: any; data: any }> = [];
@@ -455,7 +470,7 @@ export class DatabaseService {
     if (userId && userId !== 'local_user') {
       try {
         const cardRef = doc(db, 'users', userId, 'cards', card.id);
-        await setDoc(cardRef, card, { merge: true });
+        await setDoc(cardRef, sanitizeForFirestore(card), { merge: true });
       } catch (err) {
         console.error('Failed to sync card to Firestore:', err);
       }
@@ -490,7 +505,7 @@ export class DatabaseService {
     if (userId && userId !== 'local_user') {
       try {
         const deckRef = doc(db, 'users', userId, 'decks', deck.id);
-        await setDoc(deckRef, deck, { merge: true });
+        await setDoc(deckRef, sanitizeForFirestore(deck), { merge: true });
       } catch (err) {
         console.error('Failed to sync deck to Firestore:', err);
       }
@@ -525,7 +540,7 @@ export class DatabaseService {
     if (userId && userId !== 'local_user') {
       try {
         const logRef = doc(db, 'users', userId, 'reviews', log.id);
-        await setDoc(logRef, log);
+        await setDoc(logRef, sanitizeForFirestore(log));
 
         // Update streak & count on user doc
         const userRef = doc(db, 'users', userId);

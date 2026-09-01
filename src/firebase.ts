@@ -27,24 +27,19 @@ import {
 import { Card, Deck, ReviewLog, UserProfile } from './types';
 import { allQuestions, categoriesMeta } from './data';
 
-// Import Firebase fallback config (AI Studio default)
-import appletConfig from '../firebase-applet-config.json';
-
-// Resolve configuration: environment variables (.env / .env.local) take priority
-const hasCustomEnv = !!import.meta.env.VITE_FIREBASE_PROJECT_ID;
-
+// Resolve configuration: environment variables (.env / .env.local)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || appletConfig.apiKey || 'AIzaSyDemoPlaceholderKeyForLocalDev0000',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || appletConfig.authDomain || 'demo-project.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || appletConfig.projectId || 'demo-project',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || appletConfig.appId || '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || appletConfig.measurementId || ''
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDemoPlaceholderKeyForLocalDev0000',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'demo-project.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'demo-project',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || ''
 };
 
-// When user provides custom project in .env, use standard (default) database unless explicitly overridden
-const customDbId = import.meta.env.VITE_FIREBASE_DATABASE_ID || (hasCustomEnv ? undefined : appletConfig.firestoreDatabaseId);
+// Use standard (default) database unless explicitly specified
+const customDbId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

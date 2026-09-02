@@ -1,0 +1,103 @@
+{
+  "deck": {
+    "id": "deck_testing",
+    "name": "Testing & Quality Assurance",
+    "description": "Unit testing, TestBed, HttpTestingController, fakeAsync, Signals testing, Marble testing, and over-mocking pitfalls.",
+    "category": "testing",
+    "color": "#14B8A6",
+    "iconName": "CheckCircle",
+    "isDefault": true,
+    "totalCards": 5
+  },
+  "cards": [
+    {
+      "id": "card_gpt_fe_04",
+      "deckId": "deck_testing",
+      "front": "How would you design a frontend test strategy for a business-critical application without producing a slow suite dominated by brittle end-to-end tests?",
+      "back": "I would place tests at the cheapest level that gives confidence. Pure domain mapping, validation, reducers, and selectors get fast unit tests. Components get behavior-focused tests through their public interface, including accessibility and error states. A smaller set of integration tests covers feature composition with mocked or controlled network boundaries. End-to-end tests protect a few critical journeys against a realistic deployed stack.\n\n**Key Points:**\n- Matches test level to risk and feedback speed.\n- Includes contracts, accessibility, visuals, and production monitoring.\n- Tests behavior rather than implementation details.",
+      "notes": "### Comprehensive Senior Answer\nI would place tests at the cheapest level that gives confidence. Pure domain mapping, validation, reducers, and selectors get fast unit tests. Components get behavior-focused tests through their public interface, including accessibility and error states. A smaller set of integration tests covers feature composition with mocked or controlled network boundaries. End-to-end tests protect a few critical journeys against a realistic deployed stack.\n\nI would avoid testing framework internals, exact DOM structure, or every visual variant through end-to-end automation. API contract tests and generated schemas reduce frontend-backend drift. Visual regression tests are valuable for shared components and high-risk layouts, but need review discipline. The suite should be parallelizable, deterministic, and measured for duration and flakiness. Production monitoring remains part of confidence because no pre-release suite covers every browser and data combination.\n\n### 💡 Senior Engine & Architecture Insight\n> Matches test level to risk and feedback speed.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What would you test for a reusable date picker?**\n- **When should an API be real rather than mocked in a frontend test?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Matches test level to risk and feedback speed.\n✅ Includes contracts, accessibility, visuals, and production monitoring.\n✅ Tests behavior rather than implementation details.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Attempts to cover every branch with browser end-to-end tests.\n⚠️ Uses snapshots as the primary assertion for interactive components.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Matches test level to risk and feedback speed.",
+      "tags": [
+        "testing",
+        "Testing Strategy",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_fe_05",
+      "deckId": "deck_testing",
+      "front": "A component test passes locally but fails intermittently in CI because a loading state sometimes disappears before the assertion. How would you debug and fix the test?",
+      "back": "I would remove timing assumptions and control the asynchronous boundary. The test should arrange the request or promise so it remains pending, assert the loading state, then resolve it and assert the final state using the testing library's supported async utilities. Arbitrary sleeps make the test slower and still race.\n\n**Key Points:**\n- Controls completion rather than waiting by time.\n- Checks async events, timers, shared state, and cleanup.\n- Treats flakes as possible product races.",
+      "notes": "### Comprehensive Senior Answer\nI would remove timing assumptions and control the asynchronous boundary. The test should arrange the request or promise so it remains pending, assert the loading state, then resolve it and assert the final state using the testing library's supported async utilities. Arbitrary sleeps make the test slower and still race.\n\nI would check for unawaited user events, unresolved timers, shared global state, test-order dependence, and cleanup failures. If the test runner uses fake timers, I would ensure microtasks and timers are advanced correctly and restore timer state afterward. I would reproduce with repeated execution and CI-like parallelism, then fix the product code if the flake reveals a real race. A quarantine may protect the pipeline briefly, but the owner and removal condition must be explicit.\n\n### 💡 Senior Engine & Architecture Insight\n> Controls completion rather than waiting by time.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why can waiting for a fixed number of milliseconds still fail?**\n- **How would you detect test pollution from a previous test?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Controls completion rather than waiting by time.\n✅ Checks async events, timers, shared state, and cleanup.\n✅ Treats flakes as possible product races.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Increases the timeout until CI passes.\n⚠️ Adds retries without investigating causality.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Controls completion rather than waiting by time.",
+      "tags": [
+        "testing",
+        "Testing / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_test_01",
+      "deckId": "deck_testing",
+      "front": "How do you unit test Angular components and services? Compare ComponentFixture, HttpTestingController, fakeAsync/tick(), and waitForAsync().",
+      "back": "`TestBed` configures the test module. `ComponentFixture` controls component lifecycle, debugging DOM nodes (`debugElement.query`), and triggering change detection (`fixture.detectChanges()`). `HttpTestingController` mocks and asserts HTTP requests. `fakeAsync` runs async operations synchronously using a virtual clock controlled by `tick(ms)`. `waitForAsync` wraps real async promises using Zone.js.\n\n**Key Points:**\n- TestBed for dependency injection configuration and component compilation\n- ComponentFixture for DOM queries and manual change detection triggering\n- HttpTestingController for mocking HTTP requests (expectOne, flush, verify)\n- fakeAsync and tick() for deterministic synchronous timer testing",
+      "notes": "### Comprehensive Senior Answer\nTesting in Angular relies on structured test harnesses:\n1. **`TestBed` & `ComponentFixture`**: `TestBed.configureTestingModule()` sets up isolated dependencies. `fixture = TestBed.createComponent(MyComponent)` creates the fixture. `fixture.detectChanges()` manually runs change detection. `fixture.debugElement.query(By.css(\".btn\"))` inspects DOM nodes.\n2. **`HttpTestingController`**: Injects mock HTTP backends. We assert pending requests (`httpMock.expectOne(\"/api/users\")`), verify method (`req.request.method === \"GET\"`), and provide mock responses via `req.flush(mockData)`.\n3. **Asynchronous Testing (`fakeAsync` vs `waitForAsync`)**:\n   - **`fakeAsync` & `tick(ms)` (Preferred)**: Runs code inside a FakeAsyncZone. Timers (`setTimeout`, `debounceTime`) are paused and advanced synchronously using `tick(300)`, making tests deterministic and fast without real time delays.\n   - **`waitForAsync`**: Runs real asynchronous operations and waits until all pending microtasks/promises have resolved before completing the test.\n\n### Code Example\n```typescript\nimport { TestBed, ComponentFixture, fakeAsync, tick } from '@angular/core/testing';\nimport { provideHttpClient } from '@angular/common/http';\nimport { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';\nimport { UserSearchComponent } from './user-search.component';\n\ndescribe('UserSearchComponent', () => {\n  let component: UserSearchComponent;\n  let fixture: ComponentFixture<UserSearchComponent>;\n  let httpMock: HttpTestingController;\n\n  beforeEach(async () => {\n    await TestBed.configureTestingModule({\n      imports: [UserSearchComponent],\n      providers: [provideHttpClient(), provideHttpClientTesting()]\n    }).compileComponents();\n\n    fixture = TestBed.createComponent(UserSearchComponent);\n    component = fixture.componentInstance;\n    httpMock = TestBed.inject(HttpTestingController);\n    fixture.detectChanges();\n  });\n\n  afterEach(() => {\n    httpMock.verify(); // Ensures no unhandled HTTP requests remain\n  });\n\n  it('should debounce input and fetch search results', fakeAsync(() => {\n    component.searchControl.setValue('Angular');\n    \n    // Fast-forward virtual clock by 300ms (debounceTime)\n    tick(300);\n\n    const req = httpMock.expectOne('/api/search?q=Angular');\n    expect(req.request.method).toBe('GET');\n    req.flush([{ id: '1', name: 'Angular 18' }]);\n\n    // Synchronously resolve response and run change detection\n    fixture.detectChanges();\n\n    expect(component.results().length).toBe(1);\n    expect(component.results()[0].name).toBe('Angular 18');\n  }));\n});\n```\n_Unit test demonstrating TestBed, HttpTestingController request flushing, and fakeAsync/tick virtual clock advancement._\n\n### 💡 Senior Engine & Architecture Insight\n> Always call `httpMock.verify()` in `afterEach()`. This guarantees that if a component unexpectedly makes extra or duplicate HTTP requests, the test suite will fail and alert you.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `tick()` and `flush()` in `fakeAsync`?**\n  *A:* `tick(ms)` advances the virtual clock by a specific number of milliseconds. `flush()` immediately advances the clock until all pending macrotasks and timers in the queue have completed.\n- **Q: Why should unit tests mock child components and third-party dependencies?**\n  *A:* To isolate the component under test, keep execution speeds sub-second, and prevent failures in child components from causing false negatives in parent tests.",
+      "spokenTip": "I prefer fakeAsync with tick() because it simulates time synchronously, eliminating flaky setTimeout delays in unit tests.",
+      "tags": [
+        "testing",
+        "angular",
+        "unit-testing",
+        "testbed",
+        "fakeasync",
+        "httptestingcontroller"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_test_02",
+      "deckId": "deck_testing",
+      "front": "How do you test Angular Signals and computed dependencies? How does RxJS Marble Testing work using TestScheduler?",
+      "back": "Signals update synchronously, making them simple to test by mutating writable signals and asserting `computed()` return values directly. **RxJS Marble Testing** uses ASCII marble diagrams (e.g. `\"-a-b-c-|\"`) inside a `TestScheduler` to test time-based stream emissions, debounces, and race conditions deterministically.\n\n**Key Points:**\n- Synchronous nature of signal() and computed() assertions\n- TestBed.flushEffects() for testing effects\n- RxJS Marble syntax: - for time frame, letters for values, | for completion, # for error\n- TestScheduler run() helper for virtual time execution",
+      "notes": "### Comprehensive Senior Answer\nTesting modern reactive state:\n1. **Testing Angular Signals**: Because Signals are synchronous values, testing is straightforward: mutate the signal via `.set()` or `.update()` and immediately assert the `computed()` signal value without needing async wrappers or `fixture.detectChanges()`. For `effect()`, use `TestBed.flushEffects()` to run scheduled effects synchronously in the test environment.\n2. **RxJS Marble Testing (`TestScheduler`)**:\n   - Uses visual string diagrams where `-` represents 1 frame of virtual time, alphanumeric chars (`a`, `b`) represent emitted values, `|` represents completion, and `#` represents errors.\n   - Inside `testScheduler.run(({ cold, hot, expectObservable }) => { ... })`, we define input streams and assert that output streams match the exact frame-by-frame diagram, guaranteeing that debounces, throttles, and combination operators behave properly across virtual time.\n\n### Code Example\n```typescript\n// 1. Synchronous Signal Testing\ndescribe('CartStore Signal', () => {\n  it('should recalculate total price when items are added', () => {\n    const store = new CartStore();\n    expect(store.totalPrice()).toBe(0);\n\n    store.addItem({ id: '1', price: 50 });\n    // Computed signals update immediately without async waiting!\n    expect(store.totalPrice()).toBe(50);\n  });\n});\n\n// 2. RxJS Marble Testing with TestScheduler\nimport { TestScheduler } from 'rxjs/testing';\n\ndescribe('RxJS Marble Test', () => {\n  let scheduler: TestScheduler;\n\n  beforeEach(() => {\n    scheduler = new TestScheduler((actual, expected) => {\n      expect(actual).toEqual(expected);\n    });\n  });\n\n  it('should debounce values by 20ms (2 dashes)', () => {\n    scheduler.run(({ cold, expectObservable }) => {\n      const source$ = cold('-a--b---c---|', { a: 'x', b: 'y', c: 'z' });\n      const expected =    '---a--b---c-|'; // After 20ms debounce\n      // expectObservable(source$.pipe(debounceTime(20, scheduler))).toBe(expected);\n    });\n  });\n});\n```\n_Shows synchronous Signal testing alongside RxJS TestScheduler marble diagram testing._\n\n### 💡 Senior Engine & Architecture Insight\n> `TestBed.flushEffects()` is required when testing `effect()` in Angular because effects are scheduled asynchronously by the runtime microtask queue. Calling `flushEffects()` executes pending effects immediately.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `hot` and `cold` observables in marble testing?**\n  *A:* `cold` observables start emitting from frame 0 when subscribed to. `hot` observables emit values according to the global timeline regardless of when subscriptions occur (simulating user click events or subjects).\n- **Q: How do you test `toSignal()` in an Angular unit test?**\n  *A:* Wrap the component or service instantiation inside an injection context (via `TestBed.runInInjectionContext(() => toSignal(source$))`) so `toSignal` can access the `DestroyRef`.",
+      "spokenTip": "Signals test synchronously with direct assertions; time-dependent RxJS streams test with TestScheduler marble diagrams.",
+      "tags": [
+        "testing",
+        "signals",
+        "rxjs",
+        "marble-testing",
+        "testscheduler",
+        "reactivity"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_test_03",
+      "deckId": "deck_testing",
+      "front": "How do Playwright and Cypress compare for modern frontend End-to-End (E2E) testing? Explain the Page Object Model (POM) and network interception.",
+      "back": "Playwright runs out-of-process via Chrome DevTools Protocol / WebKit / Firefox with native multi-tab, multi-origin, and parallel execution. Cypress runs in-browser in an iframe. **Page Object Model (POM)** encapsulates page selectors and user actions into reusable classes. Network interception (`page.route()`) allows mocking backend APIs or validating payload requests.\n\n**Key Points:**\n- Playwright advantages: out-of-process architecture, multi-tab/multi-user support, fast parallel execution\n- Page Object Model (POM) design pattern for maintainable tests\n- Accessible locator strategy: getByRole, getByLabel, getByText over CSS classes\n- Network mocking and fault injection via page.route()",
+      "notes": "### Comprehensive Senior Answer\nFor modern end-to-end and component integration testing:\n- **Playwright (Industry Standard)**: Communicates directly with browser rendering engines using WebSocket protocols out-of-process. It supports multi-tab workflows, multiple user contexts (testing two users collaborating in real time), Safari WebKit on Linux CI, auto-waiting on elements, and fast parallel test execution.\n- **Cypress**: Runs inside a single browser tab iframe. Great developer experience, but has architectural limitations with multi-tab flows, iframes, and multiple origins.\n- **Page Object Model (POM)**: We abstract UI selectors and user flows into dedicated classes (e.g. `LoginPage`, `CheckoutPage`). When UI markup or test IDs change, we only update the Page Object class rather than editing 50 separate test files.\n- **Network Interception**: Using `page.route(\"**/*api/checkout\", route => route.fulfill({ status: 200 }))` allows deterministic E2E testing of edge cases (e.g. payment failure 500s) without touching real production payment gateways.\n\n### Code Example\n```typescript\n// Page Object Model (POM) with Playwright\nimport { Page, Locator, expect } from '@playwright/test';\n\nexport class CheckoutPage {\n  readonly page: Page;\n  readonly payButton: Locator;\n  readonly successMessage: Locator;\n\n  constructor(page: Page) {\n    this.page = page;\n    this.payButton = page.getByRole('button', { name: 'Complete Payment' });\n    this.successMessage = page.getByTestId('order-confirmation');\n  }\n\n  async submitPayment() {\n    await this.payButton.click();\n  }\n}\n\n// Playwright E2E Test with Network Mocking\nimport { test } from '@playwright/test';\n\ntest('completes checkout successfully', async ({ page }) => {\n  // Mock Payment API response\n  await page.route('**/api/v1/payments', async (route) => {\n    await route.fulfill({ status: 200, json: { orderId: 'ORD-1234', success: true } });\n  });\n\n  const checkout = new CheckoutPage(page);\n  await page.goto('/checkout');\n  await checkout.submitPayment();\n\n  await expect(checkout.successMessage).toBeVisible();\n});\n```\n_Demonstrates Playwright Page Object Model class and network mocking via page.route._\n\n### 💡 Senior Engine & Architecture Insight\n> Prioritize testing user-facing accessibility locators (`page.getByRole('button', { name: 'Submit' })` or `page.getByLabel()`) over fragile CSS class selectors. If a refactor breaks accessibility, the test fails, keeping accessibility high.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the Testing Trophy philosophy (Kent C. Dodds)?**\n  *A:* Focus the bulk of testing effort on Integration Tests (testing several units working together), supported by Unit tests for complex business math and high-level E2E smoke tests for critical user flows.\n- **Q: How do you handle flaky E2E tests caused by network latency?**\n  *A:* Use Playwright's built-in auto-waiting assertions (`expect(locator).toBeVisible()`) rather than arbitrary `page.waitForTimeout(3000)` sleeps.",
+      "spokenTip": "Playwright is the modern standard for fast, parallel multi-tab E2E tests, structured with the Page Object Model.",
+      "tags": [
+        "testing",
+        "playwright",
+        "cypress",
+        "e2e",
+        "page-object-model",
+        "qa"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

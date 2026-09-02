@@ -1,0 +1,311 @@
+{
+  "deck": {
+    "id": "deck_reactadvanced",
+    "name": "React.js — Advanced & Scenarios",
+    "description": "TanStack Query (Server State) vs Zustand, React Server Components (RSC), Next.js App Router, re-render elimination, and scenarios.",
+    "category": "reactadvanced",
+    "color": "#2563EB",
+    "iconName": "Flame",
+    "isDefault": true,
+    "totalCards": 17
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ra_01",
+      "deckId": "deck_reactadvanced",
+      "front": "How do you distinguish server state from client state in a React application, and why does that distinction influence the choice of state-management tool?",
+      "back": "Server state is owned outside the browser and has asynchronous lifecycle concerns: fetching, freshness, cache keys, retries, invalidation, background refresh, and concurrent consumers. Client state represents local interaction or workflow choices such as an open panel, an unsaved draft, or a selected tab. Some state crosses the boundary, but naming the owner prevents duplicated sources of truth.\n\n**Key Points:**\n- Defines ownership, freshness, and lifecycle differences.\n- Avoids duplicating query results into another store by default.\n- Explains how editable drafts cross the boundary.",
+      "notes": "### Comprehensive Senior Answer\nServer state is owned outside the browser and has asynchronous lifecycle concerns: fetching, freshness, cache keys, retries, invalidation, background refresh, and concurrent consumers. Client state represents local interaction or workflow choices such as an open panel, an unsaved draft, or a selected tab. Some state crosses the boundary, but naming the owner prevents duplicated sources of truth.\n\nI would normally let a server-state library own remote data and its request lifecycle instead of copying every response into a global client store. Local or shared client state can use component state, reducers, context, or an external store depending on coordination needs. A draft may be initialized from server state and then intentionally diverge. On save, the mutation updates or invalidates the server cache. The key is that each value has one authoritative owner and explicit transition points.\n\n### 💡 Senior Engine & Architecture Insight\n> Defines ownership, freshness, and lifecycle differences.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where would URL search parameters fit?**\n- **Would authentication session data be server state or client state?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Defines ownership, freshness, and lifecycle differences.\n✅ Avoids duplicating query results into another store by default.\n✅ Explains how editable drafts cross the boundary.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Calls all shared data global client state.\n⚠️ Copies every query result into a second state container.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Defines ownership, freshness, and lifecycle differences.",
+      "tags": [
+        "reactadvanced",
+        "State Architecture / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_02",
+      "deckId": "deck_reactadvanced",
+      "front": "A customer list is filtered by tenant, search text, status, page, and sort order. How would you design query keys, freshness, and invalidation?",
+      "back": "The query key should deterministically include every parameter that changes the returned data, using normalized serializable values: tenant identity, normalized search, status, page or cursor, and sort. Omitting tenant or sort can return data from the wrong cache entry. I would centralize key construction so reads, prefetching, mutation updates, and invalidation agree.\n\n**Key Points:**\n- Includes all response-defining parameters and tenant scope.\n- Uses domain-specific freshness and targeted invalidation.\n- Centralizes query-key construction.",
+      "notes": "### Comprehensive Senior Answer\nThe query key should deterministically include every parameter that changes the returned data, using normalized serializable values: tenant identity, normalized search, status, page or cursor, and sort. Omitting tenant or sort can return data from the wrong cache entry. I would centralize key construction so reads, prefetching, mutation updates, and invalidation agree.\n\nFreshness should match the data and workflow. A slowly changing reference list can remain fresh longer; an operational queue may refresh on focus or a short interval. I would avoid invalidating the entire cache after every mutation. A successful customer update can patch the detail entry, update matching list entries when safe, and invalidate affected list families when filter membership might change. Cancellation and placeholder or previous data can keep pagination responsive. Tests should cover key isolation across tenants and filters.\n\n### 💡 Senior Engine & Architecture Insight\n> Includes all response-defining parameters and tenant scope.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What happens if the query key contains a newly created object?**\n- **How would cursor pagination affect the cache structure?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Includes all response-defining parameters and tenant scope.\n✅ Uses domain-specific freshness and targeted invalidation.\n✅ Centralizes query-key construction.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses one key such as `customers` for all variants.\n⚠️ Clears the entire query cache after every mutation.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Includes all response-defining parameters and tenant scope.",
+      "tags": [
+        "reactadvanced",
+        "TanStack Query / Cache Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_03",
+      "deckId": "deck_reactadvanced",
+      "front": "How would you implement an optimistic React Query mutation that remains correct when a user makes two rapid edits to the same record?",
+      "back": "Before the mutation, I would cancel or account for relevant refetches so they do not overwrite the optimistic value, snapshot the affected cache entries, and apply an optimistic update identified by the mutation or entity version. On failure, I would roll back only the state owned by that mutation or refetch if concurrent changes make a simple snapshot unsafe. On settlement, I would reconcile with the authoritative server response and invalidate the necessary query family.\n\n**Key Points:**\n- Handles cancellation, snapshots, reconciliation, and concurrent mutations.\n- Connects cache behavior to API concurrency.\n- Provides explicit pending and conflict UX.",
+      "notes": "### Comprehensive Senior Answer\nBefore the mutation, I would cancel or account for relevant refetches so they do not overwrite the optimistic value, snapshot the affected cache entries, and apply an optimistic update identified by the mutation or entity version. On failure, I would roll back only the state owned by that mutation or refetch if concurrent changes make a simple snapshot unsafe. On settlement, I would reconcile with the authoritative server response and invalidate the necessary query family.\n\nTwo rapid edits make a single snapshot dangerous because failure of the first operation must not erase the second. I would serialize edits where business semantics require order, attach client operation IDs or versions, or maintain a per-entity pending queue. The API should enforce optimistic concurrency if lost updates matter. The UI needs pending and conflict feedback, not silent cache magic.\n\n### 💡 Senior Engine & Architecture Insight\n> Handles cancellation, snapshots, reconciliation, and concurrent mutations.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is pessimistic mutation preferable?**\n- **How would you display a version conflict?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Handles cancellation, snapshots, reconciliation, and concurrent mutations.\n✅ Connects cache behavior to API concurrency.\n✅ Provides explicit pending and conflict UX.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses one global rollback snapshot.\n⚠️ Assumes invalidating later fixes every incorrect intermediate state.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Handles cancellation, snapshots, reconciliation, and concurrent mutations.",
+      "tags": [
+        "reactadvanced",
+        "Mutation / Optimistic UI",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_04",
+      "deckId": "deck_reactadvanced",
+      "front": "When do `useMemo`, `useCallback`, and `React.memo` help, and how can indiscriminate memoization make a codebase slower or harder to maintain?",
+      "back": "They help when measured rendering work is significant and stable identity can prevent that work. `React.memo` can skip rendering when props compare equal. `useMemo` can retain an expensive derived value or stable object needed by a memoized consumer. `useCallback` can preserve function identity when that identity matters to a memoized child or external subscription.\n\n**Key Points:**\n- Treats memoization as a measured optimization.\n- Explains identity and dependency costs.\n- Optimizes state ownership before adding caches.",
+      "notes": "### Comprehensive Senior Answer\nThey help when measured rendering work is significant and stable identity can prevent that work. `React.memo` can skip rendering when props compare equal. `useMemo` can retain an expensive derived value or stable object needed by a memoized consumer. `useCallback` can preserve function identity when that identity matters to a memoized child or external subscription.\n\nThey are not semantic guarantees and should not be added to every value. Memoization has comparison, allocation, dependency, and cognitive costs; one always-new prop can defeat the whole chain. Stale dependencies can also introduce correctness bugs. I would first use the React profiler to identify a costly repeated render, simplify state ownership so fewer components observe the change, and then memoize the smallest stable boundary. I would remeasure and remove ineffective memoization.\n\n### 💡 Senior Engine & Architecture Insight\n> Treats memoization as a measured optimization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why does memoizing a cheap calculation sometimes lose?**\n- **How can component composition reduce the need for memoization?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Treats memoization as a measured optimization.\n✅ Explains identity and dependency costs.\n✅ Optimizes state ownership before adding caches.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Wraps every callback and component by default.\n⚠️ Claims memoization guarantees a component never renders.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Treats memoization as a measured optimization.",
+      "tags": [
+        "reactadvanced",
+        "Performance / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_05",
+      "deckId": "deck_reactadvanced",
+      "front": "A filter field causes an entire complex page to re-render on every keystroke. How would you determine whether that is a problem and reduce the cost if necessary?",
+      "back": "A render is not automatically a performance bug; I would profile the interaction and inspect render duration, commit work, and user input responsiveness. Then I would identify which state change causes which subtrees to render and whether expensive children receive changing props or context values.\n\n**Key Points:**\n- Profiles before treating re-rendering as failure.\n- Examines state placement, context, props, algorithms, and rendering.\n- Prioritizes input responsiveness.",
+      "notes": "### Comprehensive Senior Answer\nA render is not automatically a performance bug; I would profile the interaction and inspect render duration, commit work, and user input responsiveness. Then I would identify which state change causes which subtrees to render and whether expensive children receive changing props or context values.\n\nI might move the filter state closer to the filter and result area, split static content into children whose elements remain stable, reduce broad context updates, defer non-urgent result rendering, virtualize large output, or memoize a proven expensive boundary. Filtering itself may belong in a worker or on the server if the dataset is large. I would preserve immediate input feedback and avoid hiding a poor algorithm behind memoization. The final decision is based on interaction timing on representative data and hardware.\n\n### 💡 Senior Engine & Architecture Insight\n> Profiles before treating re-rendering as failure.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is the difference between render and commit work?**\n- **When would deferring an update improve UX?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Profiles before treating re-rendering as failure.\n✅ Examines state placement, context, props, algorithms, and rendering.\n✅ Prioritizes input responsiveness.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Counts renders without measuring their cost.\n⚠️ Moves all page state into one global store as the optimization.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Profiles before treating re-rendering as failure.",
+      "tags": [
+        "reactadvanced",
+        "Rendering / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_06",
+      "deckId": "deck_reactadvanced",
+      "front": "How would you design routing and authentication for a React application so refreshes, deep links, token expiry, and role changes behave consistently?",
+      "back": "The router should treat the URL as the source of truth for navigation and shareable filter state where appropriate. Protected route resolution should distinguish “session is still loading” from “unauthenticated” to avoid redirect flicker. Deep links must preserve the intended destination through login and validate that the destination is safe.\n\n**Key Points:**\n- Models loading, authenticated, and unauthenticated session states.\n- Preserves deep links and coordinates expiry.\n- Keeps server authorization authoritative.",
+      "notes": "### Comprehensive Senior Answer\nThe router should treat the URL as the source of truth for navigation and shareable filter state where appropriate. Protected route resolution should distinguish “session is still loading” from “unauthenticated” to avoid redirect flicker. Deep links must preserve the intended destination through login and validate that the destination is safe.\n\nAuthentication state should be owned by a session boundary that can refresh or revalidate credentials once, coordinate concurrent failures, and clear user-specific caches on logout or identity change. Route visibility and navigation menus may use permissions for UX, but the API authorizes every action. Data loading should be tied to the resolved route and cancellable on navigation. I would test direct URL entry, browser back/forward, expired sessions, multiple tabs, changed roles, and return-to-page behavior after login.\n\n### 💡 Senior Engine & Architecture Insight\n> Models loading, authenticated, and unauthenticated session states.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you prevent redirect loops?**\n- **Which filters belong in the URL rather than local state?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Models loading, authenticated, and unauthenticated session states.\n✅ Preserves deep links and coordinates expiry.\n✅ Keeps server authorization authoritative.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Checks authentication only when the application first mounts.\n⚠️ Treats route protection as sufficient security.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Models loading, authenticated, and unauthenticated session states.",
+      "tags": [
+        "reactadvanced",
+        "Routing / Authentication",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_07",
+      "deckId": "deck_reactadvanced",
+      "front": "How do Error Boundaries, Suspense-style loading boundaries, and request-level error states differ, and where would you place them in a large application?",
+      "back": "An Error Boundary catches rendering and lifecycle failures in its descendant tree and provides a fallback so one failure does not necessarily destroy the whole application. It is not a replacement for expected request error handling or event-handler try/catch. Loading boundaries coordinate UI that is not ready yet, while a query error state represents an expected asynchronous outcome with domain-specific recovery.\n\n**Key Points:**\n- Distinguishes render failures, loading, and expected request errors.\n- Places boundaries by fault-containment and UX.\n- Includes recovery and observability.",
+      "notes": "### Comprehensive Senior Answer\nAn Error Boundary catches rendering and lifecycle failures in its descendant tree and provides a fallback so one failure does not necessarily destroy the whole application. It is not a replacement for expected request error handling or event-handler try/catch. Loading boundaries coordinate UI that is not ready yet, while a query error state represents an expected asynchronous outcome with domain-specific recovery.\n\nI would place a coarse boundary around the application shell, then narrower boundaries around independently useful routes or widgets where recovery can be local. Loading fallbacks should preserve layout and avoid replacing the entire screen for small updates. A retry may reset the boundary or repeat the request depending on the failure. I would log errors with route, release, and correlation context while avoiding sensitive data. Boundaries should align with product fault-containment zones.\n\n### 💡 Senior Engine & Architecture Insight\n> Distinguishes render failures, loading, and expected request errors.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What errors are not caught by a typical Error Boundary?**\n- **When can too many loading boundaries create visual flicker?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Distinguishes render failures, loading, and expected request errors.\n✅ Places boundaries by fault-containment and UX.\n✅ Includes recovery and observability.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses one global error page for every failed widget.\n⚠️ Assumes an Error Boundary catches all asynchronous errors automatically.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Distinguishes render failures, loading, and expected request errors.",
+      "tags": [
+        "reactadvanced",
+        "Fault Isolation / UX",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_08",
+      "deckId": "deck_reactadvanced",
+      "front": "How would you decide whether a component in a modern Next.js application should be a Server Component or a Client Component?",
+      "back": "I would keep a component on the server when it can render from server-accessible data without browser state, event handlers, effects, or browser-only APIs. That can reduce client JavaScript and keep sensitive server dependencies out of the browser bundle. I would introduce a client boundary for genuine interactivity, local state, subscriptions, browser APIs, or client-only libraries.\n\n**Key Points:**\n- Uses interactivity and data location to choose the boundary.\n- Keeps client boundaries narrow and serializable.\n- Includes security and bundle implications.",
+      "notes": "### Comprehensive Senior Answer\nI would keep a component on the server when it can render from server-accessible data without browser state, event handlers, effects, or browser-only APIs. That can reduce client JavaScript and keep sensitive server dependencies out of the browser bundle. I would introduce a client boundary for genuine interactivity, local state, subscriptions, browser APIs, or client-only libraries.\n\nThe boundary is transitive for imported client code, so I would place it as low as practical rather than marking an entire page interactive because one button needs state. Data passed across the boundary must be serializable, and authorization still happens on the server data path. I would compose server-rendered content into interactive client shells where useful. The decision should consider bundle cost, data location, caching, interaction latency, and deployment constraints—not a blanket preference for one side.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses interactivity and data location to choose the boundary.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Can a Client Component receive content produced by a Server Component?**\n- **What kinds of values cannot cross the server-client boundary directly?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses interactivity and data location to choose the boundary.\n✅ Keeps client boundaries narrow and serializable.\n✅ Includes security and bundle implications.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Marks the whole application as client-rendered for convenience.\n⚠️ Assumes server-rendered code is automatically authorized.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses interactivity and data location to choose the boundary.",
+      "tags": [
+        "reactadvanced",
+        "Next.js / Architecture",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_09",
+      "deckId": "deck_reactadvanced",
+      "front": "A Next.js page shows stale data after a server-side mutation. How would you reason about caches, revalidation, and optimistic client state?",
+      "back": "I would identify every layer that can hold the value: browser query cache, router or rendered payload, framework data cache, CDN, API cache, and database. The mutation should return the authoritative result and trigger targeted invalidation or revalidation for the affected resource and list views. Broadly disabling all caching would hide the design problem and harm performance.\n\n**Key Points:**\n- Enumerates multiple cache layers rather than blaming one.\n- Uses targeted revalidation and authoritative mutation results.\n- Tests navigation, tabs, identity scope, and concurrency.",
+      "notes": "### Comprehensive Senior Answer\nI would identify every layer that can hold the value: browser query cache, router or rendered payload, framework data cache, CDN, API cache, and database. The mutation should return the authoritative result and trigger targeted invalidation or revalidation for the affected resource and list views. Broadly disabling all caching would hide the design problem and harm performance.\n\nIf the client applied an optimistic update, it must reconcile with the mutation result and not be replaced by an older navigation or background response. Cache keys need tenant and user scope where relevant. I would define freshness per route and data type, then test mutation followed by back navigation, refresh, another tab, and concurrent editing. Observability should record cache status or version identifiers sufficiently to diagnose which layer served stale content.\n\n### 💡 Senior Engine & Architecture Insight\n> Enumerates multiple cache layers rather than blaming one.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would no-store behavior be justified?**\n- **How would you avoid leaking user-specific data through a shared cache?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Enumerates multiple cache layers rather than blaming one.\n✅ Uses targeted revalidation and authoritative mutation results.\n✅ Tests navigation, tabs, identity scope, and concurrency.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Disables every cache globally.\n⚠️ Assumes the database update immediately refreshes rendered UI everywhere.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Enumerates multiple cache layers rather than blaming one.",
+      "tags": [
+        "reactadvanced",
+        "Next.js / Data Consistency",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ra_10",
+      "deckId": "deck_reactadvanced",
+      "front": "How would you organize a growing React product so components, route code, server-state hooks, forms, and shared UI do not become mutually dependent?",
+      "back": "I would organize by business feature, with a small application layer for routing, providers, and global composition. Each feature owns its page components, domain-specific UI, queries and mutations, form mapping, and tests. Shared UI contains stable product primitives; general utilities remain framework-independent where possible. Public entry points and dependency rules prevent features from importing each other's internals.\n\n**Key Points:**\n- Uses feature ownership and explicit public APIs.\n- Separates transport, server state, forms, and UI layers.\n- Adds enforceable dependency and ownership rules.",
+      "notes": "### Comprehensive Senior Answer\nI would organize by business feature, with a small application layer for routing, providers, and global composition. Each feature owns its page components, domain-specific UI, queries and mutations, form mapping, and tests. Shared UI contains stable product primitives; general utilities remain framework-independent where possible. Public entry points and dependency rules prevent features from importing each other's internals.\n\nI would separate transport DTOs from feature models, centralize query-key factories and API clients without creating one giant data service, and keep cross-feature workflows in an explicit orchestration layer. State stays local until coordination proves otherwise. The repository can use packages or folders based on team and build needs, but boundaries should follow ownership and change patterns. Architecture tests, lint rules, code ownership, and examples keep the model enforceable as the team grows.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses feature ownership and explicit public APIs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would two features participate in one checkout workflow?**\n- **What criteria would justify extracting a shared component?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses feature ownership and explicit public APIs.\n✅ Separates transport, server state, forms, and UI layers.\n✅ Adds enforceable dependency and ownership rules.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Creates global folders for every technical file type.\n⚠️ Extracts code after the first duplicated line.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses feature ownership and explicit public APIs.",
+      "tags": [
+        "reactadvanced",
+        "React Architecture",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_01",
+      "deckId": "deck_reactadvanced",
+      "front": "How do you separate Server State from Client State? Contrast TanStack Query (React Query) with Zustand/Redux for caching, background refetching, and optimistic updates.",
+      "back": "Server State is remote, asynchronous, shared, and can become stale. Client State is synchronous, local, and owned by the UI. Using TanStack Query for Server State gives automatic deduplication, stale-while-revalidate caching, and optimistic mutations, while lightweight libraries like Zustand handle UI client state (modals, active tabs, themes).\n\n**Key Points:**\n- Server State (remote, async, stale-prone) vs Client State (sync, local UI)\n- TanStack Query: automatic deduplication, garbage collection, focus revalidation\n- Optimistic update lifecycle: cancelQueries -> snapshot -> setQueryData -> onError rollback -> onSettled invalidate\n- Zustand for client UI state",
+      "notes": "### Comprehensive Senior Answer\nA major breakthrough in frontend architecture is recognizing that Server State and Client State are fundamentally different:\n- **Server State**: Resides remotely on a backend database. It is asynchronous, requires caching and background synchronization, and can be modified by other users. Trying to store server data in Redux requires massive boilerplate (actions, reducers, loading/error flags). **TanStack Query** manages server state with automated request deduplication, garbage collection, window focus refetching, and optimistic UI rollback.\n- **Client State**: Fully owned by the browser UI—e.g. sidebar collapse state, selected theme, multi-step wizard step. We use lightweight stores like **Zustand** for global UI state, eliminating 90% of legacy Redux boilerplate.\n\n### Code Example\n```typescript\nimport { useMutation, useQueryClient } from '@tanstack/react-query';\n\n// Optimistic Update with TanStack Query\nexport function useUpdateTodo() {\n  const queryClient = useQueryClient();\n\n  return useMutation({\n    mutationFn: (updatedTodo: Todo) => api.patch(`/todos/${updatedTodo.id}`, updatedTodo),\n    \n    // When mutate is called:\n    onMutate: async (newTodo) => {\n      // 1. Cancel in-flight queries\n      await queryClient.cancelQueries({ queryKey: ['todos'] });\n      // 2. Snapshot previous value for rollback\n      const previousTodos = queryClient.getQueryData<Todo[]>(['todos']);\n      // 3. Optimistically update cache immediately!\n      queryClient.setQueryData<Todo[]>(['todos'], old => \n        old?.map(t => t.id === newTodo.id ? { ...t, ...newTodo } : t)\n      );\n      return { previousTodos };\n    },\n    // On error, roll back to snapshot!\n    onError: (err, newTodo, context) => {\n      queryClient.setQueryData(['todos'], context?.previousTodos);\n    },\n    // Always refetch after error or success:\n    onSettled: () => {\n      queryClient.invalidateQueries({ queryKey: ['todos'] });\n    }\n  });\n}\n```\n_Demonstrates optimistic mutation with snapshot rollback in TanStack Query._\n\n### 💡 Senior Engine & Architecture Insight\n> Optimistic updates provide instant UI feedback (<16ms), but always require: 1) Cancelling in-flight queries to avoid race conditions, 2) Storing a previous snapshot for rollback on error, and 3) Calling `invalidateQueries()` on settle to ensure consistency with backend database state.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the Stale-While-Revalidate pattern in TanStack Query?**\n  *A:* TanStack Query serves cached data to the UI instantly (avoiding loading spinners) while triggering a background fetch to verify if fresh data exists, updating the UI seamlessly if changes occurred.\n- **Q: Why is Zustand preferred over Redux Toolkit for pure client state?**\n  *A:* Zustand is hook-based, has zero Context Provider wrapper requirements, minimal bundle footprint (<1KB), and supports fine-grained selector subscriptions to prevent unnecessary component re-renders.",
+      "spokenTip": "Separate state by ownership: use TanStack Query for remote server state caching, and Zustand for local UI client state.",
+      "tags": [
+        "react",
+        "tanstack-query",
+        "zustand",
+        "state-management",
+        "optimistic-updates",
+        "caching"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_02",
+      "deckId": "deck_reactadvanced",
+      "front": "How do React Server Components (RSC) work? Contrast Server Components with Client Components (\"use client\") and explain Hydration boundaries.",
+      "back": "React Server Components (RSC) execute exclusively on the server, have direct access to backend resources (DB, filesystem), and emit zero JavaScript to the client bundle. Client Components (`\"use client\"`) execute on the server during initial SSR and hydrate on the browser with interactive JavaScript. RSC reduces client bundle size while keeping interactive components client-side.\n\n**Key Points:**\n- RSC: Server-only execution, zero client JS bundle, direct backend/DB access\n- Client Components: \"use client\" directive, supports useState/useEffect/event handlers\n- RSC serialization format (JSON-like stream over HTTP)\n- Hydration boundaries and children prop composition pattern",
+      "notes": "### Comprehensive Senior Answer\nReact Server Components fundamentally split rendering responsibilities:\n- **Server Components (Default)**: Render only on the server and stream a serialized Virtual DOM format (RSC Payload) to the browser. They can directly query databases via Prisma/EF Core, read filesystem files, and import heavy dependencies (like markdown parsers or date libraries) with **0 KB added to the browser JavaScript bundle**. They cannot use hooks (`useState`, `useEffect`) or browser DOM event listeners.\n- **Client Components (`\"use client\"`)**: Opt into client-side interactivity. They are pre-rendered on the server for initial HTML and hydrated in the browser with full event listeners and state hooks.\n- **Composition Rule**: Server Components can import and render Client Components. However, Client Components cannot directly import Server Components; they can only accept them as `children` props to maintain the server boundary.\n\n### Code Example\n```typescript\n// 1. Server Component (Zero client JS bundle, direct DB access!)\n// app/users/page.tsx (Default is Server Component)\nimport { db } from '@/lib/db';\nimport { UserSearchClient } from './UserSearchClient'; // Client Component\n\nexport default async function UsersPage() {\n  // Direct async database query on server:\n  const initialUsers = await db.users.findMany({ take: 20 });\n\n  return (\n    <main>\n      <h1>Enterprise Directory</h1>\n      {/* Passing server data and server children into client boundary */}\n      <UserSearchClient initialUsers={initialUsers} />\n    </main>\n  );\n}\n\n// 2. Client Component (Interactive hook usage)\n// app/users/UserSearchClient.tsx\n'use client';\n\nimport { useState } from 'react';\n\nexport function UserSearchClient({ initialUsers }: { initialUsers: User[] }) {\n  const [query, setQuery] = useState('');\n  return (\n    <input \n      value={query} \n      onChange={e => setQuery(e.target.value)} \n      placeholder=\"Filter users...\" \n    />\n  );\n}\n```\n_Demonstrates async Server Component with direct DB access passing data to interactive \"use client\" component._\n\n### 💡 Senior Engine & Architecture Insight\n> `\"use client\"` does NOT mean \"render only in the browser\". Client Components are still pre-rendered into static HTML on the server during initial page load for fast Time to First Byte (TTFB), then hydrated in the browser.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why can't a Client Component import a Server Component directly?**\n  *A:* Because importing a Server Component inside a file marked `\"use client\"` forces the bundler to include the imported code in the client JS bundle, breaking the server boundary.\n- **Q: How do you pass a Server Component inside a Client Component?**\n  *A:* Pass it as `children` or via a JSX prop from an outer Server Component. The Client Component renders `{children}` as an opaque serialized slot without needing to bundle the server code.",
+      "spokenTip": "Server Components run only on the server with 0 KB client JS; Client Components use \"use client\" for browser interactivity and hooks.",
+      "tags": [
+        "react",
+        "rsc",
+        "nextjs",
+        "server-components",
+        "ssr",
+        "hydration",
+        "bundle-size"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_03",
+      "deckId": "deck_reactadvanced",
+      "front": "How do you diagnose and eliminate unnecessary React re-renders? Compare React.memo, useCallback, useMemo, and Component Composition.",
+      "back": "Diagnose re-renders using the React DevTools Profiler (highlighting render reasons). Eliminate re-renders primarily through **Component Composition** (moving state down or lifting content as `children`), and secondarily via `React.memo` paired with `useCallback` (for stable function references) and `useMemo` (for expensive computations).\n\n**Key Points:**\n- Default React behavior: parent render cascades to all children\n- Diagnosis with React DevTools Profiler (\"Record why each component rendered\")\n- Component Composition (children prop) as the cleanest memoization alternative\n- React.memo requires stable useCallback/useMemo prop references to work\n- Overhead of premature memoization",
+      "notes": "### Comprehensive Senior Answer\nIn React, when a parent component renders, by default *all* child components re-render recursively, regardless of whether their props changed.\n\nMy systematic approach to eliminate re-renders:\n1. **Diagnostic Profiling**: Open React DevTools Profiler -> Record user interaction -> Inspect \"Why did this render?\". Check for prop reference changes.\n2. **Component Composition (Best Practice)**: Move state down to the lowest sub-component that actually needs it. Alternatively, pass static subtrees as `children` props (`<Parent><ExpensiveChild /></Parent>`). When `Parent` re-renders due to its internal state, `ExpensiveChild` was created in the outer scope and does NOT re-render!\n3. **`React.memo`**: Wraps a component to perform shallow comparison of props (`prevProps === nextProps`).\n4. **`useCallback` & `useMemo`**: Mandatory when passing callbacks or object props to `React.memo` children. Without `useCallback`, inline arrow functions create new memory references on every parent render, breaking `React.memo`.\n\n### Code Example\n```typescript\nimport React, { useState, memo, useCallback, useMemo } from 'react';\n\n// 1. Memoized Child Component\nconst ExpensiveDataGrid = memo(function ExpensiveDataGrid({\n  data,\n  onRowClick\n}: {\n  data: number[];\n  onRowClick: (id: number) => void;\n}) {\n  console.log('Rendering ExpensiveDataGrid');\n  return <div>{data.length} Rows Rendered</div>;\n});\n\nexport function ParentDashboard() {\n  const [counter, setCounter] = useState(0);\n  const [filterText, setFilterText] = useState('');\n\n  // ✅ Stable callback reference across renders\n  const handleRowClick = useCallback((id: number) => {\n    console.log('Clicked row:', id);\n  }, []);\n\n  // ✅ Memoize expensive data calculation\n  const gridData = useMemo(() => {\n    return Array.from({ length: 1000 }, (_, i) => i * 2);\n  }, []);\n\n  return (\n    <div>\n      <button onClick={() => setCounter(c => c + 1)}>Counter: {counter}</button>\n      {/* ExpensiveDataGrid will NOT re-render when counter increments! */}\n      <ExpensiveDataGrid data={gridData} onRowClick={handleRowClick} />\n    </div>\n  );\n}\n```\n_Combines React.memo with useCallback and useMemo to prevent downstream re-renders._\n\n### 💡 Senior Engine & Architecture Insight\n> Applying `React.memo` and `useCallback` everywhere blindly has a performance cost: React must allocate memory for dependency arrays and run shallow comparisons on every render. If a component is cheap or its props always change, `memo` adds overhead with zero benefit.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why does passing an inline object `{ color: \"red\" }` to a `React.memo` component cause it to re-render?**\n  *A:* Because `{}` creates a new object instance with a different memory reference on every render. `React.memo` performs shallow `===` comparison, detects a reference change, and re-renders.\n- **Q: What is the React Compiler (React Forget) in React 19?**\n  *A:* An automated build-time compiler that memoizes components, values, and callbacks automatically, eliminating the need for manual `useMemo`, `useCallback`, and `React.memo` in most code.",
+      "spokenTip": "First fix re-renders with component composition and moving state down; only add React.memo and useCallback when necessary.",
+      "tags": [
+        "react",
+        "performance",
+        "profiling",
+        "memo",
+        "usecallback",
+        "usememo",
+        "re-renders"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_04",
+      "deckId": "deck_reactadvanced",
+      "front": "How do you implement the Compound Component pattern in React, and why do modern design systems use headless primitives (Radix UI / Shadcn)?",
+      "back": "The Compound Component pattern shares implicit state among a set of related sub-components via Context (e.g. `<Select><Select.Trigger /><Select.Content><Select.Item /></Select>`). Headless libraries (Radix UI / React Aria) provide 100% accessible WAI-ARIA behavior, keyboard navigation, and state logic with zero CSS, letting you style with Tailwind or CSS Modules without fighting pre-baked styles.\n\n**Key Points:**\n- Compound components eliminate prop explosion by sharing implicit context\n- Flexible JSX layout controlled by consumer\n- Headless UI primitives provide WAI-ARIA and keyboard mechanics with zero styling opinions\n- Comparison to Angular @ContentChildren and Content Projection",
+      "notes": "### Comprehensive Senior Answer\nTraditional UI components rely on \"prop explosions\" (e.g. `<Select options={items} isMulti hasSearch customRenderOption={...} />`), making them rigid and hard to customize.\n\n**Compound Component Pattern**:\n1. The parent container (`<Tabs>`) holds the active state in an internal React Context.\n2. Sub-components (`<Tabs.List>`, `<Tabs.Trigger>`, `<Tabs.Content>`) consume that context implicitly.\n3. Consumers have complete control over template layout and DOM hierarchy without prop drilling.\n\n**Why Headless UI (Radix / Shadcn UI) is the enterprise standard**:\nBuilding accessible dropdowns, modals, and tooltips requires hundreds of lines of focus trapping, ARIA roles, and keyboard event handling. Headless primitives handle all accessibility and state mechanics natively, allowing frontend teams to apply custom design systems using Tailwind CSS.\n\n### Code Example\n```typescript\nimport React, { createContext, useContext, useState, ReactNode } from 'react';\n\n// 1. Internal Context for Implicit State\nconst AccordionContext = createContext<{\n  activeId: string | null;\n  toggle: (id: string) => void;\n} | null>(null);\n\n// 2. Parent Compound Container\nexport function Accordion({ children }: { children: ReactNode }) {\n  const [activeId, setActiveId] = useState<string | null>(null);\n  const toggle = (id: string) => setActiveId(prev => prev === id ? null : id);\n\n  return (\n    <AccordionContext.Provider value={{ activeId, toggle }}>\n      <div className=\"accordion-root\">{children}</div>\n    </AccordionContext.Provider>\n  );\n}\n\n// 3. Sub-components consuming context\nAccordion.Item = function AccordionItem({ id, title, children }: { id: string; title: string; children: ReactNode }) {\n  const ctx = useContext(AccordionContext);\n  if (!ctx) throw new Error('AccordionItem must be inside Accordion');\n\n  const isOpen = ctx.activeId === id;\n\n  return (\n    <div className=\"accordion-item\">\n      <button onClick={() => ctx.toggle(id)} aria-expanded={isOpen}>\n        {title}\n      </button>\n      {isOpen && <div className=\"accordion-content\">{children}</div>}\n    </div>\n  );\n};\n\n// Usage:\n// <Accordion>\n//   <Accordion.Item id=\"1\" title=\"Billing FAQ\">Details here...</Accordion.Item>\n// </Accordion>\n```\n_Implements Compound Component pattern sharing activeId state implicitly through React Context._\n\n### 💡 Senior Engine & Architecture Insight\n> In Angular, compound components are typically built using Content Projection (`<ng-content>`) paired with `@ContentChildren(ItemComponent)` queries. In React, Context provides the implicit communication channel.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the trade-off of the Compound Component pattern?**\n  *A:* Consumers can accidentally place sub-components outside the provider context if they render them in arbitrary portals or wrappers, requiring clear error assertions (`if (!ctx) throw Error(...)`).\n- **Q: Why has Shadcn UI gained massive popularity over component libraries like MUI or AntD?**\n  *A:* Because Shadcn UI copies headless, accessible Radix code directly into your repository, giving full code ownership and easy customization with Tailwind CSS without version lock-in.",
+      "spokenTip": "Compound components share implicit state via Context to avoid prop explosion; headless primitives like Radix give you full accessibility logic without forced CSS.",
+      "tags": [
+        "react",
+        "design-systems",
+        "compound-components",
+        "headless-ui",
+        "radix",
+        "shadcn",
+        "architecture"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_05",
+      "deckId": "deck_reactadvanced",
+      "front": "How do you architect Authentication with Access & Refresh Tokens in React + ASP.NET Core, and how do you handle concurrent 401 token refresh requests?",
+      "back": "Store short-lived JWT access tokens in memory (or HttpOnly cookies) and refresh tokens in HttpOnly Secure SameSite cookies. Configure an Axios/Fetch interceptor: on 401, pause pending requests in a queue, trigger a single refresh token request, and replay all queued requests with the new access token once resolved.\n\n**Key Points:**\n- Token storage: Memory for Access Token, HttpOnly SameSite cookie for Refresh Token\n- Interceptor response queueing to prevent multiple simultaneous refresh requests\n- Handling multi-tab refresh synchronization via BroadcastChannel\n- Graceful session expiration redirect to login",
+      "notes": "### Comprehensive Senior Answer\nIn modern full-stack architectures (React + ASP.NET Core):\n1. **Storage Security**: Never store long-lived tokens in `localStorage` due to XSS vulnerability. Store the Refresh Token in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie that JavaScript cannot read. Store the Access Token in JavaScript memory or React state.\n2. **401 Interceptor Queueing**: When multiple API calls (e.g. 5 dashboard widgets) fire concurrently and the access token expires, all 5 calls return 401 simultaneously.\n3. **Concurrency Solution**: Maintain an `isRefreshing` boolean flag and a `failedQueue` array. The first 401 sets `isRefreshing = true` and calls `/api/auth/refresh`. The remaining 4 calls push their Promises into `failedQueue`. When refresh succeeds, resolve all queued promises with the new token and resume network requests seamlessly.\n\n### Code Example\n```typescript\nimport axios from 'axios';\n\nconst apiClient = axios.create({ baseURL: '/api' });\n\nlet isRefreshing = false;\nlet failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];\n\nconst processQueue = (error: any, token: string | null = null) => {\n  failedQueue.forEach(prom => {\n    if (error) prom.reject(error);\n    else prom.resolve(token!);\n  });\n  failedQueue = [];\n};\n\napiClient.interceptors.response.use(\n  res => res,\n  async error => {\n    const originalRequest = error.config;\n\n    if (error.response?.status === 401 && !originalRequest._retry) {\n      if (isRefreshing) {\n        // Queue concurrent requests while refresh is in progress\n        return new Promise((resolve, reject) => {\n          failedQueue.push({ resolve, reject });\n        }).then(token => {\n          originalRequest.headers.Authorization = `Bearer ${token}`;\n          return apiClient(originalRequest);\n        });\n      }\n\n      originalRequest._retry = true;\n      isRefreshing = true;\n\n      try {\n        const { data } = await axios.post('/api/auth/refresh-token');\n        const newAccessToken = data.accessToken;\n        processQueue(null, newAccessToken);\n        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;\n        return apiClient(originalRequest);\n      } catch (refreshErr) {\n        processQueue(refreshErr, null);\n        window.location.href = '/login'; // Redirect to login\n        return Promise.reject(refreshErr);\n      } finally {\n        isRefreshing = false;\n      }\n    }\n    return Promise.reject(error);\n  }\n);\n```\n_Axios response interceptor queueing concurrent 401 requests during token refresh._\n\n### 💡 Senior Engine & Architecture Insight\n> If the user has multiple browser tabs open and the access token expires, all tabs might attempt to refresh concurrently. Use `BroadcastChannel` or a shared Web Worker to synchronize token refreshes across browser tabs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why is storing tokens in `localStorage` risky?**\n  *A:* Any third-party script or XSS injection can execute `localStorage.getItem(\"token\")` and exfiltrate credentials to an attacker server.\n- **Q: How do you protect against CSRF when using HttpOnly cookies for authentication?**\n  *A:* Use `SameSite=Lax` or `SameSite=Strict` cookie attributes, combined with custom headers like `X-Requested-With` or Anti-Forgery CSRF tokens in ASP.NET Core.",
+      "spokenTip": "Never store tokens in localStorage; use an Axios 401 interceptor queue to handle token refresh concurrency across parallel requests.",
+      "tags": [
+        "react",
+        "auth",
+        "jwt",
+        "security",
+        "interceptors",
+        "refresh-token",
+        "aspnetcore"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_06",
+      "deckId": "deck_reactadvanced",
+      "front": "How does List Virtualization (Windowing) work in React, and how do you render 100,000 records smoothly at 60fps?",
+      "back": "Virtualization renders only the small subset of DOM elements currently visible inside the viewport (plus a small overscan buffer), recycling DOM nodes as the user scrolls. Libraries like TanStack Virtual calculate total scroll height via a dummy spacer element and position visible items using CSS transforms, keeping the DOM node count under 50.\n\n**Key Points:**\n- Windowing concept: DOM node count remains constant (~20-50 nodes) regardless of dataset size\n- Calculation: scrollTop / rowHeight to determine startIndex and endIndex + overscan\n- Spacer div maintains authentic scrollbar travel\n- Comparison to Angular CDK Virtual Scroll",
+      "notes": "### Comprehensive Senior Answer\nRendering 10,000 DOM nodes in a standard `items.map()` causes severe performance degradation: the browser spends hundreds of milliseconds on DOM layout, style calculation, and painting, consuming massive RAM and causing janky scrolling.\n\n**How Virtualization (Windowing) works**:\n1. **Outer Container**: Has a fixed height with `overflow-y: auto` to provide the scrollbar.\n2. **Inner Spacer**: Has height equal to `totalItems * itemHeight` (e.g. 10,000 * 50px = 500,000px) so the browser scrollbar behaves naturally.\n3. **Viewport Calculation**: Reads container `scrollTop`, calculates `startIndex = Math.floor(scrollTop / itemHeight)` and `endIndex = startIndex + visibleCount + overscan`.\n4. Only the ~20 visible items are instantiated in the React Virtual DOM, positioned absolutely with `transform: translateY(...)`.\n5. Keeps the active DOM node count below 50 regardless of whether the dataset contains 1,000 or 1,000,000 items.\n\n### Code Example\n```typescript\nimport React, { useRef } from 'react';\nimport { useVirtualizer } from '@tanstack/react-virtual';\n\nexport function VirtualizedList({ items }: { items: string[] }) {\n  const parentRef = useRef<HTMLDivElement>(null);\n\n  // Virtualizer hook\n  const rowVirtualizer = useVirtualizer({\n    count: items.length,\n    getScrollElement: () => parentRef.current,\n    estimateSize: () => 40, // 40px estimated row height\n    overscan: 5 // Render 5 extra items above and below viewport\n  });\n\n  return (\n    <div\n      ref={parentRef}\n      style={{ height: '400px', overflowY: 'auto', border: '1px solid #334155' }}\n    >\n      {/* Total scroll height spacer */}\n      <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>\n        {rowVirtualizer.getVirtualItems().map(virtualRow => (\n          <div\n            key={virtualRow.index}\n            style={{\n              position: 'absolute',\n              top: 0,\n              left: 0,\n              width: '100%',\n              height: `${virtualRow.size}px`,\n              transform: `translateY(${virtualRow.start}px)` // GPU transform positioning\n            }}\n          >\n            Row {virtualRow.index}: {items[virtualRow.index]}\n          </div>\n        ))}\n      </div>\n    </div>\n  );\n}\n```\n_Uses TanStack Virtual with dynamic GPU transform positioning for 60fps list rendering._\n\n### 💡 Senior Engine & Architecture Insight\n> In Angular, this is handled natively by `@angular/cdk/scrolling` via `<cdk-virtual-scroll-viewport>`. In React, TanStack Virtual is preferred because it is headless and supports dynamic row heights and grid tables.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you handle variable or dynamic row heights in a virtual list?**\n  *A:* Use `useVirtualizer` dynamic measurement with a `ref` on each item (`rowVirtualizer.measureElement`), which dynamically updates element bounds via `ResizeObserver`.\n- **Q: Why use `transform: translateY()` instead of `top: ...px` for positioning virtual items?**\n  *A:* `transform` runs on the GPU compositor thread without triggering layout and paint, ensuring 60fps smooth scrolling during high-velocity scroll gestures.",
+      "spokenTip": "Virtualization only renders visible DOM items plus a buffer; it keeps the DOM tiny and scrolling smooth at 60fps regardless of dataset size.",
+      "tags": [
+        "react",
+        "virtualization",
+        "tanstack-virtual",
+        "performance",
+        "windowing",
+        "large-lists"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_reactadv_07",
+      "deckId": "deck_reactadvanced",
+      "front": "As a Senior Engineer, compare the architectural mental models of Angular and React. How do Dependency Injection, State, and Templates differ?",
+      "back": "Angular is a full-featured framework with opinionated TypeScript structure, hierarchical Dependency Injection, RxJS/Signals reactivity, and compile-time template syntax. React is a lightweight UI library with functional component re-execution, Virtual DOM diffing, JSX, Custom Hooks, and un-opinionated third-party ecosystem choices.\n\n**Key Points:**\n- Framework (Angular) vs Library (React)\n- Class instances + DI vs Pure functional re-execution + Custom Hooks\n- RxJS async pipes vs TanStack Query\n- HTML compiled templates (@if/@for) vs JSX JavaScript expressiveness\n- Signals fine-grained reactivity vs VDOM Fiber reconciliation",
+      "notes": "### Comprehensive Senior Answer\nWhen moving between Angular and React at a senior level, the major architectural contrasts are:\n\n1. **Component Execution**:\n   - *Angular*: Instantiates a class once. Methods and properties persist across change detection cycles. Modern Angular uses fine-grained Signals for targeted DOM updates.\n   - *React*: Functional components re-execute entirely from top to bottom on every state change. Object and function references are recreated on every render unless stabilized with `useMemo`/`useCallback`.\n2. **Dependency Injection vs Hooks**:\n   - *Angular*: Hierarchical DI system (`ElementInjector` vs `EnvironmentInjector`) for singleton services and modular testing.\n   - *React*: No built-in DI; uses Custom Hooks (`useAuth()`), React Context, or modular singletons.\n3. **Async & Server State**:\n   - *Angular*: RxJS Observables (`HttpClient`, `switchMap`, async pipe) and Signals.\n   - *React*: TanStack Query for server state caching; Promises and async/await with custom hooks.\n4. **Templates**:\n   - *Angular*: HTML templates with ahead-of-time compiled control flow (`@if`, `@for`).\n   - *React*: JSX—JavaScript with HTML syntax, giving full JavaScript expressiveness directly in UI rendering.\n\n### Code Example\n```typescript\n// --- Angular Architecture Pattern ---\n// @Injectable({ providedIn: 'root' })\n// export class UserService {\n//   private http = inject(HttpClient);\n//   users$ = this.http.get<User[]>('/api/users');\n// }\n// @Component({ template: `@for (u of users$ | async; track u.id) { <li>{{ u.name }}</li> }` })\n\n// --- React Equivalent Pattern ---\nimport { useQuery } from '@tanstack/react-query';\n\nexport function UserList() {\n  const { data: users, isLoading } = useQuery({\n    queryKey: ['users'],\n    queryFn: () => fetch('/api/users').then(res => res.json())\n  });\n\n  if (isLoading) return <div>Loading...</div>;\n\n  return (\n    <ul>\n      {users?.map(u => (\n        <li key={u.id}>{u.name}</li>\n      ))}\n    </ul>\n  );\n}\n```\n_Contrasts Angular Injectable service + async pipe with React TanStack Query + JSX mapping._\n\n### 💡 Senior Engine & Architecture Insight\n> When migrating an enterprise app from Angular to React, avoid trying to rebuild Angular's DI and RxJS architecture inside React with complex Context wrappers. Embrace idiomatic React: Custom Hooks for logic reuse and TanStack Query for server state.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why doesn't React need a Dependency Injection framework?**\n  *A:* Because React functions and Custom Hooks compose naturally via module imports, function arguments, and React Context without requiring runtime container reflection.\n- **Q: How do Signals in modern Angular 17+ compare to React State Hooks?**\n  *A:* Angular Signals track dependencies automatically at runtime and notify exact DOM nodes directly, whereas React `useState` schedules a whole-component re-render and VDOM diff.",
+      "spokenTip": "Angular is an opinionated framework with class instances, DI, and compiled templates; React is a function-first library with top-down re-execution, JSX, and custom hooks.",
+      "tags": [
+        "react",
+        "angular",
+        "architecture",
+        "mental-model",
+        "dependency-injection",
+        "senior-comparison"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

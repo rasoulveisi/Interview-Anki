@@ -1,0 +1,156 @@
+{
+  "deck": {
+    "id": "deck_htmlcss",
+    "name": "HTML5 & Modern CSS",
+    "description": "Semantic HTML, Box Model, Stacking Context & z-index, Flexbox vs Grid, Container Queries, Cascade Layers, and Specificity.",
+    "category": "htmlcss",
+    "color": "#F97316",
+    "iconName": "Palette",
+    "isDefault": true,
+    "totalCards": 8
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ui_03",
+      "deckId": "deck_htmlcss",
+      "front": "A project mixes Tailwind utilities, SCSS component styles, and third-party themes. Specificity problems are increasing. How would you establish styling boundaries?",
+      "back": "I would define which layer owns which concern. Utility classes can handle application layout and one-off composition. Component styles own internal structure and state. Design tokens provide shared values. Third-party components should be customized through supported theming APIs or deliberate wrappers rather than broad global overrides.\n\n**Key Points:**\n- Defines ownership by concern and boundary.\n- Uses supported theming and shallow selectors.\n- Treats cascade order as an explicit architecture decision.",
+      "notes": "### Comprehensive Senior Answer\nI would define which layer owns which concern. Utility classes can handle application layout and one-off composition. Component styles own internal structure and state. Design tokens provide shared values. Third-party components should be customized through supported theming APIs or deliberate wrappers rather than broad global overrides.\n\nI would reduce selector depth, avoid `!important` as a routine tool, and keep global CSS limited to reset, tokens, typography, and true application-wide rules. Build order and cascade layers can make precedence intentional. I would document whether consumers may add layout classes to a design-system component and which internals are private. Existing conflicts should be fixed incrementally, beginning with high-change areas, with visual regression coverage. The goal is predictable ownership, not choosing one styling technology for every problem.\n\n### 💡 Senior Engine & Architecture Insight\n> Defines ownership by concern and boundary.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is `!important` legitimate?**\n- **How would you style dynamic states exposed by a third-party component?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Defines ownership by concern and boundary.\n✅ Uses supported theming and shallow selectors.\n✅ Treats cascade order as an explicit architecture decision.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Solves conflicts by adding more selector specificity.\n⚠️ Puts all styles in one global SCSS file.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Defines ownership by concern and boundary.",
+      "tags": [
+        "htmlcss",
+        "CSS Architecture / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ui_04",
+      "deckId": "deck_htmlcss",
+      "front": "How would you redesign a desktop data-heavy page for small screens without simply hiding important columns?",
+      "back": "I would start from the user tasks and information hierarchy. A desktop table may need to become a list of summary cards, with the primary identifier and status always visible and secondary fields available through expansion or a details view. Filtering, sorting, bulk actions, and selection need mobile-specific interaction designs rather than compressed desktop controls.\n\n**Key Points:**\n- Reframes layout around user tasks and hierarchy.\n- Covers interaction, accessibility, data volume, and localization.\n- Collaborates with product rather than arbitrarily deleting data.",
+      "notes": "### Comprehensive Senior Answer\nI would start from the user tasks and information hierarchy. A desktop table may need to become a list of summary cards, with the primary identifier and status always visible and secondary fields available through expansion or a details view. Filtering, sorting, bulk actions, and selection need mobile-specific interaction designs rather than compressed desktop controls.\n\nI would preserve semantic structure and keyboard access, avoid horizontal scrolling unless the content truly requires a grid comparison, and test with realistic long values, localization, zoom, and touch targets. The API may also need mobile-friendly pagination or field selection if the original payload is large. I would validate the design with product and users because deciding what is primary is a product decision, not only a CSS breakpoint. Performance on lower-powered devices is part of responsiveness too.\n\n### 💡 Senior Engine & Architecture Insight\n> Reframes layout around user tasks and hierarchy.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is horizontal scrolling acceptable for a table?**\n- **How would bulk selection work on mobile?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Reframes layout around user tasks and hierarchy.\n✅ Covers interaction, accessibility, data volume, and localization.\n✅ Collaborates with product rather than arbitrarily deleting data.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Hides columns based only on screen width.\n⚠️ Shrinks fonts and controls until the table fits.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Reframes layout around user tasks and hierarchy.",
+      "tags": [
+        "htmlcss",
+        "Responsive Design / Product Scenario",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ui_08",
+      "deckId": "deck_htmlcss",
+      "front": "What frontend architecture decisions become important when a product adds multiple languages, right-to-left layout, and locale-specific dates and numbers?",
+      "back": "I would externalize user-visible text with stable message identifiers and avoid building sentences from fragments. Layout should use logical CSS properties and flexible containers so direction and longer translations do not require duplicate styles. Icons that imply direction may need mirroring, while brand marks and media usually do not.\n\n**Key Points:**\n- Covers text structure, layout direction, formatting, and testing.\n- Uses raw values with locale-aware derivation.\n- Distinguishes directional and non-directional assets.",
+      "notes": "### Comprehensive Senior Answer\nI would externalize user-visible text with stable message identifiers and avoid building sentences from fragments. Layout should use logical CSS properties and flexible containers so direction and longer translations do not require duplicate styles. Icons that imply direction may need mirroring, while brand marks and media usually do not.\n\nDates, numbers, currencies, pluralization, and sorting must use locale-aware APIs and explicit time-zone rules. I would avoid storing formatted values as state because they should be derived from raw data and locale. The routing or application shell should define locale loading and fallback behavior. Tests need pseudolocalization, long strings, RTL, zoom, and representative locales—not only English snapshots. Translation rollout also needs a process for missing keys and versioned content.\n\n### 💡 Senior Engine & Architecture Insight\n> Covers text structure, layout direction, formatting, and testing.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where should time-zone conversion occur?**\n- **How would you handle an untranslated message at runtime?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Covers text structure, layout direction, formatting, and testing.\n✅ Uses raw values with locale-aware derivation.\n✅ Distinguishes directional and non-directional assets.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Treats translation as replacing strings only.\n⚠️ Stores locale-formatted dates in the domain model.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Covers text structure, layout direction, formatting, and testing.",
+      "tags": [
+        "htmlcss",
+        "Internationalization / Responsive Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_htmlcss_01",
+      "deckId": "deck_htmlcss",
+      "front": "How do Stacking Contexts work in CSS? Why does z-index: 9999 sometimes fail to appear on top, and how does isolation: isolate fix it?",
+      "back": "`z-index` only compares elements within the *same* Stacking Context. If a parent element forms a lower stacking context (due to `opacity < 1`, `transform`, `filter`, or `contain`), its children are trapped inside it and cannot render above siblings in higher stacking contexts, regardless of having `z-index: 999999`. `isolation: isolate` creates a clean, independent stacking context boundary without side effects.\n\n**Key Points:**\n- z-index only applies within the same stacking context\n- Triggers: opacity < 1, transform, filter, backdrop-filter, isolation: isolate\n- Overlay portals/CDK as architectural solution for dropdowns/modals\n- isolation: isolate creates local stacking boundaries without visual side effects",
+      "notes": "### Comprehensive Senior Answer\nIn CSS, elements are rendered in 3D layering along the z-axis based on Stacking Contexts:\n1. **The Root Stacking Context**: Formed by the `<html>` element.\n2. **Stacking Context Creation Triggers**:\n   - Positioned elements (`relative`, `absolute`, `fixed`, `sticky`) with a non-`auto` `z-index`.\n   - Elements with `opacity < 1`.\n   - Elements with `transform`, `filter`, `perspective`, `clip-path`, or `backdrop-filter`.\n   - Elements with `isolation: isolate` or `contain: paint`.\n   - Flexbox or Grid children with a non-`auto` `z-index`.\n\n**The z-index: 9999 Bug**:\nIf Card A has `z-index: 1` and Card B has `z-index: 2`, a tooltip inside Card A with `z-index: 9999` is strictly bounded by Card A's context. It will always render *underneath* Card B! To solve this, isolate stacking contexts cleanly using `isolation: isolate` or render modal/tooltip overlays at the document body root using portals/CDK overlays.\n\n### Code Example\n```css\n/* Stacking Context Isolation Example */\n.card-container {\n  /* ✅ Modern solution: Creates a clean isolated stacking context */\n  isolation: isolate;\n  position: relative;\n}\n\n.card-a {\n  position: relative;\n  z-index: 1; /* Stacking context #1 */\n}\n\n.card-a .tooltip {\n  position: absolute;\n  z-index: 99999; /* Trapped inside Card A! Cannot appear above Card B */\n}\n\n.card-b {\n  position: relative;\n  z-index: 2; /* Stacking context #2: Renders on top of Card A and all its children! */\n}\n```\n_Illustrates how parent stacking contexts trap child z-index values, and how isolation: isolate sets clean boundaries._\n\n### 💡 Senior Engine & Architecture Insight\n> Applying CSS animations with `transform` or `filter` dynamically creates a new stacking context on the fly during the animation, which can cause elements to suddenly jump beneath other elements.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why do Angular CDK Overlay and React Portals render modals directly at `document.body`?**\n  *A:* To escape parent stacking contexts (`transform`, `overflow: hidden`, `opacity`) and guarantee modals and dropdowns render at the top-level root stacking context.\n- **Q: What is the difference between `z-index: auto` and `z-index: 0`?**\n  *A:* `z-index: auto` does NOT create a new stacking context on positioned elements. `z-index: 0` DOES create a new stacking context on positioned elements.",
+      "spokenTip": "z-index is local to its parent stacking context. If the parent is behind a sibling, child z-index cannot escape it.",
+      "tags": [
+        "css",
+        "stacking-context",
+        "z-index",
+        "isolation",
+        "layout",
+        "rendering"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_htmlcss_02",
+      "deckId": "deck_htmlcss",
+      "front": "Contrast CSS Grid and Flexbox for modern design systems. How do Container Queries (@container) and CSS Subgrid fundamentally change component-driven styling?",
+      "back": "Flexbox is 1-dimensional (content-out flow along row or column). CSS Grid is 2-dimensional (layout-in with explicit rows and columns). **Container Queries (`@container`)** style components based on the size of their parent container rather than the global browser viewport (`@media`). **CSS Subgrid (`grid-template-columns: subgrid`)** aligns nested child elements with the parent grid tracks.\n\n**Key Points:**\n- Flexbox (1D content-driven) vs Grid (2D layout-driven)\n- Container Queries (@container) decouple responsiveness from browser viewport\n- container-type: inline-size setup\n- Subgrid (grid-template-rows: subgrid) aligning nested child components across card rows",
+      "notes": "### Comprehensive Senior Answer\nModern CSS layout architecture is built on complementary tools:\n- **Flexbox (1D - Content-Out)**: Perfect for distributing space along a single axis (navigation bars, chip lists, button groups, vertical centering). Sizing is determined by content.\n- **CSS Grid (2D - Layout-In)**: Perfect for complex two-dimensional layouts with aligned rows AND columns (dashboards, product cards, full-page structures).\n- **Container Queries (`@container`)**: Viewport media queries (`@media (min-width: 768px)`) break component modularity because a component in a sidebar has different available width than in the main column. With `container-type: inline-size`, components adapt dynamically to their immediate parent container width.\n- **CSS Subgrid (`subgrid`)**: Solves the alignment problem in card lists: child card headers, images, and footers align across cards regardless of differing text lengths.\n\n### Code Example\n```css\n/* 1. Container Queries: Component adapts to parent width */\n.card-wrapper {\n  container-type: inline-size;\n  container-name: product-card;\n}\n\n.product-card {\n  display: flex;\n  flex-direction: column;\n}\n\n/* When the card container has at least 500px, switch to 2-column layout */\n@container product-card (min-width: 500px) {\n  .product-card {\n    flex-direction: row;\n    align-items: center;\n  }\n}\n\n/* 2. CSS Subgrid: Align cards across grid rows */\n.grid-container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));\n  grid-auto-rows: auto auto 1fr auto; /* header, image, body, footer */\n}\n\n.card {\n  display: grid;\n  grid-row: span 4;\n  grid-template-rows: subgrid; /* Inherits row track alignments! */\n}\n```\n_Demonstrates Container Queries for modular component responsiveness and CSS Subgrid for multi-card row alignment._\n\n### 💡 Senior Engine & Architecture Insight\n> Using `@media` queries forces design systems to create variant classes (`.card--sidebar`, `.card--fullwidth`). Container queries make components truly modular and self-responsive anywhere they are placed.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `container-type: inline-size` and `container-type: size`?**\n  *A:* `inline-size` monitors only the horizontal axis (width), which is standard and avoids infinite layout loops. `size` monitors both width and height, requiring explicit container dimensions.\n- **Q: How do you create an intrinsically responsive grid without media queries?**\n  *A:* `grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));` automatically wraps cards and expands columns based on available space.",
+      "spokenTip": "Use Flexbox for 1D content alignment, Grid for 2D structured layouts, and Container Queries so components adapt to their parent container size.",
+      "tags": [
+        "css",
+        "flexbox",
+        "grid",
+        "container-queries",
+        "subgrid",
+        "responsive-design"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_htmlcss_03",
+      "deckId": "deck_htmlcss",
+      "front": "How is CSS Specificity calculated? How do CSS Cascade Layers (@layer) solve specificity wars in large codebases?",
+      "back": "Specificity is a 3-column tuple `(Inline, IDs, Classes/Attributes/Pseudo-classes, Elements/Pseudo-elements)`. **Cascade Layers (`@layer`)** create an explicit hierarchy where styles in higher layers always override lower layers, regardless of the selector specificity inside those layers.\n\n**Key Points:**\n- Specificity calculation: (Inline, IDs, Classes/Attributes, Elements)\n- :where() adds 0 specificity vs :is() takes highest specificity of arguments\n- Cascade Layers (@layer) establish explicit priority above specificity\n- Unlayered CSS rules beat all layered CSS rules",
+      "notes": "### Comprehensive Senior Answer\nCSS specificity determines which rules apply when multiple selectors match an element:\n1. **Specificity Weight Matrix**: `(A, B, C)` where:\n   - `A`: ID selectors (`#header`) = `(1, 0, 0)`\n   - `B`: Classes, attribute selectors, pseudo-classes (`.btn`, `[type=\"text\"]`, `:hover`) = `(0, 1, 0)`\n   - `C`: Element tags and pseudo-elements (`div`, `p`, `::before`) = `(0, 0, 1)`\n   - Inline styles (`style=\"...\"`) override all standard selectors.\n   - `!important` overrides normal declarations.\n\n**The Specificity War Problem**:\nIn large projects with third-party libraries (Bootstrap, Tailwind, Angular Material), developers often write ugly selectors like `body .app-container .btn.btn-primary` or sprinkle `!important` to override library styles.\n\n**The Solution: Cascade Layers (`@layer`)**:\nCascade Layers establish an explicit layer order: `@layer reset, framework, components, utilities;`. Rules in `@layer utilities` **always beat** `@layer framework`, even if the framework selector has higher specificity (`#id.class`) and the utility is a simple `.text-center`!\n\n### Code Example\n```css\n/* Define Layer Precedence (Order matters: right-most layer wins!) */\n@layer reset, vendor, components, overrides;\n\n@layer reset {\n  button {\n    padding: 0;\n    border: none;\n  }\n}\n\n@layer vendor {\n  /* High specificity in vendor library */\n  #main-content button.btn-primary {\n    padding: 16px 24px;\n    background-color: blue;\n  }\n}\n\n@layer components {\n  /* ✅ Wins over vendor layer despite lower specificity! */\n  button {\n    padding: 8px 12px;\n    background-color: green;\n  }\n}\n\n@layer overrides {\n  .compact {\n    padding: 4px 8px;\n  }\n}\n```\n_Demonstrates how @layer precedence overrides higher-specificity selectors in lower layers._\n\n### 💡 Senior Engine & Architecture Insight\n> Unlayered CSS styles (styles written outside any `@layer`) take precedence over all layered styles. This ensures that legacy CSS and quick overrides continue to work seamlessly during migration to `@layer`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How does `!important` interact with `@layer`?**\n  *A:* `!important` reverses the layer cascade order! An `!important` declaration in `@layer reset` will override an `!important` declaration in `@layer components`.\n- **Q: Does the `:where()` pseudo-class add specificity?**\n  *A:* No. `:where()` has `(0, 0, 0)` specificity, making it ideal for base library defaults that developers can override with a single class.",
+      "spokenTip": "Cascade layers let us define explicit layer priority, ending specificity wars between design libraries and custom components.",
+      "tags": [
+        "css",
+        "specificity",
+        "cascade-layers",
+        "architecture",
+        "design-systems"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_htmlcss_04",
+      "deckId": "deck_htmlcss",
+      "front": "How do CSS Custom Properties (Variables) differ from preprocessor variables (Sass/SCSS)? How do you build a dynamic dark/light theme system in TypeScript?",
+      "back": "Sass variables (`$color`) are compiled at build time into static CSS and cannot change at runtime. CSS Custom Properties (`--color: #fff`) live in the live browser DOM, respect the cascade, inherit down the tree, and can be read/updated dynamically at runtime via JavaScript and media queries.\n\n**Key Points:**\n- Live in browser CSSOM vs static Sass build-time compilation\n- Cascade and inheritance behavior at element level\n- Dynamic theming via data-theme attributes and prefers-color-scheme\n- CSS Houdini @property for typed animatable custom properties",
+      "notes": "### Comprehensive Senior Answer\nCSS Custom Properties represent a massive shift in styling architecture:\n1. **Runtime vs Build-Time**: Sass `$primary: blue` vanishes into hardcoded hex values in the final `.css` file. CSS variables (`var(--primary)`) remain live in the CSSOM and can be updated instantly via `document.documentElement.style.setProperty('--primary', '#6366f1')` without recompiling CSS.\n2. **DOM Cascade & Scoping**: A CSS variable defined on `:root` is global. However, you can override `--badge-color` on a specific `.card` or `:host` element, and all children inside that subtree will inherit the overridden value.\n3. **Modern Theming**: Define color tokens using HSL/RGB channels (`--bg-rgb: 15, 23, 42`). This allows dynamic opacity adjustments (`rgba(var(--bg-rgb), 0.8)`) and seamless Dark Mode toggling using `@media (prefers-color-scheme: dark)` or `[data-theme=\"dark\"]` attribute selectors.\n\n### Code Example\n```css\n/* 1. Global Theming Tokens */\n:root {\n  --bg-primary: #ffffff;\n  --text-primary: #0f172a;\n  --accent: #4f46e5;\n  --accent-rgb: 79, 70, 229;\n}\n\n[data-theme=\"dark\"] {\n  --bg-primary: #0f172a;\n  --text-primary: #f8fafc;\n  --accent: #818cf8;\n  --accent-rgb: 129, 140, 248;\n}\n\n/* 2. Usage with alpha opacity */\n.modal-backdrop {\n  background-color: rgba(var(--accent-rgb), 0.15);\n  color: var(--text-primary);\n}\n\n/* 3. Component-level local override */\n.warning-box {\n  --accent: #ef4444; /* Local cascade override for this box and its children! */\n}\n```\n_Shows theme switching via data-theme attribute, RGB channel opacity support, and local cascade overrides._\n\n### 💡 Senior Engine & Architecture Insight\n> Accessing or changing CSS variables in JavaScript (`getComputedStyle(el).getPropertyValue(...)`) causes a synchronous style calculation. Avoid calling this inside high-frequency animation loops.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you provide a fallback default if a CSS variable is undefined?**\n  *A:* Pass a second argument to `var()`: `color: var(--theme-color, #3b82f6)`.\n- **Q: What is the CSS `@property` rule (Houdini)?**\n  *A:* `@property --my-color { syntax: \"<color>\"; inherits: false; initial-value: red; }` registers custom properties with strict type definitions, enabling smooth CSS transition animations between gradient and color variables.",
+      "spokenTip": "CSS variables live in the browser DOM and respect the cascade, making dynamic theming and JavaScript runtime styling effortless without recompiling CSS.",
+      "tags": [
+        "css",
+        "custom-properties",
+        "theming",
+        "dark-mode",
+        "css-variables",
+        "houdini"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_htmlcss_05",
+      "deckId": "deck_htmlcss",
+      "front": "How does content-visibility: auto dramatically accelerate long-page rendering, and why is contain-intrinsic-size mandatory with it?",
+      "back": "`content-visibility: auto` tells the browser to skip layout and painting for off-screen DOM elements until the user scrolls near them, reducing initial page load rendering time by up to 70%. `contain-intrinsic-size` specifies placeholder dimensions (e.g. `500px`) so the scrollbar doesn’t jump or shrink unexpectedly as off-screen elements enter the viewport.\n\n**Key Points:**\n- content-visibility: auto skips layout and paint for off-screen elements\n- contain-intrinsic-size provides placeholder dimensions to stabilize the scrollbar\n- Retains accessibility and Ctrl+F in-page search support\n- Comparison with JavaScript-based Virtual Scrolling",
+      "notes": "### Comprehensive Senior Answer\nOn pages rendering hundreds of complex cards, tables, or long comment feeds, the browser spends substantial time calculating layout geometry and rasterizing pixels for elements far below the fold:\n\n1. **`content-visibility: auto`**: Turns on layout containment and paint containment for off-screen elements. The browser constructs the DOM node, but completely bypasses layout, styling, and paint until the element approaches the viewport.\n2. **The Scrollbar Jump Problem**: Because off-screen elements are treated as having 0px height, the browser scrollbar shrinks to the top. As the user scrolls down, elements suddenly expand, causing jarring layout shifts and scroll jumps.\n3. **The Solution (`contain-intrinsic-size`)**: By pairing `content-visibility: auto; contain-intrinsic-size: 0 450px;`, we give the browser an estimated placeholder height. The scrollbar remains stable, and initial First Contentful Paint (FCP) and Time to Interactive (TTI) improve dramatically.\n\n### Code Example\n```css\n/* High-performance long list rendering */\n.feed-item {\n  /* Skips layout and paint when scrolled off-screen */\n  content-visibility: auto;\n\n  /* Estimated placeholder dimensions to preserve authentic scrollbar travel */\n  contain-intrinsic-size: auto 320px;\n\n  /* Card visual styling */\n  padding: 1.5rem;\n  margin-bottom: 1rem;\n  background-color: #1e293b;\n  border-radius: 0.75rem;\n}\n```\n_Applies content-visibility: auto and contain-intrinsic-size to optimize long feed rendering._\n\n### 💡 Senior Engine & Architecture Insight\n> `content-visibility: hidden` can be used instead of `display: none` for tabs or accordion panels: it hides the content from view and skips painting, but keeps cached rendering state in memory so opening the panel is instantaneous.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Does `content-visibility: auto` hide content from browser in-page search (Ctrl+F)?**\n  *A:* No! Modern browsers still index the text inside `content-visibility: auto` elements for in-page search, automatically expanding and scrolling to matching elements when found.\n- **Q: How does `content-visibility` compare to JavaScript Virtual Scrolling?**\n  *A:* `content-visibility` is native CSS and handles in-page search, accessibility, and SEO naturally. Virtual scrolling removes DOM nodes entirely with JavaScript, which is lighter on RAM for 100,000+ items but requires custom accessibility handling.",
+      "spokenTip": "Use content-visibility: auto with contain-intrinsic-size to skip rendering off-screen elements without causing scrollbar jumping.",
+      "tags": [
+        "css",
+        "performance",
+        "content-visibility",
+        "containment",
+        "layout-shifts",
+        "rendering"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

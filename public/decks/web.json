@@ -1,0 +1,269 @@
+{
+  "deck": {
+    "id": "deck_web",
+    "name": "Web / HTTP / REST",
+    "description": "HTTP methods, headers, status codes, cookies/sessions, HTTPS/TLS, HTTP versions, REST semantics, CORS, and pagination.",
+    "category": "web",
+    "color": "#3B82F6",
+    "iconName": "Globe",
+    "isDefault": true,
+    "totalCards": 15
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ops_01",
+      "deckId": "deck_web",
+      "front": "An API calls a third-party service that sometimes takes 30 seconds or fails. How would you design timeout, retry, and circuit-breaking behavior?",
+      "back": "I would set a timeout budget shorter than the caller's total request budget and propagate cancellation. Retries are only for failures likely to be transient and operations safe to repeat; they should be bounded, use backoff with jitter, and fit inside the overall deadline. Retrying a slow dependency several times can multiply latency and load.\n\n**Key Points:**\n- Uses total deadline budgets and propagated cancellation.\n- Retries only transient and repeatable operations.\n- Includes circuit state, fallback UX, and anti-storm thinking.",
+      "notes": "### Comprehensive Senior Answer\nI would set a timeout budget shorter than the caller's total request budget and propagate cancellation. Retries are only for failures likely to be transient and operations safe to repeat; they should be bounded, use backoff with jitter, and fit inside the overall deadline. Retrying a slow dependency several times can multiply latency and load.\n\nA circuit breaker can stop calls temporarily after a meaningful failure threshold, allowing the dependency and our own resources to recover. It needs careful metrics and a controlled probe state; it is not a substitute for timeouts. The product also needs a fallback: partial data, queued processing, a clear retry action, or an unavailable result. I would track dependency latency, timeout rate, retry attempts, circuit state, and end-user impact, and coordinate these policies across callers so layers do not create retry storms.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses total deadline budgets and propagated cancellation.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Which HTTP methods are generally safer to retry?**\n- **Why should retries use jitter?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses total deadline budgets and propagated cancellation.\n✅ Retries only transient and repeatable operations.\n✅ Includes circuit state, fallback UX, and anti-storm thinking.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Retries every exception a fixed number of times.\n⚠️ Uses a circuit breaker without a timeout.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses total deadline budgets and propagated cancellation.",
+      "tags": [
+        "web",
+        "Reliability / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ops_02",
+      "deckId": "deck_web",
+      "front": "A user clicks “Pay” once, but the browser retries after a timeout and two charges are created. How would you make the operation safe?",
+      "back": "The frontend should disable repeated interaction and show a stable pending state, but correctness must be enforced by the API. The client creates or receives an idempotency key for the logical payment attempt and sends it with the command. The server stores the key, request identity or hash, and final result under a unique constraint, then returns the same result for a legitimate retry rather than executing the side effect again.\n\n**Key Points:**\n- Makes the server authoritative for duplicate prevention.\n- Stores and scopes the key under a uniqueness guarantee.\n- Handles unknown outcome and provider-side idempotency.",
+      "notes": "### Comprehensive Senior Answer\nThe frontend should disable repeated interaction and show a stable pending state, but correctness must be enforced by the API. The client creates or receives an idempotency key for the logical payment attempt and sends it with the command. The server stores the key, request identity or hash, and final result under a unique constraint, then returns the same result for a legitimate retry rather than executing the side effect again.\n\nThe idempotency record and payment state must be coordinated transactionally as far as the payment provider allows. Provider-side idempotency should also be used when available. A timeout leaves the outcome unknown, so the client should query payment status rather than assume failure and create a new attempt. Keys need scope, expiry, and protection against reuse with a different payload.\n\n### 💡 Senior Engine & Architecture Insight\n> Makes the server authoritative for duplicate prevention.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where should an idempotency key be generated?**\n- **What response should be returned while the first attempt is still processing?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Makes the server authoritative for duplicate prevention.\n✅ Stores and scopes the key under a uniqueness guarantee.\n✅ Handles unknown outcome and provider-side idempotency.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Relies only on disabling the button.\n⚠️ Creates a new payment whenever the client sees a timeout.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Makes the server authoritative for duplicate prevention.",
+      "tags": [
+        "web",
+        "Idempotency / Cross-Layer Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ops_03",
+      "deckId": "deck_web",
+      "front": "You added Redis caching to a customer API and users sometimes see stale records after edits. How would you redesign the caching strategy?",
+      "back": "I would define what is cached, the cache key, ownership scope, acceptable staleness, invalidation events, and behavior when Redis is unavailable. A key must include tenant and any response-defining parameters. On a successful write, the service can update or invalidate the affected entry and related list keys, but list invalidation often needs a versioned namespace or tag strategy rather than trying to enumerate every possible filter.\n\n**Key Points:**\n- Defines keys, staleness, invalidation, and failure behavior.\n- Recognizes race conditions around write and repopulation.\n- Treats cache as an optimization with observability.",
+      "notes": "### Comprehensive Senior Answer\nI would define what is cached, the cache key, ownership scope, acceptable staleness, invalidation events, and behavior when Redis is unavailable. A key must include tenant and any response-defining parameters. On a successful write, the service can update or invalidate the affected entry and related list keys, but list invalidation often needs a versioned namespace or tag strategy rather than trying to enumerate every possible filter.\n\nCache-aside is simple, but deletion followed by a racing read can repopulate old data if the database transaction has not committed. I would order operations carefully and consider short TTLs, write-through behavior, event-driven invalidation, or versioned keys based on consistency needs. Redis should be an optimization, not the only copy of critical data. Metrics should expose hit rate, age, invalidations, fallback latency, and stale-read incidents.\n\n### 💡 Senior Engine & Architecture Insight\n> Defines keys, staleness, invalidation, and failure behavior.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is a cache stampede and how would you reduce it?**\n- **When should a response not be cached at all?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Defines keys, staleness, invalidation, and failure behavior.\n✅ Recognizes race conditions around write and repopulation.\n✅ Treats cache as an optimization with observability.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Adds a long TTL and calls the problem solved.\n⚠️ Uses one shared key across tenants.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Defines keys, staleness, invalidation, and failure behavior.",
+      "tags": [
+        "web",
+        "Caching / Production Scenario",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ops_04",
+      "deckId": "deck_web",
+      "front": "How would you apply rate limiting to an API without unfairly blocking normal users behind one shared proxy?",
+      "back": "I would choose a partition key that reflects the protected resource and identity: authenticated user, tenant, API key, endpoint class, or a combination, with IP as one imperfect signal for anonymous traffic. A single global IP limit can punish offices or mobile carriers behind shared addresses. Limits should differ for cheap reads, expensive searches, login attempts, uploads, and high-value mutations.\n\n**Key Points:**\n- Chooses partition keys and limits by resource cost.\n- Understands shared-IP unfairness and distributed counters.\n- Connects server response to client backoff and monitoring.",
+      "notes": "### Comprehensive Senior Answer\nI would choose a partition key that reflects the protected resource and identity: authenticated user, tenant, API key, endpoint class, or a combination, with IP as one imperfect signal for anonymous traffic. A single global IP limit can punish offices or mobile carriers behind shared addresses. Limits should differ for cheap reads, expensive searches, login attempts, uploads, and high-value mutations.\n\nThe response should use a clear status and safe retry guidance, while the frontend backs off and avoids synchronized retries. Authentication endpoints also need credential-stuffing protections beyond generic throughput limits. In a distributed deployment, counters require a shared or consistently partitioned mechanism. I would monitor rejection rate, top partitions, resource saturation, and false positives, and provide trusted internal callers with explicit quotas rather than hidden bypasses.\n\n### 💡 Senior Engine & Architecture Insight\n> Chooses partition keys and limits by resource cost.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How is rate limiting different from concurrency limiting?**\n- **What additional protection would you use for login attempts?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Chooses partition keys and limits by resource cost.\n✅ Understands shared-IP unfairness and distributed counters.\n✅ Connects server response to client backoff and monitoring.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Limits every endpoint by source IP only.\n⚠️ Returns a generic 500 when a limit is exceeded.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Chooses partition keys and limits by resource cost.",
+      "tags": [
+        "web",
+        "Rate Limiting / Capacity",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ops_10",
+      "deckId": "deck_web",
+      "front": "A team enables CORS for every origin to fix a browser error. Why can that be dangerous, and how do CORS, cookies, and CSRF interact?",
+      "back": "CORS is a browser policy controlling which origins can read responses and, for non-simple requests, whether the browser may send the request after preflight. It is not authentication or authorization. Allowing arbitrary origins together with credentials can expose authenticated responses or expand the attack surface, and broad settings often hide an incorrect deployment topology.\n\n**Key Points:**\n- Separates CORS, authentication, authorization, XSS, and CSRF.\n- Uses origin allowlists and credential-aware policy.\n- Understands that response readability and request sending differ.",
+      "notes": "### Comprehensive Senior Answer\nCORS is a browser policy controlling which origins can read responses and, for non-simple requests, whether the browser may send the request after preflight. It is not authentication or authorization. Allowing arbitrary origins together with credentials can expose authenticated responses or expand the attack surface, and broad settings often hide an incorrect deployment topology.\n\nFor cookie-based authentication, the browser may attach cookies automatically, so state-changing requests need CSRF protection through SameSite policy, anti-forgery tokens, origin checks, or an appropriate combination. The server should allow only required origins, methods, and headers, and credentials only where needed. Bearer tokens sent explicitly have different CSRF characteristics but remain exposed to XSS if JavaScript can read them. I would test actual browser flows, preflight caching, and rejected origins rather than using a wildcard fix.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates CORS, authentication, authorization, XSS, and CSRF.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why does CORS not protect server-to-server requests?**\n- **Can a malicious site send a form POST even when it cannot read the response?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates CORS, authentication, authorization, XSS, and CSRF.\n✅ Uses origin allowlists and credential-aware policy.\n✅ Understands that response readability and request sending differ.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Calls CORS a security mechanism that authenticates clients.\n⚠️ Uses wildcard origins with credentials as the permanent solution.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates CORS, authentication, authorization, XSS, and CSRF.",
+      "tags": [
+        "web",
+        "Browser/API Security",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-http-basics",
+      "deckId": "deck_web",
+      "front": "What is HTTP and how does the Request/Response cycle work?",
+      "back": "HTTP is a stateless application-level protocol running on top of TCP that allows web clients (like browsers or apps) to exchange structured messages with servers using requests and responses.\n\n**Key Points:**\n- Client-server request/response model\n- Stateless protocol running on TCP/IP\n- Composed of method, URL, headers, and optional body\n- Server responds with status code, headers, and body\n- State managed via cookies or authorization tokens",
+      "notes": "### Comprehensive Senior Answer\nThe way I usually explain HTTP is that it is a client-server conversation. The client sends an HTTP request containing a method (like GET or POST), a target URI, headers with metadata, and an optional body. The server processes that request and returns an HTTP response with a status code (like 200 OK or 404 Not Found), response headers, and typically a JSON or HTML payload. One key detail is that HTTP by itself is stateless—each request is independent, which is why we rely on things like cookies, sessions, or JWT bearer tokens to maintain state across multiple calls.\n\n### Code Example\n```http\nGET /api/users/42 HTTP/1.1\nHost: api.myapp.com\nAccept: application/json\nAuthorization: Bearer eyJhbGciOi...\n\nHTTP/1.1 200 OK\nContent-Type: application/json\nDate: Mon, 31 Aug 2026 12:00:00 GMT\n\n{ \"id\": 42, \"name\": \"Sarah Connor\", \"role\": \"Admin\" }\n```\n_Notice how the client provides headers for authentication and content negotiation, and the server answers with a status code and payload._\n\n### 💡 Senior Engine & Architecture Insight\n> In modern architecture, the request goes through multiple hops—DNS resolution, TLS handshakes, reverse proxies or Cloudflare, API Gateways, and finally Kestrel in ASP.NET Core. Understanding connection keep-alive and HTTP multiplexing helps when debugging frontend latency.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What layer of the OSI model does HTTP operate on?**\n  *A:* It operates at the Application Layer (Layer 7), running over transport protocols like TCP (or UDP in the case of HTTP/3 QUIC).\n- **Q: How do you maintain user state if HTTP is stateless?**\n  *A:* Either through cookies holding session IDs (server-side session store) or stateless JWT tokens sent in the Authorization header on every request.\n- **Q: What is HTTP Keep-Alive (Persistent Connections)?**\n  *A:* A mechanism that allows multiple HTTP requests and responses to be sent over a single TCP connection, avoiding the overhead of repeating TCP and TLS handshakes.",
+      "spokenTip": "The way I usually think about it is that HTTP is a stateless conversation between a client and a server over TCP.",
+      "tags": [
+        "HTTP",
+        "Basics",
+        "Networking",
+        "Web"
+      ],
+      "difficulty": "Beginner",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-get-vs-post",
+      "deckId": "deck_web",
+      "front": "What is the difference between GET and POST?",
+      "back": "GET is designed to retrieve data without modifying server state and is both safe and idempotent. POST is used to submit data to the server to create a new resource or trigger a state change, and is neither safe nor idempotent.\n\n**Key Points:**\n- GET is for reading; POST is for creating/mutating\n- GET parameters in URL query string; POST data in request body\n- GET is safe and idempotent; POST is not safe or idempotent\n- GET responses are easily cached by browsers and CDNs\n- Security: Avoid sensitive parameters in GET URLs",
+      "notes": "### Comprehensive Senior Answer\nIn practice, the main distinction comes down to intent and safety. GET requests should only fetch data. Their parameters are placed in the query string, which makes them cacheable, bookmarkable, and safe to retry automatically if a network glitch happens. POST, on the other hand, puts data inside the request body and is intended to create a new resource or process an action on the server. Because POST modifies state, making the same POST request twice might create two orders or charge a card twice if idempotency is not handled.\n\n### Code Example\n```typescript\n// Angular HttpClient GET (safe, cacheable)\nthis.http.get<User[]>('/api/users?department=engineering');\n\n// Angular HttpClient POST (creates new record)\nthis.http.post<User>('/api/users', { name: 'Alex', department: 'Engineering' });\n```\n_GET parameters go into the URL query string, while POST sends payload in the JSON body._\n\n### 💡 Senior Engine & Architecture Insight\n> A common mistake is putting sensitive data like passwords or tokens in GET query parameters. Query parameters get logged in web server access logs, browser history, and proxy servers, whereas POST bodies are encrypted inside the TLS tunnel.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Can a GET request have a body?**\n  *A:* Technically the HTTP spec allows it, but many proxies, CDNs, and libraries either reject it or discard the body, so in real projects we never use a body on GET.\n- **Q: What happens if a browser automatically retries a failed POST request?**\n  *A:* If the server processed the request before the network dropped, retrying POST can cause duplicate database inserts or double payments, which is why POST requires idempotency handling.",
+      "spokenTip": "In practice, GET is for reading and is safe to retry, while POST is for creating or submitting data and changes server state.",
+      "tags": [
+        "HTTP",
+        "Methods",
+        "REST",
+        "Angular"
+      ],
+      "difficulty": "Beginner",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-put-vs-patch-vs-post",
+      "deckId": "deck_web",
+      "front": "What is the difference between POST, PUT, and PATCH?",
+      "back": "POST creates a new subordinate resource. PUT replaces the entire existing resource with the provided payload (or creates it if specified by URI), making it idempotent. PATCH applies partial modifications to an existing resource.\n\n**Key Points:**\n- POST creates new resource (non-idempotent)\n- PUT replaces entire resource (idempotent)\n- PATCH updates partial fields (delta updates)\n- PUT creates identical state when repeated\n- PATCH payload only contains changed properties",
+      "notes": "### Comprehensive Senior Answer\nThe way I usually think about them is: POST is for creating a new entity where the server usually assigns the ID (like POST /api/orders). PUT is a full replacement—you send the entire representation of the resource, and if you leave fields out, they might be overwritten or nulled. PATCH is for partial updates—you only send the fields you actually want to change, like just updating a user's email. Another key interview point is idempotency: executing the exact same PUT request 5 times results in the exact same state, whereas repeating a POST might create 5 items.\n\n### Code Example\n```typescript\n// PUT: Send complete updated object\nawait fetch('/api/users/12', {\n  method: 'PUT',\n  body: JSON.stringify({ id: 12, name: 'John Doe', email: 'john@work.com', role: 'Dev', active: true })\n});\n\n// PATCH: Send only what changed\nawait fetch('/api/users/12', {\n  method: 'PATCH',\n  body: JSON.stringify({ email: 'john.new@work.com' })\n});\n```\n_With PATCH you send a delta, preserving the other existing properties on the server._\n\n### 💡 Senior Engine & Architecture Insight\n> In ASP.NET Core, implementing true PUT requires updating the whole entity or mapping all fields, while PATCH can be done with custom DTOs or JSON Patch (RFC 6902). In practice, many teams use POST or custom PATCH DTOs to avoid full-object overwrites.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Is PATCH idempotent?**\n  *A:* Strictly speaking, PATCH is not guaranteed to be idempotent by the HTTP spec (e.g. an append patch or increment operation), whereas PUT is always idempotent.\n- **Q: What is JSON Patch (RFC 6902)?**\n  *A:* A standard format for describing a sequence of operations to apply to a JSON document (e.g. `[ { \"op\": \"replace\", \"path\": \"/email\", \"value\": \"new@work.com\" } ]`).",
+      "spokenTip": "I think of PUT as \"replace the whole object\" and PATCH as \"update only these specific fields\".",
+      "tags": [
+        "HTTP",
+        "REST",
+        "API Design",
+        "Methods"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-idempotency-safety",
+      "deckId": "deck_web",
+      "front": "What does Idempotency mean in HTTP, and what is the difference between Safe and Idempotent methods?",
+      "back": "A Safe method does not modify any server state (read-only). An Idempotent method can be called multiple times with the exact same effect on server state as calling it once.\n\n**Key Points:**\n- Safe = read-only, no server side effects (GET, HEAD)\n- Idempotent = N identical calls have same end state as 1 call (GET, PUT, DELETE)\n- POST is neither safe nor idempotent\n- DELETE is idempotent even if subsequent status code is 404\n- Idempotency Keys used to make POST endpoints safely repeatable",
+      "notes": "### Comprehensive Senior Answer\nIn an interview, I always clarify: Safe means read-only—it has no side effects. GET, HEAD, and OPTIONS are safe methods. Idempotent means that making 1 request or making 10 identical requests leaves the server in the exact same state. GET, PUT, and DELETE are idempotent. For example, if you send DELETE /api/products/5 once, it gets deleted. If you send it again, product 5 is still deleted (even if the second response is 404, the database state of product 5 not existing is identical). POST is neither safe nor idempotent.\n\n### Code Example\n```text\nMethod   | Safe? (Read-only) | Idempotent? (Repeatable without extra side effects)\n---------|-------------------|-----------------------------------------------------\nGET      | Yes               | Yes\nHEAD     | Yes               | Yes\nOPTIONS  | Yes               | Yes\nPUT      | No                | Yes (replacing state with X produces X every time)\nDELETE   | No                | Yes (deleting item X leaves item X deleted)\nPOST     | No                | No (submitting order creates multiple orders)\nPATCH    | No                | Not necessarily (e.g. increment operation)\n```\n_Memorizing this table helps instantly during technical interviews._\n\n### 💡 Senior Engine & Architecture Insight\n> Idempotency is critical for resilient systems. When a network timeout occurs on a payment or order POST endpoint, the frontend cannot know if the server processed the request. We solve this by sending a unique `Idempotency-Key` header so the backend safely ignores duplicates.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: If DELETE returns 200 the first time and 404 the second time, is it still idempotent?**\n  *A:* Yes! Idempotency is about the resulting server/database state, not the HTTP response code. The resource remains deleted in both cases.\n- **Q: How do you make non-idempotent POST endpoints idempotent in distributed systems?**\n  *A:* Use Idempotency Keys generated by the client and tracked in Redis or database unique constraint tables before processing.",
+      "spokenTip": "The main difference is: Safe means no side effects at all; Idempotent means repeating the request does not change the end state multiple times.",
+      "tags": [
+        "HTTP",
+        "Idempotency",
+        "REST",
+        "Reliability"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-status-codes-catalog",
+      "deckId": "deck_web",
+      "front": "Can you walk through the most important HTTP status codes and when to use them?",
+      "back": "2xx means success (200 OK, 201 Created, 204 No Content). 4xx means client error (400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable, 429 Too Many Requests). 5xx means server error (500 Internal, 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout).\n\n**Key Points:**\n- 200 OK, 201 Created (with Location header), 204 No Content\n- 401 Unauthorized (unauthenticated) vs 403 Forbidden (authenticated but unauthorized)\n- 404 Not Found, 409 Conflict (concurrency / duplicate key), 429 Rate limited\n- 500 Server error, 502 Bad Gateway (upstream failed), 503 Unavailable, 504 Timeout",
+      "notes": "### Comprehensive Senior Answer\nI categorize them into ranges: In the 200s, 200 is standard success, 201 Created is used after POST when a new resource is made and includes a Location header, and 204 No Content is great for DELETE or PUT when no body needs to be returned. In the 400s, 400 is malformed request syntax, 401 means unauthenticated (we don't know who you are), 403 means forbidden (we know who you are, but you lack permission), 404 is not found, 409 is a business state conflict like duplicate email or concurrency conflict, 422 is semantic validation failure, and 429 is rate limiting. In the 500s, 500 is unhandled code crash, 502 is reverse proxy got invalid response from upstream, 503 is service temporarily down or overloaded, and 504 is upstream timeout.\n\n### Code Example\n```csharp\n[HttpPost]\npublic async Task<IActionResult> CreateProduct([FromBody] CreateProductDto dto)\n{\n    if (await _db.Products.AnyAsync(p => p.Sku == dto.Sku))\n        return Conflict(new { message = \"A product with this SKU already exists\" }); // 409\n\n    var product = new Product { Name = dto.Name, Sku = dto.Sku, Price = dto.Price };\n    _db.Products.Add(product);\n    await _db.SaveChangesAsync();\n\n    return CreatedAtAction(nameof(GetById), new { id = product.Id }, product); // 201\n}\n```\n_ASP.NET Core controllers returning proper HTTP status codes: 409 Conflict for duplicate SKU, 201 Created on success._\n\n### 💡 Senior Engine & Architecture Insight\n> A key distinction interviewers look for is 401 vs 403, and 502 vs 504. In microservices behind Nginx or Azure API Management, a 504 means the backend container timed out (often a slow SQL query or deadlock), while 502 means the backend container crashed or refused the TCP connection.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: When would you return 204 No Content instead of 200 OK?**\n  *A:* Usually for DELETE requests or void updates where returning a JSON body is unnecessary overhead for the frontend.\n- **Q: What is the difference between 400 and 422?**\n  *A:* 400 means malformed syntax or unparseable JSON, whereas 422 means valid JSON syntax but failed business validation rules (e.g. age cannot be negative).",
+      "spokenTip": "A quick rule of thumb: 401 is \"who are you?\", 403 is \"you are not allowed\", and 409 is \"conflict with current database state\".",
+      "tags": [
+        "HTTP",
+        "Status Codes",
+        "REST",
+        "ASP.NET Core"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-cookies-vs-sessions-jwt",
+      "deckId": "deck_web",
+      "front": "How do Cookies, Sessions, and JWT tokens compare for web applications?",
+      "back": "Cookies are small key-value pairs stored in the browser and automatically sent on matching HTTP requests. Sessions store user state on the server and link it via a session ID cookie. JWTs are self-contained signed tokens containing claims, allowing stateless verification on any backend service without server session storage.\n\n**Key Points:**\n- Cookies are browser-managed key-value pairs sent automatically\n- Server Sessions require shared state storage (Redis/memory)\n- JWTs are stateless, self-contained, digitally signed tokens\n- Angular HTTP Interceptors attach Bearer tokens\n- Security: XSS vs CSRF, HttpOnly cookies, token revocation strategies",
+      "notes": "### Comprehensive Senior Answer\nIn traditional web development, a server creates a session in memory or Redis and writes a cookie with a session ID to the browser. The browser sends this cookie on every subsequent request, and the server looks up the user data. With JWTs (JSON Web Tokens), user claims (like user ID and role) are cryptographically signed into the token. The frontend sends it in the Authorization header as `Bearer <token>`. The backend verifies the signature with a secret key without needing a database or Redis lookup on every API call. This makes JWTs naturally suited for microservices and cross-domain SPAs.\n\n### Code Example\n```typescript\n// Angular HTTP Interceptor adding JWT Bearer token\n@Injectable()\nexport class AuthInterceptor implements HttpInterceptor {\n  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {\n    const token = localStorage.getItem('access_token');\n    if (token) {\n      const cloned = req.clone({\n        setHeaders: { Authorization: `Bearer ${token}` }\n      });\n      return next.handle(cloned);\n    }\n    return next.handle(req);\n  }\n}\n```\n_Typical Angular frontend interceptor attaching a Bearer token._\n\n### 💡 Senior Engine & Architecture Insight\n> Security trade-offs: Storing JWTs in localStorage leaves them vulnerable to XSS. Storing tokens in `HttpOnly; Secure; SameSite=Strict` cookies protects them from JavaScript access (XSS), but requires CSRF protection if using cookies for state-modifying requests. Also, invalidating a JWT before it expires requires a token revocation blacklist (like Redis).\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What are the three parts of a JWT?**\n  *A:* Header (algorithm & token type), Payload (claims like sub, exp, role), and Signature (HMAC or RSA hash of header + payload).\n- **Q: How do you handle JWT expiration smoothly in an Angular app?**\n  *A:* Use short-lived access tokens (e.g., 15 mins) and a long-lived refresh token in an HttpOnly cookie. In the Angular HTTP interceptor, catch 401 errors, call the `/api/refresh-token` endpoint, and retry the failed request.",
+      "spokenTip": "Sessions are stateful on the server; JWTs are stateless because the token itself carries the verified claims.",
+      "tags": [
+        "Auth",
+        "JWT",
+        "Cookies",
+        "Security",
+        "Angular"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-https-tls-http-versions",
+      "deckId": "deck_web",
+      "front": "How does HTTPS/TLS work, and what are the key differences between HTTP/1.1, HTTP/2, and HTTP/3?",
+      "back": "HTTPS encrypts HTTP traffic using TLS via symmetric encryption for data and asymmetric public-key cryptography during the initial handshake. HTTP/1.1 introduced keep-alive; HTTP/2 introduced binary framing, multiplexing multiple streams over a single TCP connection, and header compression; HTTP/3 runs on QUIC (UDP) to eliminate TCP head-of-line blocking.\n\n**Key Points:**\n- TLS handshake uses asymmetric cryptography to exchange symmetric session key\n- Certificate Authorities validate server identity\n- HTTP/1.1: persistent connections but head-of-line blocking per connection\n- HTTP/2: binary framing, stream multiplexing over 1 TCP connection, HPACK\n- HTTP/3: QUIC over UDP, zero head-of-line blocking across streams on packet loss",
+      "notes": "### Comprehensive Senior Answer\nWhen a browser connects via HTTPS, it performs a TLS handshake: the server provides its SSL certificate with a public key, the browser validates it against trusted Certificate Authorities, and they negotiate a shared symmetric session key (which is much faster for encrypting actual payloads). Regarding protocol versions: in HTTP/1.1, each request needed its own connection or had to wait in line (head-of-line blocking on the connection). HTTP/2 fixed this by multiplexing many concurrent requests over a single TCP connection using binary streams and HPACK header compression. HTTP/3 takes it a step further by replacing TCP with QUIC over UDP, so a dropped packet only stalls its individual stream rather than pausing all multiplexed streams.\n\n### Code Example\n```text\nComparison:\n- HTTP/1.1: Text-based, Head-of-line blocking per connection, 6 TCP connections per domain limit in browsers.\n- HTTP/2: Binary protocol, Multiplexing (hundreds of requests over 1 TCP connection), HPACK header compression, Server Push.\n- HTTP/3: Runs over QUIC protocol (UDP), 0-RTT connection resumption, stream-independent packet recovery.\n```\n_Multiplexing in HTTP/2 eliminated the old frontend need for CSS sprite sheets and aggressive asset bundling._\n\n### 💡 Senior Engine & Architecture Insight\n> Because HTTP/2 multiplexes over a single connection, connection pooling on backend reverse proxies and keep-alive headers are crucial. Also, if there is high packet loss on mobile networks, HTTP/2 TCP backoff slows down all requests, whereas HTTP/3 over QUIC isolates packet loss to that single stream.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between asymmetric and symmetric encryption in TLS?**\n  *A:* Asymmetric encryption (public/private key) is used only during the initial handshake to securely exchange the session key. Symmetric encryption (shared AES key) is used for the actual high-speed data transmission.\n- **Q: What is Server Name Indication (SNI)?**\n  *A:* An extension to TLS where the client indicates the hostname it is trying to connect to at the start of the TLS handshake, allowing a single IP address to host multiple secure domains with different SSL certificates.",
+      "spokenTip": "HTTP/1.1 had one request per TCP connection; HTTP/2 multiplexed streams over one TCP connection; HTTP/3 moved to UDP (QUIC) to solve packet loss stalling.",
+      "tags": [
+        "HTTPS",
+        "TLS",
+        "HTTP/2",
+        "HTTP/3",
+        "Performance"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-cors-and-preflight",
+      "deckId": "deck_web",
+      "front": "What is CORS, what causes preflight requests, and how does Same-Origin Policy work?",
+      "back": "The Same-Origin Policy is a browser security mechanism that prevents JavaScript on one origin from reading data from another origin. CORS (Cross-Origin Resource Sharing) is a server-side header mechanism that tells browsers which foreign origins are permitted to access its resources.\n\n**Key Points:**\n- Same-Origin Policy checks protocol, domain, and port\n- CORS is browser-enforced security; servers allow origins via headers\n- OPTIONS preflight sent for non-simple requests (JSON, Auth headers, PUT/DELETE)\n- Middleware order matters in ASP.NET Core (UseCors before UseAuth)\n- Non-browser tools like Postman do not enforce CORS",
+      "notes": "### Comprehensive Senior Answer\nSame-Origin Policy defines an origin by Protocol, Domain, and Port. If my Angular app is on `https://myapp.com:443` and my ASP.NET API is on `https://api.myapp.com:443`, the browser treats this as cross-origin. By default, the browser blocks the frontend from reading the API response unless the API returns headers like `Access-Control-Allow-Origin: https://myapp.com`. For non-simple requests (like requests with `Content-Type: application/json` or custom Authorization headers, or methods like PUT/DELETE), the browser automatically sends an HTTP OPTIONS preflight request first to ask the server: \"Do you allow this origin, method, and header?\". Only if the server responds with 200/204 and valid CORS headers will the browser send the actual request.\n\n### Code Example\n```csharp\n// ASP.NET Core Program.cs CORS Configuration\nbuilder.Services.AddCors(options =>\n{\n    options.AddPolicy(\"FrontendPolicy\", policy =>\n    {\n        policy.WithOrigins(\"https://app.mycompany.com\")\n              .AllowAnyHeader()\n              .AllowAnyMethod()\n              .AllowCredentials(); // If sending cookies/auth\n    });\n});\n\napp.UseCors(\"FrontendPolicy\"); // Must be before app.UseAuthentication()!\n```\n_Properly configuring CORS in ASP.NET Core middleware._\n\n### 💡 Senior Engine & Architecture Insight\n> A classic bug: If `app.UseCors()` is placed AFTER `app.UseAuthentication()` or `app.UseAuthorization()`, unauthorized requests will fail before CORS headers get attached, causing the browser to show a confusing \"CORS error\" instead of a 401/403. Also, Postman and cURL do not enforce CORS because they are not web browsers.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What constitutes a \"simple request\" that skips CORS preflight?**\n  *A:* GET, HEAD, or POST with standard headers and Content-Type of only application/x-www-form-urlencoded, multipart/form-data, or text/plain.\n- **Q: Can you use `Access-Control-Allow-Origin: *` with credentials (cookies)?**\n  *A:* No! The browser will reject the response if Allow-Credentials is true and Allow-Origin is wildcard (*). You must specify explicit origins.",
+      "spokenTip": "The most important thing to remember is that CORS is enforced by the browser, not the server. The server processes the request, but the browser blocks JavaScript from reading it if headers are missing.",
+      "tags": [
+        "CORS",
+        "Security",
+        "Browser",
+        "ASP.NET Core",
+        "Angular"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-rest-vs-rpc-graphql",
+      "deckId": "deck_web",
+      "front": "What is REST, and how does it compare to RPC (gRPC) and GraphQL?",
+      "back": "REST is an architectural style based on stateless, resource-oriented URIs and standard HTTP methods. RPC focuses on executing remote functions or actions (verbs). GraphQL is a query language allowing clients to request exact fields across multiple entities in a single POST request.\n\n**Key Points:**\n- REST: Resource-oriented, HTTP verbs, standard caching\n- GraphQL: Solves over-fetching/under-fetching, flexible frontend client queries\n- gRPC/RPC: High-throughput binary protocol buffers, ideal for microservices\n- Caching trade-offs: REST uses standard HTTP/CDN caching; GraphQL requires application-level caching",
+      "notes": "### Comprehensive Senior Answer\nIn my day-to-day work, REST is the industry standard for public web APIs and general frontend-backend communication. In REST, you model nouns (like `/api/orders/10/items`) and manipulate them with standard HTTP verbs (GET, POST, PUT, DELETE). GraphQL is great when the frontend has complex, nested screens with diverse data needs—it prevents over-fetching and under-fetching by letting the client specify the exact shape of the response. RPC (like gRPC using Protocol Buffers over HTTP/2) focuses on actions and high performance, making it ideal for internal microservice-to-microservice communication with strong type contracts and low serialization overhead.\n\n### Code Example\n```typescript\n// REST: Multiple round-trips or fixed payloads\n// GET /api/users/1\n// GET /api/users/1/orders\n\n// GraphQL: Single request asking for exact nested fields\nconst query = `\n  query GetUserAndOrders($id: ID!) {\n    user(id: $id) {\n      name\n      email\n      orders(limit: 5) {\n        id\n        totalPrice\n        status\n      }\n    }\n  }\n`;\n```\n_GraphQL allows the frontend to fetch user and order details in a single round trip with zero wasted fields._\n\n### 💡 Senior Engine & Architecture Insight\n> Trade-offs: REST leverages standard HTTP caching (ETags, CDN caches, browser caches) effortlessly. GraphQL breaks standard HTTP caching because all requests are POST to `/graphql`, requiring complex client-side normalization (like Apollo Cache). gRPC is difficult to consume directly from web browsers without gRPC-Web proxies.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What are the core constraints of REST?**\n  *A:* Statelessness, Client-Server architecture, Cacheability, Uniform Interface, Layered System, and Code on Demand (optional).\n- **Q: What is the N+1 problem in GraphQL resolvers and how is it solved?**\n  *A:* When resolving nested relationships, a naive resolver runs 1 query for parents and N queries for children. It is solved using DataLoader to batch and cache sub-queries.",
+      "spokenTip": "I think of REST as resource-oriented for web clients, GraphQL as query-driven to solve over-fetching, and gRPC as high-speed binary RPC for backend services.",
+      "tags": [
+        "REST",
+        "GraphQL",
+        "gRPC",
+        "Architecture",
+        "API Design"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_web-pagination-offset-vs-cursor",
+      "deckId": "deck_web",
+      "front": "What is the difference between Offset Pagination and Cursor-based Pagination?",
+      "back": "Offset pagination skips a specified number of records using page numbers and page size (e.g. SKIP 20 TAKE 10). Cursor pagination uses a pointer (like an ID or timestamp) to fetch the next set of records after the cursor.\n\n**Key Points:**\n- Offset: page/pageSize, OFFSET/FETCH, allows arbitrary page jumping\n- Offset drawbacks: slow on deep offsets (O(N) row scanning), data drift on real-time inserts\n- Cursor: uses indexed column pointer (id, timestamp), O(log N) index seek\n- Cursor is perfect for infinite scroll and high-frequency writes\n- Cursor cannot jump to arbitrary page numbers",
+      "notes": "### Comprehensive Senior Answer\nOffset pagination (page=3, pageSize=20) is simple to implement and allows users to jump directly to page 10. However, it has two major flaws: performance degrades on large datasets because the database still has to scan and discard all skipped rows (e.g., `OFFSET 100000`), and data drift happens if an item is inserted while the user is paginating, causing duplicate or skipped items. Cursor pagination (e.g., `afterCursor=eyJpZCI6NDV9` or `lastId=45&limit=20`) uses indexed columns (`WHERE id > 45 ORDER BY id LIMIT 20`). It is lightning-fast on millions of rows and immune to pagination drift, making it ideal for infinite scrolling in Angular/React feeds.\n\n### Code Example\n```sql\n-- Offset pagination (slow on large offset, scans 100,000 rows)\nSELECT * FROM Orders \nORDER BY CreatedAt DESC \nOFFSET 100000 ROWS FETCH NEXT 20 ROWS ONLY;\n\n-- Cursor pagination (fast, instant index seek)\nSELECT * FROM Orders \nWHERE CreatedAt < '2026-08-30T10:00:00Z' \nORDER BY CreatedAt DESC \nFETCH NEXT 20 ROWS ONLY;\n```\n_Cursor pagination performs an indexed seek rather than a sequential scan and discard._\n\n### 💡 Senior Engine & Architecture Insight\n> In an Angular frontend, with cursor pagination you pass an opaque token returned in the previous page's response (e.g., `nextCursor`). The trade-off is that cursor pagination cannot easily jump to an arbitrary page like \"Go to Page 15\".\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you implement cursor pagination with multiple sort fields?**\n  *A:* You create a composite cursor combining fields, like `(CreatedAt, Id)`, so items with identical timestamps can still be deterministically ordered.\n- **Q: When is Offset pagination still the better choice?**\n  *A:* For administrative tables and back-office reports where datasets are small (< 5,000 rows) and users explicitly need to jump to specific page numbers or see total page counts.",
+      "spokenTip": "Offset is easy and lets you jump to arbitrary page numbers, but cursor pagination is much faster for large datasets and infinite scroll.",
+      "tags": [
+        "Pagination",
+        "SQL",
+        "Performance",
+        "REST",
+        "Angular"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

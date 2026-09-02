@@ -19,13 +19,12 @@ import {
   getDocs, 
   query, 
   where, 
-  orderBy, 
   onSnapshot, 
-  writeBatch,
-  serverTimestamp
+  writeBatch
 } from 'firebase/firestore';
-import { Card, Deck, ReviewLog, UserProfile } from './types';
-import { allQuestions, categoriesMeta } from './data';
+import { Card, CardProgress, Deck, ReviewLog, UserProfile } from './types';
+import { appStorage } from './services/storage';
+import { loadFullDecksAndCards, syncContentLibrary } from './services/contentSync';
 
 // Resolve configuration: environment variables (.env / .env.local)
 const firebaseConfig = {
@@ -47,10 +46,6 @@ export const db = customDbId && customDbId !== '(default)'
   ? getFirestore(app, customDbId)
   : getFirestore(app);
 
-const LOCAL_STORAGE_DECKS_KEY = 'ankidroid_decks_v2';
-const LOCAL_STORAGE_CARDS_KEY = 'ankidroid_cards_v2';
-const LOCAL_STORAGE_USER_KEY = 'ankidroid_user_v2';
-
 // Helper to sanitize objects for Firestore (removes undefined fields which Firestore rejects)
 function sanitizeForFirestore<T extends Record<string, any>>(data: T): T {
   const clean: Record<string, any> = {};
@@ -66,7 +61,7 @@ function sanitizeForFirestore<T extends Record<string, any>>(data: T): T {
   return clean as T;
 }
 
-// Helper to chunk batch writes to avoid Firestore 500 limits (parallelized)
+// Helper to chunk batch writes
 async function batchWriteItems(items: Array<{ ref: any; data: any }>) {
   if (!items || items.length === 0) return;
   const chunkSize = 400;
@@ -86,95 +81,6 @@ async function batchWriteItems(items: Array<{ ref: any; data: any }>) {
   );
 }
 
-// Seed default decks and cards from data directory if new user
-export function generateDefaultDecksAndCards(userId: string): { decks: Deck[]; cards: Card[] } {
-  const categoryIds = Object.keys(categoriesMeta);
-  const now = Date.now();
-  const isoNow = new Date().toISOString();
-
-  const deckColorMap: Record<string, string> = {
-    // Frontend Decks
-    javascript: '#F59E0B', // Amber
-    typescript: '#3B82F6', // Blue
-    angular: '#EF4444', // Red
-    rxjs: '#EC4899', // Pink
-    statemanagement: '#8B5CF6', // Purple
-    htmlcss: '#F97316', // Orange
-    browser: '#06B6D4', // Cyan
-    performance: '#10B981', // Emerald
-    architecture: '#6366F1', // Indigo
-    security: '#F43F5E', // Rose
-    testing: '#14B8A6', // Teal
-    patterns: '#A855F7', // Violet
-    a11y: '#84CC16', // Lime
-    tooling: '#0284C7', // Sky
-    gitworkflow: '#D97706', // Amber-dark
-    fesystemdesign: '#D946EF', // Fuchsia
-    fescenarios: '#DC2626', // Red-dark
-    reactcore: '#06B6D4', // Cyan
-    reactadvanced: '#2563EB', // Blue-dark
-    // Backend Decks
-    web: '#3B82F6', // Blue
-    dotnet: '#8B5CF6', // Purple
-    efcore: '#EC4899', // Pink
-    sql: '#F59E0B', // Amber
-    apidesign: '#10B981', // Emerald
-    microservices: '#06B6D4', // Cyan
-    systemdesign: '#6366F1', // Indigo
-    scenarios: '#EF4444' // Red
-  };
-
-  const decks: Deck[] = categoryIds.map((catId) => {
-    const meta = categoriesMeta[catId as keyof typeof categoriesMeta];
-    const catCards = allQuestions.filter(q => q.category === catId);
-
-    return {
-      id: `deck_${catId}`,
-      userId,
-      name: meta?.name || catId,
-      description: meta?.description || `Mastery cards for ${catId}`,
-      category: catId,
-      color: deckColorMap[catId] || '#6366F1',
-      iconName: meta?.iconName || 'Layers',
-      totalCards: catCards.length,
-      newCount: catCards.length,
-      learnCount: 0,
-      reviewCount: 0,
-      isDefault: true,
-      createdAt: isoNow,
-      updatedAt: isoNow
-    };
-  });
-
-  const cards: Card[] = allQuestions.map((q, idx) => {
-    const isBackend = ['web', 'dotnet', 'efcore', 'sql', 'apidesign', 'microservices', 'systemdesign', 'scenarios'].includes(q.category);
-    const lang = isBackend ? 'csharp' : 'typescript';
-
-    return {
-      id: `card_${q.id}`,
-      userId,
-      deckId: `deck_${q.category}`,
-      front: q.question,
-      back: `${q.shortAnswer}\n\n**Key Points:**\n${q.keyPointsToMention?.map(p => `- ${p}`).join('\n') || ''}`,
-      notes: q.detailedExplanation ? `### Detailed Explanation\n${q.detailedExplanation}\n\n${q.codeExample ? '```' + lang + '\n' + q.codeExample + '\n```' : ''}` : '',
-      spokenTip: q.spokenTip || '',
-      tags: [q.category, q.topic || 'General'],
-      difficulty: q.difficulty || 'Intermediate',
-      state: 'new',
-      due: now + idx * 60000, // staggered initial due times
-      interval: 0,
-      easeFactor: 2.5,
-      repetitions: 0,
-      lapses: 0,
-      isFavorite: false,
-      createdAt: isoNow,
-      updatedAt: isoNow
-    };
-  });
-
-  return { decks, cards };
-}
-
 // Data synchronization service
 export class DatabaseService {
   private static user: FirebaseUser | null = null;
@@ -187,65 +93,13 @@ export class DatabaseService {
     return this.user?.uid || 'local_user';
   }
 
-  // Load from local storage fallback
-  static getLocalDecks(): Deck[] {
-    try {
-      const data = localStorage.getItem(LOCAL_STORAGE_DECKS_KEY);
-      if (data) return JSON.parse(data);
-      // Check legacy v1 key if present
-      const legacy = localStorage.getItem('ankidroid_decks_v1');
-      return legacy ? JSON.parse(legacy) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  static saveLocalDecks(decks: Deck[]) {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_DECKS_KEY, JSON.stringify(decks));
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
-  }
-
-  static getLocalCards(): Card[] {
-    try {
-      const data = localStorage.getItem(LOCAL_STORAGE_CARDS_KEY);
-      if (data) return JSON.parse(data);
-      const legacy = localStorage.getItem('ankidroid_cards_v1');
-      return legacy ? JSON.parse(legacy) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  static saveLocalCards(cards: Card[]) {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_CARDS_KEY, JSON.stringify(cards));
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
-  }
-
-  static getLocalProfile(): UserProfile | null {
-    try {
-      const data = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  static saveLocalProfile(profile: UserProfile) {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(profile));
-    } catch (e) {
-      console.warn('LocalStorage error:', e);
-    }
+  // --- Profile Storage ---
+  static async getLocalProfile(userId: string = 'local_user'): Promise<UserProfile | null> {
+    return appStorage.getUserProfile(userId);
   }
 
   static async saveUserProfile(profile: UserProfile): Promise<void> {
-    this.saveLocalProfile(profile);
+    await appStorage.saveUserProfile(profile);
     const userId = profile.userId;
     if (userId && userId !== 'local_user') {
       try {
@@ -257,11 +111,14 @@ export class DatabaseService {
     }
   }
 
-  // Initialize or Seed Firestore
-  static async initializeUserData(user: FirebaseUser): Promise<{ decks: Deck[]; cards: Card[]; profile: UserProfile }> {
+  // --- Initialize or Seed User Data ---
+  static async initializeUserData(user: FirebaseUser): Promise<{ 
+    decks: Deck[]; 
+    cards: Card[]; 
+    profile: UserProfile 
+  }> {
     const userId = user.uid;
     const userDocRef = doc(db, 'users', userId);
-    const { decks: defaultDecks, cards: defaultCards } = generateDefaultDecksAndCards(userId);
 
     try {
       const userSnap = await getDoc(userDocRef);
@@ -282,75 +139,82 @@ export class DatabaseService {
           updatedAt: new Date().toISOString()
         };
         await setDoc(userDocRef, sanitizeForFirestore(profile));
-
-        // Seed all default decks & cards in batch
-        const itemsToWrite: Array<{ ref: any; data: any }> = [];
-        defaultDecks.forEach((deck) => {
-          itemsToWrite.push({ ref: doc(db, 'users', userId, 'decks', deck.id), data: deck });
-        });
-        defaultCards.forEach((card) => {
-          itemsToWrite.push({ ref: doc(db, 'users', userId, 'cards', card.id), data: card });
-        });
-        await batchWriteItems(itemsToWrite);
-
-        this.saveLocalDecks(defaultDecks);
-        this.saveLocalCards(defaultCards);
-
-        return { decks: defaultDecks, cards: defaultCards, profile };
+        await appStorage.saveUserProfile(profile);
       } else {
         profile = userSnap.data() as UserProfile;
+        await appStorage.saveUserProfile(profile);
 
-        // Fetch existing decks and cards from Firestore
-        const decksSnap = await getDocs(collection(db, 'users', userId, 'decks'));
-        let existingDecks = decksSnap.docs.map(d => d.data() as Deck);
+        // Fetch cloud progress & custom items
+        try {
+          const progressSnap = await getDocs(collection(db, 'users', userId, 'progress'));
+          if (!progressSnap.empty) {
+            const cloudProgress = progressSnap.docs.map(d => d.data() as CardProgress);
+            await appStorage.saveBulkUserProgress(cloudProgress);
+          } else {
+            // Check legacy /users/{userId}/cards if user had cards in older schema
+            const legacyCardsSnap = await getDocs(collection(db, 'users', userId, 'cards'));
+            if (!legacyCardsSnap.empty) {
+              const legacyCards = legacyCardsSnap.docs.map(d => d.data() as Card);
+              const progressList: CardProgress[] = [];
+              const itemsToWrite: Array<{ ref: any; data: any }> = [];
 
-        const cardsSnap = await getDocs(collection(db, 'users', userId, 'cards'));
-        let existingCards = cardsSnap.docs.map(c => c.data() as Card);
+              for (const c of legacyCards) {
+                if (c.id.startsWith('custom_card_')) {
+                  await appStorage.saveCustomCard(c);
+                  itemsToWrite.push({ ref: doc(db, 'users', userId, 'custom_cards', c.id), data: c });
+                } else {
+                  const p: CardProgress = {
+                    cardId: c.id,
+                    deckId: c.deckId,
+                    userId,
+                    state: c.state || 'new',
+                    due: c.due || Date.now(),
+                    interval: c.interval || 0,
+                    easeFactor: c.easeFactor || 2.5,
+                    repetitions: c.repetitions || 0,
+                    lapses: c.lapses || 0,
+                    lastReviewedAt: c.lastReviewedAt,
+                    isFavorite: c.isFavorite || false,
+                    updatedAt: c.updatedAt || new Date().toISOString()
+                  };
+                  progressList.push(p);
+                  itemsToWrite.push({ ref: doc(db, 'users', userId, 'progress', p.cardId), data: p });
+                }
+              }
 
-        // Check if any default decks or cards are missing (e.g. newly added Frontend decks)
-        const existingDeckIds = new Set(existingDecks.map(d => d.id));
-        const existingCardIds = new Set(existingCards.map(c => c.id));
+              if (progressList.length > 0) {
+                await appStorage.saveBulkUserProgress(progressList);
+              }
+              if (itemsToWrite.length > 0) {
+                await batchWriteItems(itemsToWrite);
+              }
+            }
+          }
 
-        const missingDecks = defaultDecks.filter(d => !existingDeckIds.has(d.id));
-        const missingCards = defaultCards.filter(c => !existingCardIds.has(c.id));
+          // Fetch custom cards & decks
+          const customCardsSnap = await getDocs(collection(db, 'users', userId, 'custom_cards'));
+          for (const d of customCardsSnap.docs) {
+            await appStorage.saveCustomCard(d.data() as Card);
+          }
 
-        if (missingDecks.length > 0 || missingCards.length > 0) {
-          const itemsToWrite: Array<{ ref: any; data: any }> = [];
-          missingDecks.forEach((deck) => {
-            itemsToWrite.push({ ref: doc(db, 'users', userId, 'decks', deck.id), data: deck });
-          });
-          missingCards.forEach((card) => {
-            itemsToWrite.push({ ref: doc(db, 'users', userId, 'cards', card.id), data: card });
-          });
-
-          await batchWriteItems(itemsToWrite);
-
-          existingDecks = [...existingDecks, ...missingDecks];
-          existingCards = [...existingCards, ...missingCards];
+          const customDecksSnap = await getDocs(collection(db, 'users', userId, 'custom_decks'));
+          for (const d of customDecksSnap.docs) {
+            await appStorage.saveCustomDeck(d.data() as Deck);
+          }
+        } catch (syncErr) {
+          console.warn('Cloud progress fetch notice:', syncErr);
         }
-
-        this.saveLocalDecks(existingDecks);
-        this.saveLocalCards(existingCards);
-
-        return { decks: existingDecks, cards: existingCards, profile };
       }
+
+      // Check background content updates
+      await syncContentLibrary();
+
+      // Load merged cards & decks
+      const { decks, cards } = await loadFullDecksAndCards(userId);
+      return { decks, cards, profile };
     } catch (err) {
       console.warn('Firestore initialization error, using local data fallback:', err);
-      let localDecks = this.getLocalDecks();
-      let localCards = this.getLocalCards();
-
-      const existingDeckIds = new Set(localDecks.map(d => d.id));
-      const existingCardIds = new Set(localCards.map(c => c.id));
-
-      const missingDecks = defaultDecks.filter(d => !existingDeckIds.has(d.id));
-      const missingCards = defaultCards.filter(c => !existingCardIds.has(c.id));
-
-      if (missingDecks.length > 0 || missingCards.length > 0) {
-        localDecks = [...localDecks, ...missingDecks];
-        localCards = [...localCards, ...missingCards];
-        this.saveLocalDecks(localDecks);
-        this.saveLocalCards(localCards);
-      }
+      const { decks, cards } = await loadFullDecksAndCards(userId);
 
       const profile: UserProfile = {
         userId,
@@ -366,158 +230,108 @@ export class DatabaseService {
         updatedAt: new Date().toISOString()
       };
 
-      return { decks: localDecks, cards: localCards, profile };
+      await appStorage.saveUserProfile(profile);
+      return { decks, cards, profile };
     }
   }
 
-  // Explicit sync / restore of all 27 default interview decks
-  static async syncAllDefaultDecks(userId: string): Promise<{ decks: Deck[]; cards: Card[] }> {
-    const { decks: defaultDecks, cards: defaultCards } = generateDefaultDecksAndCards(userId);
-    let currentDecks = this.getLocalDecks();
-    let currentCards = this.getLocalCards();
-
-    const existingDeckIds = new Set(currentDecks.map(d => d.id));
-    const existingCardIds = new Set(currentCards.map(c => c.id));
-
-    const missingDecks = defaultDecks.filter(d => !existingDeckIds.has(d.id));
-    const missingCards = defaultCards.filter(c => !existingCardIds.has(c.id));
-
-    const mergedCards = [...currentCards, ...missingCards];
-    const mergedDecks = defaultDecks.map(d => {
-      const count = mergedCards.filter(c => c.deckId === d.id).length;
-      return {
-        ...d,
-        totalCards: count,
-        newCount: count
-      };
-    });
-
-    this.saveLocalDecks(mergedDecks);
-    this.saveLocalCards(mergedCards);
-
-    if (userId && userId !== 'local_user') {
-      try {
-        const itemsToWrite: Array<{ ref: any; data: any }> = [];
-        defaultDecks.forEach(deck => {
-          itemsToWrite.push({ ref: doc(db, 'users', userId, 'decks', deck.id), data: deck });
-        });
-        defaultCards.forEach(card => {
-          itemsToWrite.push({ ref: doc(db, 'users', userId, 'cards', card.id), data: card });
-        });
-        await batchWriteItems(itemsToWrite);
-      } catch (err) {
-        console.warn('Sync all default decks to firestore warning:', err);
-      }
-    }
-
-    return { decks: mergedDecks, cards: mergedCards };
-  }
-
-  // Real-time Listeners
-  static subscribeToDecks(userId: string, callback: (decks: Deck[]) => void) {
+  // --- Real-time Firestore Subscriptions for Multi-device Sync ---
+  static subscribeToProgress(userId: string, callback: (progress: CardProgress[]) => void) {
     if (!userId || userId === 'local_user') {
-      callback(this.getLocalDecks());
       return () => {};
     }
 
-    const q = query(collection(db, 'users', userId, 'decks'));
+    const q = query(collection(db, 'users', userId, 'progress'));
     return onSnapshot(q, (snapshot) => {
-      const decks = snapshot.docs.map(d => d.data() as Deck);
-      this.saveLocalDecks(decks);
-      callback(decks);
+      const progress = snapshot.docs.map(d => d.data() as CardProgress);
+      appStorage.saveBulkUserProgress(progress);
+      callback(progress);
     }, (error) => {
-      console.warn('Decks snapshot error, using cached:', error);
-      callback(this.getLocalDecks());
+      console.warn('Progress snapshot error:', error);
     });
   }
 
-  static subscribeToCards(userId: string, callback: (cards: Card[]) => void) {
-    if (!userId || userId === 'local_user') {
-      callback(this.getLocalCards());
-      return () => {};
-    }
-
-    const q = query(collection(db, 'users', userId, 'cards'));
-    return onSnapshot(q, (snapshot) => {
-      const cards = snapshot.docs.map(c => c.data() as Card);
-      this.saveLocalCards(cards);
-      callback(cards);
-    }, (error) => {
-      console.warn('Cards snapshot error, using cached:', error);
-      callback(this.getLocalCards());
-    });
-  }
-
-  // CRUD for Cards
+  // --- CRUD for Cards ---
   static async saveCard(card: Card): Promise<void> {
-    const userId = card.userId;
-    // Update local cache first for instant responsiveness
-    const localCards = this.getLocalCards();
-    const existingIdx = localCards.findIndex(c => c.id === card.id);
-    if (existingIdx >= 0) {
-      localCards[existingIdx] = card;
-    } else {
-      localCards.unshift(card);
-    }
-    this.saveLocalCards(localCards);
+    const userId = card.userId || 'local_user';
+    const isCustom = card.id.startsWith('custom_card_') || card.deckId.startsWith('deck_custom_');
 
-    // Save to Firestore
-    if (userId && userId !== 'local_user') {
-      try {
-        const cardRef = doc(db, 'users', userId, 'cards', card.id);
-        await setDoc(cardRef, sanitizeForFirestore(card), { merge: true });
-      } catch (err) {
-        console.error('Failed to sync card to Firestore:', err);
+    if (isCustom) {
+      await appStorage.saveCustomCard(card);
+      if (userId && userId !== 'local_user') {
+        try {
+          const cardRef = doc(db, 'users', userId, 'custom_cards', card.id);
+          await setDoc(cardRef, sanitizeForFirestore(card), { merge: true });
+        } catch (err) {
+          console.error('Failed to sync custom card to Firestore:', err);
+        }
+      }
+    } else {
+      const progress: CardProgress = {
+        cardId: card.id,
+        deckId: card.deckId,
+        userId,
+        state: card.state,
+        due: card.due,
+        interval: card.interval,
+        easeFactor: card.easeFactor,
+        repetitions: card.repetitions,
+        lapses: card.lapses,
+        lastReviewedAt: card.lastReviewedAt,
+        isFavorite: card.isFavorite || false,
+        updatedAt: card.updatedAt || new Date().toISOString()
+      };
+
+      await appStorage.saveUserProgress(progress);
+
+      if (userId && userId !== 'local_user') {
+        try {
+          const progressRef = doc(db, 'users', userId, 'progress', card.id);
+          await setDoc(progressRef, sanitizeForFirestore(progress), { merge: true });
+        } catch (err) {
+          console.error('Failed to sync progress to Firestore:', err);
+        }
       }
     }
   }
 
   static async deleteCard(cardId: string, userId: string): Promise<void> {
-    const localCards = this.getLocalCards().filter(c => c.id !== cardId);
-    this.saveLocalCards(localCards);
+    await appStorage.deleteCustomCard(cardId);
 
     if (userId && userId !== 'local_user') {
       try {
-        await deleteDoc(doc(db, 'users', userId, 'cards', cardId));
+        await deleteDoc(doc(db, 'users', userId, 'custom_cards', cardId));
+        await deleteDoc(doc(db, 'users', userId, 'progress', cardId));
       } catch (err) {
         console.error('Failed to delete card from Firestore:', err);
       }
     }
   }
 
-  // CRUD for Decks
+  // --- CRUD for Decks ---
   static async saveDeck(deck: Deck): Promise<void> {
-    const userId = deck.userId;
-    const localDecks = this.getLocalDecks();
-    const existingIdx = localDecks.findIndex(d => d.id === deck.id);
-    if (existingIdx >= 0) {
-      localDecks[existingIdx] = deck;
-    } else {
-      localDecks.unshift(deck);
-    }
-    this.saveLocalDecks(localDecks);
+    const userId = deck.userId || 'local_user';
+    if (deck.category === 'custom' || deck.id.startsWith('deck_custom_')) {
+      await appStorage.saveCustomDeck(deck);
 
-    if (userId && userId !== 'local_user') {
-      try {
-        const deckRef = doc(db, 'users', userId, 'decks', deck.id);
-        await setDoc(deckRef, sanitizeForFirestore(deck), { merge: true });
-      } catch (err) {
-        console.error('Failed to sync deck to Firestore:', err);
+      if (userId && userId !== 'local_user') {
+        try {
+          const deckRef = doc(db, 'users', userId, 'custom_decks', deck.id);
+          await setDoc(deckRef, sanitizeForFirestore(deck), { merge: true });
+        } catch (err) {
+          console.error('Failed to sync deck to Firestore:', err);
+        }
       }
     }
   }
 
   static async deleteDeck(deckId: string, userId: string): Promise<void> {
-    const localDecks = this.getLocalDecks().filter(d => d.id !== deckId);
-    const localCards = this.getLocalCards().filter(c => c.deckId !== deckId);
-    this.saveLocalDecks(localDecks);
-    this.saveLocalCards(localCards);
+    await appStorage.deleteCustomDeck(deckId);
 
     if (userId && userId !== 'local_user') {
       try {
-        await deleteDoc(doc(db, 'users', userId, 'decks', deckId));
-        // Delete all cards in deck
-        const cardsSnap = await getDocs(query(collection(db, 'users', userId, 'cards'), where('deckId', '==', deckId)));
+        await deleteDoc(doc(db, 'users', userId, 'custom_decks', deckId));
+        const cardsSnap = await getDocs(query(collection(db, 'users', userId, 'custom_cards'), where('deckId', '==', deckId)));
         const batch = writeBatch(db);
         cardsSnap.forEach(d => batch.delete(d.ref));
         await batch.commit();
@@ -527,9 +341,9 @@ export class DatabaseService {
     }
   }
 
-  // Record Review Log & Update User Stats
+  // --- Record Review Log & Update User Stats ---
   static async logReview(log: ReviewLog, card: Card): Promise<void> {
-    const userId = log.userId;
+    const userId = log.userId || 'local_user';
     await this.saveCard(card);
 
     if (userId && userId !== 'local_user') {

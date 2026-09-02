@@ -1,0 +1,242 @@
+{
+  "deck": {
+    "id": "deck_typescript",
+    "name": "TypeScript Mastery",
+    "description": "Type inference, Interfaces vs Types, Generics, any/unknown/never, Type Guards, Discriminated Unions, and Utility Types.",
+    "category": "typescript",
+    "color": "#3B82F6",
+    "iconName": "FileCode2",
+    "isDefault": true,
+    "totalCards": 13
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ts_01",
+      "deckId": "deck_typescript",
+      "front": "A frontend consumes a large API response that changes over time. How would you model the transport data in TypeScript without coupling the entire UI to the backend contract?",
+      "back": "I would treat the HTTP response as a boundary model rather than the application model. I would define a transport DTO that matches the contract, validate or safely parse untrusted fields at runtime when the risk justifies it, and map it into a smaller domain or view model used by the feature. That mapping is where I would normalize nullable values, dates, enums, and backward-compatible defaults.\n\n**Key Points:**\n- Separates transport, domain, and view concerns.\n- Recognizes that TypeScript types disappear at runtime.\n- Discusses nullability, compatibility, and contract testing.",
+      "notes": "### Comprehensive Senior Answer\nI would treat the HTTP response as a boundary model rather than the application model. I would define a transport DTO that matches the contract, validate or safely parse untrusted fields at runtime when the risk justifies it, and map it into a smaller domain or view model used by the feature. That mapping is where I would normalize nullable values, dates, enums, and backward-compatible defaults.\n\nThis prevents backend naming or shape changes from spreading through components. It also gives tests a clear place to cover contract edge cases. I would not create types for every field just because the API returns them, and I would avoid pretending a TypeScript interface performs runtime validation. For a stable internal API, the mapping can be lightweight; for external or rapidly evolving data, I would use schema validation and contract tests.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates transport, domain, and view concerns.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where would you place the mapping code in a large frontend repository?**\n- **How would you roll out a breaking API contract change without stopping both teams?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates transport, domain, and view concerns.\n✅ Recognizes that TypeScript types disappear at runtime.\n✅ Discusses nullability, compatibility, and contract testing.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses one generated API type directly throughout every component.\n⚠️ Claims interfaces validate network responses at runtime.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates transport, domain, and view concerns.",
+      "tags": [
+        "typescript",
+        "Architecture / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_02",
+      "deckId": "deck_typescript",
+      "front": "When should you use `unknown` instead of `any`, and how would that choice affect error handling for data coming from local storage or a third-party script?",
+      "back": "I use `unknown` when a value exists but its shape is not yet trusted. It forces me to narrow the value before reading properties, which is exactly what I want at boundaries such as JSON parsing, local storage, postMessage events, or third-party SDK callbacks. I would parse the value, check it with a type guard or schema, and return a typed result or a controlled error.\n\n**Key Points:**\n- Treats external data as untrusted.\n- Uses narrowing rather than blind casting.\n- Balances safety against validation cost.",
+      "notes": "### Comprehensive Senior Answer\nI use `unknown` when a value exists but its shape is not yet trusted. It forces me to narrow the value before reading properties, which is exactly what I want at boundaries such as JSON parsing, local storage, postMessage events, or third-party SDK callbacks. I would parse the value, check it with a type guard or schema, and return a typed result or a controlled error.\n\n`any` disables checking and lets unsafe assumptions spread into the codebase. I reserve it for tightly contained interoperability cases where the library genuinely has unusable typings, and I try to convert it to a safe type immediately. For user-visible behavior, invalid persisted data should normally be cleared or migrated, logged with safe context, and handled with a fallback rather than crashing the application.\n\n### 💡 Senior Engine & Architecture Insight\n> Treats external data as untrusted.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is the difference between a type assertion and a type guard?**\n- **Would you validate every API response at runtime? Why or why not?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Treats external data as untrusted.\n✅ Uses narrowing rather than blind casting.\n✅ Balances safety against validation cost.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Says `unknown` and `any` are effectively the same.\n⚠️ Uses `as SomeType` as runtime validation.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Treats external data as untrusted.",
+      "tags": [
+        "typescript",
+        "Code Quality / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_03",
+      "deckId": "deck_typescript",
+      "front": "How would you model an asynchronous screen state so that impossible combinations such as `loading: true` and `error: present` are difficult to represent?",
+      "back": "I would use a discriminated union rather than several unrelated booleans. For example, the state could be `{ status: 'idle' }`, `{ status: 'loading' }`, `{ status: 'success', data }`, or `{ status: 'error', error }`. The `status` field becomes the discriminator, so a switch statement can narrow each branch and the compiler can help enforce exhaustive handling.\n\n**Key Points:**\n- Uses a discriminant and exhaustive handling.\n- Models stale-while-refresh behavior explicitly.\n- Avoids boolean state combinations.",
+      "notes": "### Comprehensive Senior Answer\nI would use a discriminated union rather than several unrelated booleans. For example, the state could be `{ status: 'idle' }`, `{ status: 'loading' }`, `{ status: 'success', data }`, or `{ status: 'error', error }`. The `status` field becomes the discriminator, so a switch statement can narrow each branch and the compiler can help enforce exhaustive handling.\n\nThis improves both correctness and readability because each state carries only the data that belongs to it. If the screen needs to retain old data while refreshing, I would model that explicitly, perhaps with a separate `refreshing` state containing existing data, instead of weakening the union. I would still consider whether server-state tooling should own the request lifecycle, but the same principle applies to local workflow state.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses a discriminant and exhaustive handling.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you represent partial data with a recoverable warning?**\n- **How do exhaustive checks help during future refactoring?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses a discriminant and exhaustive handling.\n✅ Models stale-while-refresh behavior explicitly.\n✅ Avoids boolean state combinations.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Adds more booleans for every new state.\n⚠️ Uses optional fields whose valid combinations are undocumented.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses a discriminant and exhaustive handling.",
+      "tags": [
+        "typescript",
+        "Design / State Modeling",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_04",
+      "deckId": "deck_typescript",
+      "front": "You are designing a reusable data-table component. How would you use TypeScript generics without creating an API that is technically clever but difficult for product teams to use?",
+      "back": "I would start from the consumer experience, not from the most generic type possible. A table might be generic over `TRow`, with columns referencing valid keys or accepting a typed value-rendering function. Selection, row identity, sorting, and events should preserve `TRow` so consumers do not cast values.\n\n**Key Points:**\n- Optimizes for inference and consumer ergonomics.\n- Distinguishes direct fields from computed accessors.\n- Treats types as part of the public API.",
+      "notes": "### Comprehensive Senior Answer\nI would start from the consumer experience, not from the most generic type possible. A table might be generic over `TRow`, with columns referencing valid keys or accepting a typed value-rendering function. Selection, row identity, sorting, and events should preserve `TRow` so consumers do not cast values.\n\nI would keep separate concepts separate: a field column can use `keyof TRow`, while a computed column should use an accessor function because not every display value maps to one property. I would provide sensible inference and defaults, avoid long generic parameter lists, and expose escape hatches only where real use cases require them. I would test the public types with representative consumer examples, including invalid usage, because a reusable component's type ergonomics are part of its API quality.\n\n### 💡 Senior Engine & Architecture Insight\n> Optimizes for inference and consumer ergonomics.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you type nested property access?**\n- **When would you prefer composition or templates over adding another generic option?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Optimizes for inference and consumer ergonomics.\n✅ Distinguishes direct fields from computed accessors.\n✅ Treats types as part of the public API.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Introduces many generic parameters before identifying use cases.\n⚠️ Requires consumers to cast values or use `any`.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Optimizes for inference and consumer ergonomics.",
+      "tags": [
+        "typescript",
+        "API Design / Generics",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_10",
+      "deckId": "deck_typescript",
+      "front": "TypeScript says an API response is `User`, but production receives a malformed object and the page crashes. Where should runtime validation live, and how much validation is reasonable?",
+      "back": "The type annotation only describes what the code expects; it does not change the network payload. Validation should happen at trust boundaries, close enough to the transport layer that invalid data cannot spread. I would validate fields that affect control flow, security, money, dates, or complex rendering, then map the result into an internal model. The parser should return a clear success or failure result and preserve enough safe context for diagnostics.\n\n**Key Points:**\n- Understands type erasure and trust boundaries.\n- Uses risk-based validation rather than absolutism.\n- Plans controlled failure and observability.",
+      "notes": "### Comprehensive Senior Answer\nThe type annotation only describes what the code expects; it does not change the network payload. Validation should happen at trust boundaries, close enough to the transport layer that invalid data cannot spread. I would validate fields that affect control flow, security, money, dates, or complex rendering, then map the result into an internal model. The parser should return a clear success or failure result and preserve enough safe context for diagnostics.\n\nThe amount depends on ownership and risk. A generated client plus contract tests may be sufficient for a tightly controlled internal API, while third-party data or independently deployed services justify stronger runtime schemas. I would avoid validating the same object repeatedly deep in the component tree. Failures should produce a controlled fallback and telemetry, not a cryptic property-access exception.\n\n### 💡 Senior Engine & Architecture Insight\n> Understands type erasure and trust boundaries.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How do contract tests complement runtime validation?**\n- **What information is safe to include in validation logs?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Understands type erasure and trust boundaries.\n✅ Uses risk-based validation rather than absolutism.\n✅ Plans controlled failure and observability.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Believes generated TypeScript models guarantee runtime shape.\n⚠️ Scatters ad hoc null checks across every component.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Understands type erasure and trust boundaries.",
+      "tags": [
+        "typescript",
+        "Security / Runtime Boundary",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_01",
+      "deckId": "deck_typescript",
+      "front": "What are the exact differences between type and interface in TypeScript, and when should you choose one over the other?",
+      "back": "Interfaces support declaration merging (open for extension) and are optimized by the TS compiler for object shape lookups. Type aliases can represent primitives, unions (`|`), intersections (`&`), tuples, mapped types, and conditional types. Prefer `interface` for public library APIs and extensible OOP models; prefer `type` for complex unions, state representations, and functional utility transformations.\n\n**Key Points:**\n- Declaration merging in interfaces (useful for global augmentations)\n- Type aliases support unions, mapped types, conditional types, and primitives\n- Compiler performance difference with object lookup caching on interfaces\n- Extending with extends (interface) vs intersection & (type)",
+      "notes": "### Comprehensive Senior Answer\nBoth `interface` and `type` define object contracts, but they have key differences:\n1. **Declaration Merging**: If you declare multiple `interface` blocks with the same name, TypeScript automatically merges their properties. `type` aliases throw a duplicate identifier error. This makes `interface` great for library definitions (like augmenting `Window` or Express `Request`).\n2. **Unions & Primitives**: `type` can represent unions (`string | number`), tuples, mapped types, and primitive aliases. An `interface` can only describe object and function shapes.\n3. **Extensibility Syntax**: `interface` extends via the `extends` keyword; `type` extends via intersection (`&`). In modern application code, we use `type` for domain models, discriminated state unions, and generics, and `interface` for public contracts.\n\n### Code Example\n```typescript\n// 1. Declaration Merging (Interfaces only)\ninterface UserProfile {\n  id: string;\n  name: string;\n}\ninterface UserProfile {\n  roles: string[]; // Merged automatically into UserProfile!\n}\n\n// 2. Type Aliases for Unions & Discriminated States\ntype FetchState<T> = \n  | { status: 'idle' }\n  | { status: 'loading' }\n  | { status: 'success'; data: T }\n  | { status: 'error'; error: Error };\n\n// 3. Extending\ninterface Admin extends UserProfile {\n  permissions: string[];\n}\ntype AdminType = UserProfile & { permissions: string[] };\n```\n_Demonstrates declaration merging on interfaces versus discriminated state unions on type aliases._\n\n### 💡 Senior Engine & Architecture Insight\n> The TypeScript compiler caches interface object shapes internally by name, giving slight compilation speedups on massive codebases. However, for 99% of app development, developer ergonomics and union safety matter much more.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Can an interface implement or extend a union type?**\n  *A:* An interface cannot `extend` a union type directly (e.g. `interface A extends (B | C)` fails) because interfaces must define static, determinate object structures at compile time.\n- **Q: How does declaration merging power `@types/*` packages?**\n  *A:* It allows ambient definition packages to add properties to global objects (like adding `user` to Express `Request` or `ethereum` to `Window`) without modifying the original source code.",
+      "spokenTip": "I use `interface` when defining extensible public contracts, and `type` when dealing with unions, primitives, and transformations.",
+      "tags": [
+        "typescript",
+        "interfaces",
+        "types",
+        "declaration-merging",
+        "oop"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_02",
+      "deckId": "deck_typescript",
+      "front": "Explain any, unknown, never, and void. How do you use never for compile-time exhaustive checks?",
+      "back": "`any` disables all type checking. `unknown` is the type-safe top type (you must narrow/guard it before property access). `void` indicates a function returns no meaningful value. `never` is the bottom type representing impossible states, used for exhaustive switch/case checking.\n\n**Key Points:**\n- any vs unknown: unknown requires type narrowing before property access\n- never as the bottom type with no assignable values\n- Exhaustiveness check pattern with assertNever(x: never)\n- Why unknown is the gold standard for untrusted API and WebSocket payloads",
+      "notes": "### Comprehensive Senior Answer\n`any` completely turns off TypeScript checking and allows anything, which can hide runtime errors. `unknown` is the type-safe alternative: it can accept any value, but TypeScript blocks you from calling methods or accessing properties on it until you narrow it with a type guard (like `typeof` or `isType`). `void` means a function returns undefined.\n\n`never` represents a value that can never occur—such as a function that always throws or enters an infinite loop. In senior TypeScript code, we use `never` in default switch cases for **Exhaustive Type Checking**: if someone adds a new variant to a union and forgets to update the switch statement, assigning the unhandled case to `never` triggers a compile error.\n\n### Code Example\n```typescript\ntype Action = \n  | { type: 'LOGIN'; payload: { user: string } }\n  | { type: 'LOGOUT' }\n  | { type: 'REFRESH_TOKEN' };\n\nfunction assertNever(x: never): never {\n  throw new Error(`Unexpected object: ${JSON.stringify(x)}`);\n}\n\nfunction handleAction(action: Action) {\n  switch (action.type) {\n    case 'LOGIN':\n      return `Logged in ${action.payload.user}`;\n    case 'LOGOUT':\n      return 'Logged out';\n    case 'REFRESH_TOKEN':\n      return 'Refreshing session';\n    default:\n      // If someone adds a new Action without adding a case, TypeScript fails the build here!\n      return assertNever(action);\n  }\n}\n```\n_Using assertNever(x: never) in default switch case guarantees compile-time exhaustiveness._\n\n### 💡 Senior Engine & Architecture Insight\n> `unknown` forces the developer to write runtime type assertions or guards, preventing `TypeError: Cannot read properties of undefined` on untrusted API payloads.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why is `any` both a top type and a bottom type in TypeScript?**\n  *A:* Because every type is assignable to `any` (top type), and `any` is assignable to almost every type (bottom type), completely breaking the type system hierarchy.\n- **Q: What is the return type of a function that throws an error: `void` or `never`?**\n  *A:* `never`, because the function never returns normally and control never reaches the caller.",
+      "spokenTip": "`any` turns off TypeScript; `unknown` is \"I don't know yet, check first\"; `never` is impossible state used for exhaustive pattern matching.",
+      "tags": [
+        "typescript",
+        "unknown",
+        "any",
+        "never",
+        "type-safety",
+        "exhaustiveness"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_03",
+      "deckId": "deck_typescript",
+      "front": "How do Custom Type Predicates (is), Assertion Functions (asserts), and Discriminated Unions work for type narrowing?",
+      "back": "Type predicates (`arg is Type`) return a boolean and narrow the type in truthy branches. Assertion functions (`asserts condition`) narrow types by throwing an exception if invalid. Discriminated unions use a common literal tag property (e.g. `status: \"success\"`) for automatic compiler narrowing.\n\n**Key Points:**\n- Custom predicate syntax: fn(x: unknown): x is User\n- Assertion functions: asserts condition or asserts x is User\n- Discriminated unions with single-literal discriminants\n- Type assertion (as T) vs runtime type validation",
+      "notes": "### Comprehensive Senior Answer\nTypeScript uses Control Flow Analysis to narrow types inside code branches. While `typeof` and `instanceof` handle primitives and classes, complex domain objects need custom solutions:\n1. **Type Predicates (`param is TargetType`)**: Functions returning a boolean. When true, TypeScript narrows the parameter in that block.\n2. **Assertion Functions (`asserts val is TargetType`)**: Functions that throw an error if the value is invalid. After the call, TypeScript assumes the value is valid on subsequent lines without needing an `if` block.\n3. **Discriminated Unions**: A union of object types sharing a common discriminant literal property (like `kind: \"success\"` vs `kind: \"error\"`). Checking that property in an `if` or `switch` automatically narrows the entire object shape.\n\n### Code Example\n```typescript\ninterface ApiSuccess<T> {\n  kind: 'success';\n  data: T;\n}\ninterface ApiError {\n  kind: 'error';\n  message: string;\n  code: number;\n}\ntype ApiResponse<T> = ApiSuccess<T> | ApiError;\n\n// 1. Custom Type Predicate\nfunction isApiError(res: ApiResponse<any>): res is ApiError {\n  return res.kind === 'error' && typeof (res as ApiError).code === 'number';\n}\n\n// 2. Assertion Function\nfunction assertIsString(val: unknown): asserts val is string {\n  if (typeof val !== 'string') {\n    throw new TypeError(`Expected string, received ${typeof val}`);\n  }\n}\n\n// 3. Control Flow Narrowing\nfunction processResponse(res: ApiResponse<string[]>) {\n  if (res.kind === 'success') {\n    console.log(res.data.join(', ')); // Automatically narrowed to ApiSuccess<string[]>\n  } else {\n    console.error(res.message, res.code); // Automatically narrowed to ApiError\n  }\n}\n```\n_Combines type predicates, assertion signatures, and discriminated unions._\n\n### 💡 Senior Engine & Architecture Insight\n> A type assertion (`res as User`) only tells the compiler to trust you without doing runtime verification. A type predicate (`isUser(res)`) actually verifies properties at runtime before narrowing.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How does the `in` operator narrow types in TypeScript?**\n  *A:* If you check 'email' in user, TypeScript narrows the union to only those object variants that contain an `email` property.\n- **Q: Why are Discriminated Unions preferred over multiple optional properties on a single interface?**\n  *A:* Optional properties (`{ isError?: boolean; error?: string; data?: T }`) allow invalid states (like `isError: true` with `data: [...]`). Discriminated unions make impossible states unrepresentable.",
+      "spokenTip": "Type narrowing transforms broad types into specific types through control flow analysis and runtime checks.",
+      "tags": [
+        "typescript",
+        "type-guards",
+        "narrowing",
+        "discriminated-unions",
+        "assertions"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_04",
+      "deckId": "deck_typescript",
+      "front": "How do Generic Constraints (extends), the keyof operator, and indexed access types work in TypeScript?",
+      "back": "Generics parameterize types to enable reusable code without losing specific type details. Constraints (`<T extends HasId>`) enforce that `T` satisfies a required shape. `keyof T` produces a union of property keys. Combining `<T, K extends keyof T>` guarantees type-safe property access with return type `T[K]`.\n\n**Key Points:**\n- Syntax: <T extends BaseShape = DefaultType>\n- Combining keyof with indexed access types: T[K]\n- Preserving literal types vs widening to general primitives\n- Generic repositories and type-safe API clients",
+      "notes": "### Comprehensive Senior Answer\nGenerics capture and preserve concrete types. Instead of accepting `any` or broad types, generics maintain type fidelity through function calls.\n\nWe constrain generic types using `extends` (e.g. `<T extends { id: string }>` ensures `T` always has an `id`). The `keyof` operator extracts all keys of an object type as a union of strings/numbers. Combining `T` and `K extends keyof T` lets us write helper functions where the key is validated at compile time and the return type is automatically inferred as `T[K]` (Indexed Access Type).\n\n### Code Example\n```typescript\n// Type-safe property getter with constraints\nfunction getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {\n  return obj[key];\n}\n\nconst user = { id: 101, username: 'alex_dev', isActive: true };\nconst username = getProperty(user, 'username'); // Inferred type: string\nconst isActive = getProperty(user, 'isActive'); // Inferred type: boolean\n// getProperty(user, 'unknownKey'); // Compile Error: 'unknownKey' is not assignable to keyof user\n\n// Generic Repository Interface with ID constraint\ninterface Repository<T extends { id: string | number }> {\n  getById(id: T['id']): Promise<T | null>;\n  save(entity: T): Promise<T>;\n}\n```\n_Shows generic property access with keyof and indexed access type T[K]._\n\n### 💡 Senior Engine & Architecture Insight\n> Using generic constraints prevents type widening. If you return `T[K]`, TypeScript knows the exact return type rather than widening it to a broad union of all values in `T`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `<T extends string>` and just using `string` as a parameter type?**\n  *A:* `<T extends string>` captures the exact string literal type (e.g. `\"active\"`), whereas `param: string` widens the value to general `string`.\n- **Q: How can you set default generic types?**\n  *A:* Using `= DefaultType`, for example: `<T = HTMLElement>(el: T) => ...`.",
+      "spokenTip": "Generics are type parameters that propagate concrete types through functions, classes, and interfaces.",
+      "tags": [
+        "typescript",
+        "generics",
+        "constraints",
+        "keyof",
+        "indexed-access"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_05",
+      "deckId": "deck_typescript",
+      "front": "Explain the internal implementation of Partial<T>, Pick<T, K>, Omit<T, K>, Record<K, T>, and ReturnType<T>. What is the satisfies operator?",
+      "back": "Utility types transform types using mapped and conditional types under the hood. `Partial<T>` makes keys optional (`{ [P in keyof T]?: T[P] }`), `Pick` filters keys (`{ [P in K]: T[P] }`), `Omit` uses `Exclude<keyof T, K>`, `Record` maps keys to a type, and `ReturnType` uses conditional `infer R`. The `satisfies` operator validates a value against a type without widening its inferred literal types.\n\n**Key Points:**\n- Modifiers: ? for optional, -? to remove optionality, readonly, -readonly\n- Difference between Exclude (union filter) and Omit (object key filter)\n- The infer keyword inside conditional types\n- The satisfies operator vs type assertion vs variable type annotation",
+      "notes": "### Comprehensive Senior Answer\nBuilt-in utility types are built from basic TypeScript primitives:\n- `Partial<T>`: `{ [P in keyof T]?: T[P] }` (maps over keys and adds `?`)\n- `Required<T>`: `{ [P in keyof T]-?: T[P] }` (removes optionality)\n- `Readonly<T>`: `{ readonly [P in keyof T]: T[P] }`\n- `Record<K, T>`: `{ [P in K]: T }`\n- `Pick<T, K extends keyof T>`: `{ [P in K]: T[P] }`\n- `Omit<T, K>`: `Pick<T, Exclude<keyof T, K>>`\n- `ReturnType<T>`: `T extends (...args: any[]) => infer R ? R : any`\n\nThe `satisfies` operator (TS 4.9+) validates that an object conforms to an interface while preserving the narrowest inferred literal types for properties, unlike `as` or standard variable type annotations.\n\n### Code Example\n```typescript\n// 1. Custom DeepReadonly implementation\ntype DeepReadonly<T> = {\n  readonly [P in keyof T]: T[P] extends Function \n    ? T[P] \n    : T[P] extends object \n    ? DeepReadonly<T[P]> \n    : T[P];\n};\n\n// 2. The 'satisfies' operator vs Type Annotation:\ntype ThemeConfig = Record<string, string | { r: number; g: number; b: number }>;\n\n// With 'satisfies': Validates shape, but keeps exact literal types!\nconst theme = {\n  primary: '#3B82F6',\n  accent: { r: 59, g: 130, b: 246 }\n} satisfies ThemeConfig;\n\n// theme.primary is known to be a string, and theme.accent has .r, .g, .b!\nconsole.log(theme.accent.r); // Fully typed autocomplete!\n```\n_Shows custom recursive mapped types and modern satisfies operator._\n\n### 💡 Senior Engine & Architecture Insight\n> `satisfies` prevents type widening. If you write `const theme: ThemeConfig = ...`, `theme.primary` is widened to `string | { r, g, b }`, losing member autocomplete. `satisfies` validates the structure while preserving the exact inferred type.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `Exclude<T, U>` and `Omit<T, K>`?**\n  *A:* `Exclude` works on union types to remove members (`Exclude<\"a\"|\"b\"|\"c\", \"a\">` -> `\"b\"|\"c\"`). `Omit` works on object types to remove keys (`Omit<User, \"password\">`).\n- **Q: How does the `infer` keyword work in conditional types?**\n  *A:* `infer` introduces a type variable inside a conditional type that TypeScript deduces dynamically (e.g. extracting Promise inner type: `type Awaited<T> = T extends Promise<infer U> ? U : T`).",
+      "spokenTip": "Utility types are built using mapped types, indexed access, and conditional type inference with infer.",
+      "tags": [
+        "typescript",
+        "utility-types",
+        "mapped-types",
+        "conditional-types",
+        "infer",
+        "satisfies"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_06",
+      "deckId": "deck_typescript",
+      "front": "Why do modern TypeScript codebases avoid numeric and string enums in favor of const objects with as const and union types?",
+      "back": "TypeScript `enum` generates runtime IIFE JavaScript code, does not tree-shake cleanly, allows unsafe numeric assignments, and creates nominal rather than structural typing friction. Modern TypeScript prefers `const ROLES = { ... } as const` paired with `type Role = typeof ROLES[keyof typeof ROLES]`, which is 100% type-safe, structural, and tree-shakeable.\n\n**Key Points:**\n- Enums emit runtime JavaScript IIFE objects that hinder tree-shaking\n- Numeric enums permit unsafe number assignments\n- as const objects + union types provide structural typing and zero runtime bloat\n- Compatibility with Babel/Vite/esbuild isolated module compilation",
+      "notes": "### Comprehensive Senior Answer\nEnums are one of the few TypeScript features that emit runtime JavaScript code rather than vanishing during compilation. They have several well-known issues:\n1. **Runtime Overhead**: TypeScript enums generate complex reverse-mapping IIFE objects in JS, which bundlers struggle to tree-shake.\n2. **Numeric Enum Unsoundness**: With numeric enums, TypeScript historically allowed assigning arbitrary numbers (`const role: UserRole = 999`) without a compiler error.\n3. **Nominal vs Structural Mismatch**: String enums require importing the enum object everywhere; you cannot simply pass an identical string literal.\n\nModern best practice is using a `const` object with `as const` and extracting a union type: `export const ROLES = { ADMIN: \"admin\", USER: \"user\" } as const; export type Role = (typeof ROLES)[keyof typeof ROLES];`. This gives autocomplete, runtime iteration via `Object.values(ROLES)`, and zero runtime boilerplate.\n\n### Code Example\n```typescript\n// ❌ Legacy TS Enum: Emits runtime IIFE boilerplate\nexport enum UserRoleEnum {\n  Admin = 'ADMIN',\n  User = 'USER'\n}\n\n// ✅ Modern Best Practice: const object + as const + union type\nexport const USER_ROLES = {\n  ADMIN: 'ADMIN',\n  USER: 'USER',\n  GUEST: 'GUEST'\n} as const;\n\n// Extract union type: 'ADMIN' | 'USER' | 'GUEST'\nexport type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];\n\nfunction setRole(role: UserRole) {\n  console.log(`Assigned role: ${role}`);\n}\n\n// Clean usage: accept direct string literal or object reference!\nsetRole('ADMIN');\nsetRole(USER_ROLES.ADMIN);\n```\n_Compares TS enum with const object union pattern using as const._\n\n### 💡 Senior Engine & Architecture Insight\n> Using `as const` creates readonly literal types for all object properties. Bundlers can easily inline strings and tree-shake unused object references completely.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is `const enum` and why is it also discouraged in some setups?**\n  *A:* `const enum` inlines values at compile-time with zero JS output, but causes issues with isolated module transpilers (like Babel, Vite/esbuild, or ts-loader in `transpileOnly` mode) because they cannot look across file boundaries to inline the value.\n- **Q: How do you get an array of all values from an `as const` object?**\n  *A:* Use `Object.values(USER_ROLES)` which gives ['ADMIN', 'USER', 'GUEST'] at runtime for form select options and dropdowns.",
+      "spokenTip": "Modern TypeScript avoids enums because they generate runtime IIFE code and have type safety quirks. We prefer `as const` objects with union types.",
+      "tags": [
+        "typescript",
+        "enums",
+        "as-const",
+        "union-types",
+        "best-practices",
+        "tree-shaking"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_07",
+      "deckId": "deck_typescript",
+      "front": "How do Generic Constraints (`T extends U`), `keyof`, and Indexed Access Types (`T[K]`) work together to create end-to-end type-safe API helpers and event emitters?",
+      "back": "Generic constraints restrict what types can be passed to a generic parameter. `keyof T` extracts a union of keys. `T[K]` accesses the type of property `K` on `T`. Combining them ensures that function calls only accept valid keys and automatically infer the exact property return types.\n\n**Key Points:**\n- Generic constraints using extends\n- keyof operator for extracting property key unions\n- Indexed access types T[K] for dynamic return value inference\n- Building type-safe event buses, reducers, and entity stores",
+      "notes": "### Comprehensive Senior Answer\nIn senior TypeScript code, generic constraints prevent runtime property access errors. By writing `<T, K extends keyof T>(obj: T, key: K): T[K]`, we enforce that `key` must be a valid key of `obj`, and TypeScript accurately infers the exact return type `T[K]` without manual casting.\n\nWe use this pattern for type-safe Event Emitters (where event names map to specific payload interfaces), form field getters, patch operations (`Partial<T>`), and state reducers.\n\n### Code Example\n```typescript\n// Type-safe Typed Event Emitter Map\ninterface AppEvents {\n  'user:login': { userId: string; timestamp: number };\n  'cart:update': { itemCount: number; total: number };\n  'app:error': { code: number; message: string };\n}\n\nclass TypedEventEmitter<TEvents extends Record<string, any>> {\n  private listeners: { [K in keyof TEvents]?: Array<(payload: TEvents[K]) => void> } = {};\n\n  on<K extends keyof TEvents>(event: K, handler: (payload: TEvents[K]) => void) {\n    if (!this.listeners[event]) this.listeners[event] = [];\n    this.listeners[event]!.push(handler);\n  }\n\n  emit<K extends keyof TEvents>(event: K, payload: TEvents[K]) {\n    this.listeners[event]?.forEach(fn => fn(payload));\n  }\n}\n\n// Usage:\nconst bus = new TypedEventEmitter<AppEvents>();\n\n// Autocompletes event names, payload is typed as { userId: string, timestamp: number }!\nbus.on('user:login', (data) => {\n  console.log(`User ${data.userId} logged in at ${data.timestamp}`);\n});\n\nbus.emit('user:login', { userId: 'usr_101', timestamp: Date.now() });\n```\n_Typed event bus using keyof constraint and indexed access for automatic payload inference._\n\n### 💡 Senior Engine & Architecture Insight\n> Combining `keyof` with distributive conditional types allows building recursive deep key lookups (e.g. `type DeepKey<T> = ...`), allowing safe property paths like `\"user.address.city\"`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What happens if you pass an unconstrained generic `<T>(key: keyof T)` when `T` could be a primitive?**\n  *A:* TypeScript allows `keyof string` or `keyof number` (which returns method names like \"concat\" or \"toFixed\"), so constraining `T extends object` is recommended when working with objects.\n- **Q: What is the difference between `T[keyof T]` and `keyof T`?**\n  *A:* `keyof T` is a union of all property keys. `T[keyof T]` is a union of all property value types in `T`.",
+      "spokenTip": "Generic constraints + keyof + indexed access give us dynamic type inference without any type assertions or any.",
+      "tags": [
+        "typescript",
+        "generics",
+        "keyof",
+        "indexed-access",
+        "type-safety",
+        "event-emitter"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_ts_08",
+      "deckId": "deck_typescript",
+      "front": "What are Template Literal Types in TypeScript, and how do you use them to parse URL path parameters (e.g. `/api/users/:id/posts/:postId`) into strongly typed objects?",
+      "back": "Template literal types build string types via template literal syntax (e.g. ``on${Capitalize<Event>}``). Using recursive conditional types with template literals and `infer`, we can parse dynamic URL path tokens like `:id` into typed object parameters `{ id: string; postId: string }`.\n\n**Key Points:**\n- Template literal types for string union composition and validation\n- Built-in intrinsic string types (Capitalize, Uppercase, Lowercase)\n- Pattern matching with infer for URL and query string parsing\n- Cartesian product generation across union combinations",
+      "notes": "### Comprehensive Senior Answer\nIntroduced in TypeScript 4.1, Template Literal Types allow string manipulation directly inside the type system. They support built-in utilities like `Uppercase<S>`, `Lowercase<S>`, `Capitalize<S>`, and `Uncapitalize<S>`.\n\nAt a senior level, we use template literal types with recursive pattern matching (`infer`) to parse router path strings into parameter objects. If an API route is defined as `\"/users/:userId/posts/:postId\"`, TypeScript can automatically infer that the request params parameter must match `{ userId: string; postId: string }`, making routing libraries 100% type-safe without code generation.\n\n### Code Example\n```typescript\n// Recursive URL Path Param Extractor\ntype ExtractRouteParams<TPath extends string> =\n  TPath extends `${string}/:${infer Param}/${infer Rest}`\n    ? { [K in Param | keyof ExtractRouteParams<`/${Rest}`>]: string }\n    : TPath extends `${string}/:${infer Param}`\n    ? { [K in Param]: string }\n    : Record<string, never>;\n\n// Test the type extraction:\ntype UserPostParams = ExtractRouteParams<'/api/users/:userId/posts/:postId'>;\n// Result is strictly inferred as: { userId: string; postId: string }\n\nfunction navigateTo<TPath extends string>(\n  path: TPath, \n  params: ExtractRouteParams<TPath>\n) {\n  let url: string = path;\n  for (const [key, value] of Object.entries(params)) {\n    url = url.replace(`:${key}`, encodeURIComponent(value as string));\n  }\n  return url;\n}\n\n// ✅ Type checks required params!\nnavigateTo('/api/users/:userId/posts/:postId', {\n  userId: '123',\n  postId: '456'\n});\n```\n_Uses recursive template literal types and infer to parse URL parameters into a type-safe object contract._\n\n### 💡 Senior Engine & Architecture Insight\n> Template literal types with union types produce Cartesian products. For example, ``${\"top\" | \"bottom\"}-${\"left\" | \"right\"}`` produces `\"top-left\" | \"top-right\" | \"bottom-left\" | \"bottom-right\"`. Beware of combinatorial explosion if unions are too large.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do CSS frameworks like Tailwind type utilities like `bg-${Color}-${Shade}` in TypeScript?**\n  *A:* By combining unions of colors and numbers with template literal types: `type Color = \"slate\" | \"indigo\"; type Shade = 100 | 500 | 900; type Class = `bg-${Color}-${Shade}`;`.\n- **Q: What is the limit on recursion depth for template literal types in TypeScript?**\n  *A:* TypeScript limits type recursion depth to around 50-100 levels to prevent infinite loops and compiler crashes during type resolution.",
+      "spokenTip": "Template literal types bring regex-like string extraction to the type system, enabling compile-time URL path parsing and CSS utility typing.",
+      "tags": [
+        "typescript",
+        "template-literal-types",
+        "infer",
+        "advanced-types",
+        "routing"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

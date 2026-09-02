@@ -1,0 +1,148 @@
+{
+  "deck": {
+    "id": "deck_fescenarios",
+    "name": "Frontend Real Scenarios & Triage",
+    "description": "Stale search race conditions, 10k row slow page optimization, Chrome DevTools memory leak triage, and 401 token refresh queueing.",
+    "category": "fescenarios",
+    "color": "#DC2626",
+    "iconName": "AlertCircle",
+    "isDefault": true,
+    "totalCards": 8
+  },
+  "cards": [
+    {
+      "id": "card_gpt_dbg_01",
+      "deckId": "deck_fescenarios",
+      "front": "A page occasionally shows a loading spinner forever. There is no obvious JavaScript error. Walk through your investigation across the full request lifecycle.",
+      "back": "I would first define the affected route, user segment, browser, release, and action, then correlate one occurrence with a trace or request ID. In the browser I would inspect whether the request was sent, remained pending, was cancelled, failed, redirected, or completed with an unexpected body. I would inspect the state transition logic for paths that set loading but never clear it—errors, empty responses, cancellation, navigation, or a stale request ignored without completing the active state.\n\n**Key Points:**\n- Starts with correlation and a concrete occurrence.\n- Checks every terminal path, cancellation, and stale-request behavior.\n- Adds timeouts, recovery UX, telemetry, and a regression test.",
+      "notes": "### Comprehensive Senior Answer\nI would first define the affected route, user segment, browser, release, and action, then correlate one occurrence with a trace or request ID. In the browser I would inspect whether the request was sent, remained pending, was cancelled, failed, redirected, or completed with an unexpected body. I would inspect the state transition logic for paths that set loading but never clear it—errors, empty responses, cancellation, navigation, or a stale request ignored without completing the active state.\n\nOn the API side I would follow the trace through middleware, dependencies, database waits, and timeouts. A proxy or connection problem may leave frontend behavior different from the API log. I would add bounded client and server timeouts plus an actionable recovery state; no operation should spin forever. A regression test should exercise the exact missing terminal path, and monitoring should measure requests or UI operations exceeding the expected duration.\n\n### 💡 Senior Engine & Architecture Insight\n> Starts with correlation and a concrete occurrence.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you investigate if the Network panel shows 200?**\n- **What state model prevents a forgotten loading reset?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Starts with correlation and a concrete occurrence.\n✅ Checks every terminal path, cancellation, and stale-request behavior.\n✅ Adds timeouts, recovery UX, telemetry, and a regression test.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Adds a fixed timer that hides the spinner.\n⚠️ Assumes no console error means the backend is responsible.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Starts with correlation and a concrete occurrence.",
+      "tags": [
+        "fescenarios",
+        "Production Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_dbg_02",
+      "deckId": "deck_fescenarios",
+      "front": "When an access token expires, ten concurrent API calls receive 401. Sometimes the refresh succeeds, but several requests still fail or the user is logged out. How would you fix the flow?",
+      "back": "I would make token refresh a single-flight operation. The first eligible 401 starts one refresh; other failed requests wait for the same result instead of launching their own refresh calls. After success, each safe request is retried once with the new credential. The refresh endpoint itself and retried requests must be marked so they cannot enter an infinite loop.\n\n**Key Points:**\n- Coordinates one refresh and bounded retry.\n- Distinguishes authentication failure from authorization failure.\n- Handles uncertain mutations, logout, and multi-request tests.",
+      "notes": "### Comprehensive Senior Answer\nI would make token refresh a single-flight operation. The first eligible 401 starts one refresh; other failed requests wait for the same result instead of launching their own refresh calls. After success, each safe request is retried once with the new credential. The refresh endpoint itself and retried requests must be marked so they cannot enter an infinite loop.\n\nI would distinguish an expired credential from a genuine forbidden or invalid-session response. If refresh fails, session cleanup and redirect happen once, user-specific state is cleared, and mutations with uncertain outcomes are not blindly replayed. The server should rotate or revoke refresh credentials safely and return consistent statuses. I would test concurrent 401s, refresh failure, logout during refresh, navigation, and a non-idempotent request. Logs should correlate the refresh generation without recording tokens.\n\n### 💡 Senior Engine & Architecture Insight\n> Coordinates one refresh and bounded retry.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Should a failed POST be retried automatically after refresh?**\n- **How would this work across several browser tabs?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Coordinates one refresh and bounded retry.\n✅ Distinguishes authentication failure from authorization failure.\n✅ Handles uncertain mutations, logout, and multi-request tests.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Starts a refresh for every 401.\n⚠️ Retries every request indefinitely after replacing the token.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Coordinates one refresh and bounded retry.",
+      "tags": [
+        "fescenarios",
+        "Authentication Race / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_dbg_06",
+      "deckId": "deck_fescenarios",
+      "front": "Users in one time zone see an appointment on the wrong day, while the database value looks correct. How would you reason through the bug?",
+      "back": "I would first determine the domain meaning. An instant such as a video call should be stored and transported as an unambiguous timestamp, then displayed in the viewer's chosen time zone. A date-only value such as a birthday must not be converted as midnight UTC, because time-zone conversion can shift the calendar day. A local scheduled time may also require an explicit zone and daylight-saving policy.\n\n**Key Points:**\n- Starts from domain semantics rather than one universal format.\n- Inspects database, serialization, parsing, zone, and formatting.\n- Tests offsets and daylight-saving edge cases.",
+      "notes": "### Comprehensive Senior Answer\nI would first determine the domain meaning. An instant such as a video call should be stored and transported as an unambiguous timestamp, then displayed in the viewer's chosen time zone. A date-only value such as a birthday must not be converted as midnight UTC, because time-zone conversion can shift the calendar day. A local scheduled time may also require an explicit zone and daylight-saving policy.\n\nI would capture the raw database type and value, serialized response, browser-parsed value, selected time zone, locale formatter, and daylight-saving transition. Ambiguous string parsing and missing offsets are common causes. I would define contract types for instant, local date, and zoned local time, avoid implicit browser parsing, and test positive and negative offsets plus daylight-saving boundaries. Logs should preserve machine-readable timestamps and zone context.\n\n### 💡 Senior Engine & Architecture Insight\n> Starts from domain semantics rather than one universal format.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How should a date-only value be represented in JSON?**\n- **What happens when a local time does not exist during a daylight-saving transition?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Starts from domain semantics rather than one universal format.\n✅ Inspects database, serialization, parsing, zone, and formatting.\n✅ Tests offsets and daylight-saving edge cases.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Converts every value to UTC without distinguishing date-only data.\n⚠️ Relies on implementation-dependent date-string parsing.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Starts from domain semantics rather than one universal format.",
+      "tags": [
+        "fescenarios",
+        "Date/Time / Cross-Layer Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_dbg_08",
+      "deckId": "deck_fescenarios",
+      "front": "Browser memory grows after every route change and eventually the tab crashes. How would you determine whether the cause is DOM retention, subscriptions, caching, or data volume?",
+      "back": "I would create a repeatable navigation cycle and record a baseline. Heap snapshots after several cycles, with controlled garbage collection in the profiling environment, reveal whether detached DOM nodes, component objects, listener callbacks, large arrays, or cached responses remain reachable. Retaining paths identify the owner: a global listener, interval, observable subscription, third-party widget, unbounded replay cache, or application singleton.\n\n**Key Points:**\n- Uses snapshots, allocation timelines, and retaining paths.\n- Distinguishes leak from bounded cache and active data.\n- Fixes ownership and adds repeatable verification.",
+      "notes": "### Comprehensive Senior Answer\nI would create a repeatable navigation cycle and record a baseline. Heap snapshots after several cycles, with controlled garbage collection in the profiling environment, reveal whether detached DOM nodes, component objects, listener callbacks, large arrays, or cached responses remain reachable. Retaining paths identify the owner: a global listener, interval, observable subscription, third-party widget, unbounded replay cache, or application singleton.\n\nI would also inspect allocation timelines and distinguish a leak from a legitimate cache that reaches a plateau or one large active dataset. Fixes depend on ownership: lifecycle cleanup, disposal of widgets and observers, bounded cache eviction, dropping references, or reducing retained response shape. I would not simply clear every cache on navigation. A regression test can repeat the route cycle and assert resource counts or a bounded memory trend in a controlled performance suite.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses snapshots, allocation timelines, and retaining paths.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is a detached DOM node?**\n- **How would you decide whether a cache is too large rather than leaking?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses snapshots, allocation timelines, and retaining paths.\n✅ Distinguishes leak from bounded cache and active data.\n✅ Fixes ownership and adds repeatable verification.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Calls garbage collection from application code as the solution.\n⚠️ Assumes every increase between two snapshots is a leak.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses snapshots, allocation timelines, and retaining paths.",
+      "tags": [
+        "fescenarios",
+        "Memory / Lifecycle Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_dbg_09",
+      "deckId": "deck_fescenarios",
+      "front": "After a deployment, only some users receive 400 errors because their browser still runs the previous frontend version against the new API. How would you fix the incident and prevent it?",
+      "back": "For the incident, I would confirm the release combinations through build identifiers and request metadata, restore backward compatibility in the API or roll forward a compatibility patch, and communicate a safe reload only as a supplementary measure. Forcing all users to clear caches is not a reliable deployment strategy.\n\n**Key Points:**\n- Restores compatibility rather than blaming user caches.\n- Uses mixed-version contracts and release telemetry.\n- Tests old-client/new-API combinations and service-worker upgrades.",
+      "notes": "### Comprehensive Senior Answer\nFor the incident, I would confirm the release combinations through build identifiers and request metadata, restore backward compatibility in the API or roll forward a compatibility patch, and communicate a safe reload only as a supplementary measure. Forcing all users to clear caches is not a reliable deployment strategy.\n\nPrevention requires an overlap contract: additive changes first, tolerant readers, versioned or capability-based behavior where necessary, and delayed removal after old-client usage is negligible. Static assets should be content-hashed and the entry document revalidated, while old assets remain available during the rollout window. The frontend can send its build version, and telemetry should segment errors by client/API combination. Contract tests and canary rollout should include an old client against the new API. Service-worker update behavior also needs explicit testing.\n\n### 💡 Senior Engine & Architecture Insight\n> Restores compatibility rather than blaming user caches.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would an API version be justified?**\n- **How long should the backend support old clients?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Restores compatibility rather than blaming user caches.\n✅ Uses mixed-version contracts and release telemetry.\n✅ Tests old-client/new-API combinations and service-worker upgrades.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Requires a perfectly simultaneous deployment.\n⚠️ Deletes old assets immediately after each release.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Restores compatibility rather than blaming user caches.",
+      "tags": [
+        "fescenarios",
+        "Deployment / Contract Compatibility",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_dbg_10",
+      "deckId": "deck_fescenarios",
+      "front": "A real-time dashboard occasionally misses events or applies them out of order. How would you make the UI correct despite reconnects and duplicate delivery?",
+      "back": "I would not treat the live channel as an infallible ordered database. Each event needs an entity identity and monotonic version, sequence, or timestamp with defined semantics. The client applies only events newer than its current version and handles duplicates idempotently. On connection, reconnect, or detected sequence gap, it fetches a snapshot or changes since a known cursor, then resumes the stream.\n\n**Key Points:**\n- Uses versions, idempotency, gap detection, and snapshot recovery.\n- Defines reconnect and freshness UX.\n- Tests adverse delivery order and server lifecycle.",
+      "notes": "### Comprehensive Senior Answer\nI would not treat the live channel as an infallible ordered database. Each event needs an entity identity and monotonic version, sequence, or timestamp with defined semantics. The client applies only events newer than its current version and handles duplicates idempotently. On connection, reconnect, or detected sequence gap, it fetches a snapshot or changes since a known cursor, then resumes the stream.\n\nThe server should define delivery guarantees and retention. A heartbeat detects dead connections, and reconnect uses bounded backoff with jitter. The UI should show connection and freshness state when it matters, while commands still receive authoritative API responses. I would test disconnect during bursts, duplicate events, out-of-order delivery, server restart, expired cursors, and multiple tabs. Metrics should expose lag, reconnects, gap recovery, and dropped events.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses versions, idempotency, gap detection, and snapshot recovery.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you merge a snapshot with events arriving during the fetch?**\n- **Would WebSockets guarantee exactly-once delivery?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses versions, idempotency, gap detection, and snapshot recovery.\n✅ Defines reconnect and freshness UX.\n✅ Tests adverse delivery order and server lifecycle.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Assumes arrival order is business order.\n⚠️ Appends every received event without duplicate detection.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses versions, idempotency, gap detection, and snapshot recovery.",
+      "tags": [
+        "fescenarios",
+        "Real-Time Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_fescen_01",
+      "deckId": "deck_fescenarios",
+      "front": "Scenario: Users report intermittent bugs in the search bar where typing \"angular\" quickly shows results for \"ang\" instead of \"angular\". What is the root cause, and how do you fix it step-by-step?",
+      "back": "Root Cause: Network Race Condition. The HTTP request for \"ang\" took 800ms to resolve, while the subsequent request for \"angular\" resolved in 150ms. Because \"ang\" returned last, its callback overwrote the final state. Fix: 1) Debounce inputs by 300ms; 2) Filter distinct queries; 3) Use `switchMap` (or `AbortController`) to immediately abort in-flight requests when a new search term is entered.\n\n**Key Points:**\n- Race conditions occur because network latency is non-deterministic\n- Debounce alone is insufficient; cancellation is mandatory\n- switchMap unsubscriptions automatically trigger browser fetch/XHR aborts\n- Inner catchError placement to keep the main stream alive",
+      "notes": "### Comprehensive Senior Answer\nStep-by-step Triage & Solution:\n1. **Diagnosis**: When a user types without cancellation, multiple HTTP requests fly in parallel. In asynchronous networking, response arrival order is non-deterministic. A slow backend query for \"ang\" (e.g. cold DB cache) can resolve AFTER a fast query for \"angular\", resulting in stale UI.\n2. **Immediate Remediation**:\n   - Convert the input event into a reactive stream (`formControl.valueChanges` or `fromEvent`).\n   - Apply `debounceTime(300)` to wait for typing pauses.\n   - Apply `distinctUntilChanged()` to avoid duplicate API calls if the user presses navigation keys.\n   - Pipe through `switchMap(term => this.http.get(...))` which automatically calls `unsubscribe()` on the previous in-flight HTTP observable, aborting the browser network request.\n   - Add `catchError` inside the `switchMap` inner observable so an error doesn't kill the outer search stream.\n\n### Code Example\n```typescript\n// Robust Reactive Search Pipeline\nimport { Component, inject, signal } from '@angular/core';\nimport { FormControl, ReactiveFormsModule } from '@angular/forms';\nimport { HttpClient } from '@angular/common/http';\nimport { debounceTime, distinctUntilChanged, switchMap, catchError, of } from 'rxjs';\nimport { takeUntilDestroyed } from '@angular/core/rxjs-interop';\n\n@Component({\n  selector: 'app-search-bar',\n  standalone: true,\n  imports: [ReactiveFormsModule],\n  template: `\n    <input [formControl]=\"searchControl\" placeholder=\"Search...\" />\n    <ul>\n      @for (item of searchResults(); track item.id) {\n        <li>{{ item.name }}</li>\n      }\n    </ul>\n  `\n})\nexport class SearchBarComponent {\n  private http = inject(HttpClient);\n  searchControl = new FormControl('', { nonNullable: true });\n  searchResults = signal<any[]>([]);\n\n  constructor() {\n    this.searchControl.valueChanges.pipe(\n      debounceTime(300),\n      distinctUntilChanged(),\n      switchMap(term => {\n        if (!term.trim()) return of([]);\n        return this.http.get<any[]>(`/api/search?q=${encodeURIComponent(term)}`).pipe(\n          // CRITICAL: catchError inside inner observable to keep outer stream alive!\n          catchError(err => {\n            console.error('Search API error:', err);\n            return of([]);\n          })\n        );\n      }),\n      takeUntilDestroyed()\n    ).subscribe(results => {\n      this.searchResults.set(results);\n    });\n  }\n}\n```\n_Complete search pipeline with debounceTime, distinctUntilChanged, switchMap cancellation, and inner catchError._\n\n### 💡 Senior Engine & Architecture Insight\n> Fixing this only with `debounceTime()` reduces the probability of race conditions but does NOT eliminate them. Only cancellation (`switchMap` / `AbortSignal`) mathematically guarantees that slow stale responses cannot resolve into the UI state.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why must `catchError` be placed inside the `switchMap` inner observable instead of on the outer pipe?**\n  *A:* If placed on the outer pipe, any HTTP error completes the entire search stream, meaning future keystrokes will never trigger searches again until the page reloads.\n- **Q: How do you handle the same race condition in React with `fetch`?**\n  *A:* Create an `AbortController` in `useEffect`. Pass `signal` to `fetch(url, { signal })`, and call `controller.abort()` in the `useEffect` cleanup return function.",
+      "spokenTip": "Debounce reduces API calls, but switchMap eliminates stale race conditions by cancelling in-flight requests.",
+      "tags": [
+        "fescenarios",
+        "race-conditions",
+        "switchMap",
+        "debounce",
+        "search-box",
+        "triage"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_fescen_02",
+      "deckId": "deck_fescenarios",
+      "front": "Scenario: Users report that after using your enterprise SPA for 45 minutes, the browser tab consumes 2GB of RAM, stutters during interaction, and eventually crashes. How do you diagnose and resolve this memory leak using Chrome DevTools?",
+      "back": "Diagnosis: 1) Open Chrome DevTools -> **Memory Tab**; 2) Take a baseline **Heap Snapshot**; 3) Perform suspected user actions (open/close modal 10 times); 4) Take second Snapshot and use **Comparison View** filtered by detached DOM nodes (`Detached HTMLDivElement`) or retained component classes; 5) Inspect Retainer Tree to identify which closure, RxJS subscription, or global event listener is retaining the root reference. Resolution: Unsubscribe via `takeUntilDestroyed`, clean up event listeners, remove global singleton references.\n\n**Key Points:**\n- Heap Snapshot comparison mode in Chrome DevTools\n- Identifying Detached DOM elements\n- Inspecting Retainers to trace the GC Root reference\n- Common leak sources: uncleaned listeners, intervals, RxJS subscriptions, 3rd party lib instances",
+      "notes": "### Comprehensive Senior Answer\nMethodical Memory Leak Investigation:\n1. **Reproduce & Baseline**: Open Chrome in Incognito mode (to disable extensions). Navigate to the page, force a Garbage Collection (trash can icon in DevTools), and record Heap Snapshot #1.\n2. **Stress Action**: Perform the leaky action (e.g. opening and closing a report modal 10 times). Force Garbage Collection again, and take Heap Snapshot #2.\n3. **Comparison Analysis**:\n   - Set view to \"Objects allocated between Snapshot 1 and 2\".\n   - Search for `Detached` elements. If you see 10 detached `ReportModalComponent` or `HTMLDivElement` objects, the components are not being garbage collected.\n4. **Inspect Retainers**: Select a detached instance and look at the Retainers panel. Trace the path to the GC Root. Common culprits:\n   - Unsubscribed RxJS `interval()` or global singleton service subscriptions.\n   - `window.addEventListener(\\'resize\\')` without `removeEventListener` in `ngOnDestroy` / `useEffect`.\n   - Third-party chart/editor instances (e.g. Monaco / Chart.js) not destroyed via `.destroy()`.\n5. **Fix & Verify**: Apply automated teardown (`takeUntilDestroyed`, cleanup hooks), retake snapshots, and verify 0 detached elements remain.\n\n### Code Example\n```typescript\n// Common Leak Pattern & Fix in Angular Component:\nimport { Component, ElementRef, OnInit, OnDestroy, inject } from '@angular/core';\n\n@Component({\n  selector: 'app-data-chart',\n  standalone: true,\n  template: '<div class=\"chart-canvas\"></div>'\n})\nexport class DataChartComponent implements OnInit, OnDestroy {\n  private el = inject(ElementRef);\n  private chartInstance: any;\n  private resizeListener = () => this.handleResize();\n\n  ngOnInit() {\n    this.chartInstance = new (window as any).ThirdPartyChart(this.el.nativeElement);\n    window.addEventListener('resize', this.resizeListener);\n  }\n\n  private handleResize() {\n    this.chartInstance?.resize();\n  }\n\n  // ✅ CRITICAL TEARDOWN:\n  ngOnDestroy() {\n    // 1. Destroy third-party canvas/DOM instance\n    this.chartInstance?.destroy();\n    // 2. Remove window event listener to release closure reference\n    window.removeEventListener('resize', this.resizeListener);\n  }\n}\n```\n_Demonstrates proper teardown of third-party DOM instances and global window listeners to prevent memory leaks._\n\n### 💡 Senior Engine & Architecture Insight\n> Look specifically for \"Detached DOM trees\" in the heap snapshot. When a component is destroyed by Angular/React, but a lingering closure holds a reference to a single child button, the browser is forced to keep the entire detached DOM subtree in RAM.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the \"Shallow Size\" vs \"Retained Size\" of an object in a Heap Snapshot?**\n  *A:* Shallow Size is the memory held by the object itself (its own properties). Retained Size is the total memory freed if the object and its dependent child subtree were garbage collected.\n- **Q: How do you detect memory leaks programmatically in automated CI/CD tests?**\n  *A:* Use tools like `memlab` (by Meta) or Playwright with Chrome DevTools Protocol to take heap snapshots during automated E2E runs and assert that detached DOM count is zero.",
+      "spokenTip": "Use Chrome DevTools Heap Snapshots in Comparison Mode to trace detached DOM trees back to uncleaned subscriptions and global listeners.",
+      "tags": [
+        "fescenarios",
+        "memory-leaks",
+        "chrome-devtools",
+        "heap-snapshot",
+        "debugging",
+        "performance"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

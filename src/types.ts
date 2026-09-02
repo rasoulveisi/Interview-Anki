@@ -3,6 +3,66 @@ export type CardState = 'new' | 'learning' | 'review' | 'relearning' | 'suspende
 
 export type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
 
+// Decoupled Content Template (Immutable Card Definition)
+export interface CardTemplate {
+  id: string;
+  deckId: string;
+  front: string;
+  back: string;
+  notes?: string;
+  spokenTip?: string;
+  tags: string[];
+  difficulty?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Decoupled Deck Template (Immutable Deck Definition)
+export interface DeckTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  color: string;
+  iconName: string;
+  isDefault?: boolean;
+  totalCards: number;
+}
+
+// User SRS Progress (Personal / Mutable / Lightweight)
+export interface CardProgress {
+  cardId: string;
+  deckId: string;
+  userId?: string;
+  state: CardState;
+  due: number; // unix timestamp in ms
+  interval: number; // in days
+  easeFactor: number; // default 2.5
+  repetitions: number;
+  lapses: number;
+  lastReviewedAt?: number;
+  isFavorite?: boolean;
+  updatedAt: string;
+}
+
+// Manifest Types for JSON Decks
+export interface DeckManifestItem {
+  id: string;
+  category: string;
+  name: string;
+  description: string;
+  color: string;
+  iconName: string;
+  cardCount: number;
+  filename: string;
+}
+
+export interface DecksManifest {
+  version: string;
+  updatedAt: string;
+  decks: DeckManifestItem[];
+}
+
 export interface Card {
   id: string;
   userId: string;

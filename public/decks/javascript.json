@@ -1,0 +1,222 @@
+{
+  "deck": {
+    "id": "deck_javascript",
+    "name": "JavaScript Core & Deep Dive",
+    "description": "Scope, Closures, Event Loop, Microtasks/Macrotasks, Prototypes, Execution Context, this, Promises, and Concurrency.",
+    "category": "javascript",
+    "color": "#F59E0B",
+    "iconName": "FileCode",
+    "isDefault": true,
+    "totalCards": 12
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ts_05",
+      "deckId": "deck_javascript",
+      "front": "A click handler starts a long chain of resolved Promises. Network requests finish, but the loading indicator does not paint for several seconds. How would you explain and diagnose this?",
+      "back": "Promise callbacks run as microtasks. The browser generally processes the microtask queue before it gets another opportunity to render. If code continuously schedules more microtasks, it can monopolize the main thread even though each individual callback looks asynchronous. The loading state may be updated in memory, but the browser cannot paint it until control returns.\n\n**Key Points:**\n- Connects microtask starvation to rendering.\n- Uses browser profiling rather than guessing.\n- Separates asynchronous scheduling from parallel execution.",
+      "notes": "### Comprehensive Senior Answer\nPromise callbacks run as microtasks. The browser generally processes the microtask queue before it gets another opportunity to render. If code continuously schedules more microtasks, it can monopolize the main thread even though each individual callback looks asynchronous. The loading state may be updated in memory, but the browser cannot paint it until control returns.\n\nI would confirm this with the Performance panel, looking for a long task or a dense sequence of microtasks between the event and the next frame. The fix is not merely to add more Promises. I would reduce the work, process it in bounded chunks that yield to the browser, move CPU-heavy work to a worker when appropriate, or redesign the algorithm. I would also measure input delay and frame timing after the change.\n\n### 💡 Senior Engine & Architecture Insight\n> Connects microtask starvation to rendering.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How is a microtask different from a timer callback?**\n- **When would a Web Worker be appropriate?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Connects microtask starvation to rendering.\n✅ Uses browser profiling rather than guessing.\n✅ Separates asynchronous scheduling from parallel execution.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Assumes Promises always prevent UI blocking.\n⚠️ Suggests only increasing a timeout value.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Connects microtask starvation to rendering.",
+      "tags": [
+        "javascript",
+        "Runtime / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_06",
+      "deckId": "deck_javascript",
+      "front": "A single-page application becomes slower after users open and close the same feature many times. How could closures and event listeners contribute, and how would you prove the cause?",
+      "back": "A closure can keep variables from its surrounding scope alive as long as something still references the function. If a feature registers listeners on `window`, a shared event bus, timers, observers, or third-party widgets and does not remove them, those callbacks can retain component objects, DOM nodes, and large data structures after navigation.\n\n**Key Points:**\n- Explains reachability and retaining references.\n- Uses heap snapshots and retaining paths.\n- Includes prevention and regression verification.",
+      "notes": "### Comprehensive Senior Answer\nA closure can keep variables from its surrounding scope alive as long as something still references the function. If a feature registers listeners on `window`, a shared event bus, timers, observers, or third-party widgets and does not remove them, those callbacks can retain component objects, DOM nodes, and large data structures after navigation.\n\nI would reproduce the cycle, take heap snapshots before and after repeated navigation, force garbage collection in the profiling environment, and inspect retained objects and retaining paths. I would also count active listeners, subscriptions, and timers. The fix is lifecycle-based cleanup, stable callback references where removal requires identity, and ownership rules for long-lived services. I would add a regression test or development diagnostic when the leak has a repeatable trigger.\n\n### 💡 Senior Engine & Architecture Insight\n> Explains reachability and retaining references.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why can an anonymous callback make cleanup harder?**\n- **What other browser APIs commonly require explicit cleanup?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Explains reachability and retaining references.\n✅ Uses heap snapshots and retaining paths.\n✅ Includes prevention and regression verification.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Treats every closure as a memory leak.\n⚠️ Relies only on watching total browser memory in Task Manager.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Explains reachability and retaining references.",
+      "tags": [
+        "javascript",
+        "Debugging / Memory",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_07",
+      "deckId": "deck_javascript",
+      "front": "Why does reference identity matter in frontend state, and when can aggressive immutability become wasteful rather than helpful?",
+      "back": "Reference identity is often used as a cheap signal that something changed. Immutable updates make change detection, memoization, selectors, undo history, and debugging more predictable because unchanged branches can retain their references. They also reduce accidental shared mutation.\n\n**Key Points:**\n- Connects identity to rendering and memoization.\n- Rejects deep cloning as a default.\n- Discusses measured, localized trade-offs.",
+      "notes": "### Comprehensive Senior Answer\nReference identity is often used as a cheap signal that something changed. Immutable updates make change detection, memoization, selectors, undo history, and debugging more predictable because unchanged branches can retain their references. They also reduce accidental shared mutation.\n\nHowever, immutability is a technique, not a goal. Rebuilding large object graphs unnecessarily creates allocations, invalidates memoization, and may trigger more rendering. I would update only the changed path, keep normalized state where appropriate, and avoid deep cloning. For high-frequency local operations, controlled mutation inside an isolated implementation can be reasonable if the public boundary publishes a new stable result. I would make the decision using the framework's update semantics and profiler data rather than applying a rule mechanically.\n\n### 💡 Senior Engine & Architecture Insight\n> Connects identity to rendering and memoization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why is `JSON.parse(JSON.stringify(value))` a poor cloning strategy?**\n- **How would normalization help a large editable collection?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Connects identity to rendering and memoization.\n✅ Rejects deep cloning as a default.\n✅ Discusses measured, localized trade-offs.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Says mutation is always wrong without context.\n⚠️ Deep-clones the entire state after every edit.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Connects identity to rendering and memoization.",
+      "tags": [
+        "javascript",
+        "Performance / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ts_08",
+      "deckId": "deck_javascript",
+      "front": "A user changes filters quickly and an older HTTP response sometimes overwrites a newer result. How would you solve the race rather than only hiding it in the UI?",
+      "back": "I would make request identity and cancellation explicit. When a new filter state supersedes the old one, I would cancel the previous request with an abort signal where the client supports it, or ignore late responses by comparing a request sequence or the current query key before committing the result. A reactive flattening operator or server-state library can provide this behavior, but I still need to understand its cancellation semantics.\n\n**Key Points:**\n- Separates cancellation from stale-response suppression.\n- Tests out-of-order completion explicitly.\n- Does not treat debounce as a complete correctness solution.",
+      "notes": "### Comprehensive Senior Answer\nI would make request identity and cancellation explicit. When a new filter state supersedes the old one, I would cancel the previous request with an abort signal where the client supports it, or ignore late responses by comparing a request sequence or the current query key before committing the result. A reactive flattening operator or server-state library can provide this behavior, but I still need to understand its cancellation semantics.\n\nThe UI should derive loading and error state from the active request, not any request that happens to finish. I would also debounce only when it improves the interaction; debouncing reduces calls but does not by itself guarantee ordering. Tests should intentionally resolve responses out of order and verify that the newest intent wins.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates cancellation from stale-response suppression.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Does aborting in the browser guarantee that the server stopped work?**\n- **How would the solution change for a mutation instead of a read?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates cancellation from stale-response suppression.\n✅ Tests out-of-order completion explicitly.\n✅ Does not treat debounce as a complete correctness solution.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses only a spinner to mask the race.\n⚠️ Assumes responses always arrive in request order.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates cancellation from stale-response suppression.",
+      "tags": [
+        "javascript",
+        "Asynchronous Design / Race Condition",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_01",
+      "deckId": "deck_javascript",
+      "front": "How do var, let, and const differ under the hood regarding scope, hoisting, and the Temporal Dead Zone (TDZ)?",
+      "back": "`var` is function-scoped and hoisted with `undefined` initialization, attaching to the global object. `let` and `const` are block-scoped, hoisted into the Temporal Dead Zone (TDZ) uninitialized (accessing them throws a `ReferenceError`), and `const` enforces an immutable variable binding.\n\n**Key Points:**\n- var is function-scoped and creates global object properties; let/const are block-scoped\n- Hoisting exists for all three, but let/const exist in the TDZ until initialized\n- const prevents reassignment of the variable binding, not internal object mutation",
+      "notes": "### Comprehensive Senior Answer\nI compare `var`, `let`, and `const` across three axes:\n1. **Scoping**: `var` is function-scoped (or globally scoped). `let` and `const` are block-scoped to the nearest `{}` enclosing block.\n2. **Hoisting & TDZ**: All three declarations are hoisted during the compilation phase. However, `var` is initialized to `undefined` immediately, allowing you to read it before its line of declaration. `let` and `const` enter the Temporal Dead Zone—they exist in lexical memory, but accessing them before the actual declaration line throws a `ReferenceError`.\n3. **Binding Immutability**: `const` creates an immutable identifier binding—you cannot reassign the variable. However, object properties inside a `const` variable remain mutable unless frozen via `Object.freeze()`.\n\n### Code Example\n```javascript\nfunction testScopeAndTDZ() {\n  // console.log(a); // ReferenceError: Cannot access 'a' before initialization (TDZ)\n  console.log(b);    // undefined (var is hoisted and initialized)\n\n  let a = 10;\n  var b = 20;\n\n  // Block Scoping\n  if (true) {\n    let blockVar = 'inside';\n    var funcVar = 'leaked outside block';\n  }\n  // console.log(blockVar); // ReferenceError\n  console.log(funcVar);    // 'leaked outside block'\n}\n\n// const reference binding vs property mutation\nconst user = { name: 'Alice' };\nuser.name = 'Bob'; // Allowed: property mutation\n// user = { name: 'Charlie' }; // TypeError: Assignment to constant variable\nObject.freeze(user); // Shallow freeze prevents property mutation\n```\n_Shows TDZ ReferenceError vs var undefined hoisting, and const reference immutability._\n\n### 💡 Senior Engine & Architecture Insight\n> In modern V8 engines, `let` and `const` variables are allocated at the start of their lexical block environment record. TDZ is an intentional engine check before lexical declaration execution to prevent silent undefined-state bugs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What happens if you run `let x = x;` inside a block?**\n  *A:* It throws a `ReferenceError` because the right-hand side `x` is evaluated while `x` is still inside the TDZ before initialization completes.\n- **Q: How do you enforce deep immutability on a JavaScript object?**\n  *A:* `Object.freeze()` is only shallow. For deep immutability, write a recursive freeze function or use libraries like Immer or Immutable.js.",
+      "spokenTip": "I break this down across three axes: scoping rules, hoisting lifecycle with TDZ, and reassignment constraints.",
+      "tags": [
+        "javascript",
+        "scope",
+        "hoisting",
+        "tdz",
+        "variables"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_02",
+      "deckId": "deck_javascript",
+      "front": "What is a Closure in JavaScript, how does the engine retain references, and how can closures cause memory leaks?",
+      "back": "A closure is the combination of a function bundled together with references to its surrounding lexical environment. Even after the outer function finishes executing, inner functions retain access to outer variables. Leaks occur if retained closures keep large unneeded objects in scope indefinitely.\n\n**Key Points:**\n- Lexical scope retention even after the outer call stack frame is popped\n- Common use cases: data privacy, factory functions, currying, memoization\n- Memory risks: uncleaned listeners, interval timers, and circular object-DOM references",
+      "notes": "### Comprehensive Senior Answer\nIn JavaScript, functions form closures over their lexical environment. When an outer function executes, it creates a variable environment record on the heap. If an inner function references variables from that outer scope and survives (as a callback, event handler, or returned function), the outer variables cannot be garbage collected.\n\nClosures are fundamental for data privacy, factory functions, and memoization. However, memory leaks happen when long-lived callbacks (like global event listeners, intervals, or caching maps) hold references to large DOM trees or datasets inside their closure scope without being cleaned up when views unmount.\n\n### Code Example\n```javascript\nfunction createCounter() {\n  let count = 0; // Private state retained via closure\n  return {\n    increment: () => ++count,\n    getCount: () => count\n  };\n}\n\nconst counter = createCounter();\nconsole.log(counter.increment()); // 1\nconsole.log(counter.getCount());  // 1\n\n// Potential Memory Leak Pattern:\nfunction attachLeakyListener() {\n  const hugeDataPayload = new Array(1000000).fill('data');\n  const button = document.getElementById('submit-btn');\n\n  // If button lives forever, hugeDataPayload is retained in memory!\n  button?.addEventListener('click', () => {\n    console.log(button.id); // Captures lexical scope containing hugeDataPayload\n  });\n}\n```\n_Shows private state retention with closures and a common memory leak in long-lived event listeners._\n\n### 💡 Senior Engine & Architecture Insight\n> V8 optimizes closure scopes by creating shared Lexical Contexts. If multiple closures in the same scope retain different variables, they may share a single context holding all captured variables, inadvertently preventing Garbage Collection.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How does the JavaScript Garbage Collector determine what memory to free?**\n  *A:* Modern engines use Mark-and-Sweep. The GC starts from GC Roots (global window, call stack variables) and traces reachability. If an object is unreachable from any root, its memory is reclaimed.\n- **Q: How do you prevent closure memory leaks in Single Page Applications?**\n  *A:* Always remove event listeners in teardown lifecycle hooks, cancel setInterval/setTimeout timers, and unsubscribe from RxJS observables.",
+      "spokenTip": "A closure is simply a function retaining lexical access to variables in its parent scope even after the parent function has finished executing.",
+      "tags": [
+        "javascript",
+        "closures",
+        "memory-leaks",
+        "garbage-collection"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_03",
+      "deckId": "deck_javascript",
+      "front": "How is the this keyword determined in JavaScript? Contrast standard functions, arrow functions, call/apply/bind, and strict mode.",
+      "back": "For standard functions, `this` is dynamically bound at invocation time based on how the function is called (`new`, explicit `call`/`apply`/`bind`, implicit method call, or default global/undefined). Arrow functions do not have their own `this`; they capture the lexical `this` from where they were defined.\n\n**Key Points:**\n- Precedence hierarchy: new > bind/call/apply > implicit object method > default undefined/window\n- Arrow functions have lexical this and cannot be bound dynamically or used with new\n- Difference between call (comma args), apply (array of args), and bind (returns bound function)",
+      "notes": "### Comprehensive Senior Answer\nThe `this` keyword represents the execution context of a function call. For standard functions, `this` is evaluated at call time using 4 rules in order of precedence:\n1. **`new` Binding**: When invoked with `new`, `this` is the newly created object instance.\n2. **Explicit Binding**: Using `fn.call()`, `fn.apply()`, or `fn.bind()` explicitly sets `this`.\n3. **Implicit Method Binding**: In `user.getName()`, `this` refers to `user`.\n4. **Default Binding**: A bare function call `fn()` sets `this` to the global object (`window`) in non-strict mode, and `undefined` in strict mode (`\"use strict\"`).\n\nArrow functions ignore these rules completely. They do not have their own `this` binding; they capture the lexical `this` of the enclosing scope at definition time and cannot be used with `new` or rebound with `bind()`.\n\n### Code Example\n```javascript\nconst service = {\n  name: 'AuthService',\n  logStandard() {\n    console.log(this?.name);\n  },\n  logArrow: () => {\n    console.log(this); // Lexical enclosing scope (e.g. window/module)\n  }\n};\n\nconst bare = service.logStandard;\n// bare(); // TypeError in strict mode (this is undefined)\n\n// Explicit binding\nbare.call({ name: 'MockService' }); // Logs: 'MockService'\nconst bound = bare.bind({ name: 'BoundService' });\nbound(); // Logs: 'BoundService'\n\n// Arrow functions in classes guarantee stable 'this'\nclass Component {\n  name = 'Dashboard';\n  handleClick = () => {\n    // Retains Component instance even when passed as a DOM callback!\n    console.log(this.name);\n  };\n}\n```\n_Shows method vs bare invocation, explicit binding with call/bind, and arrow function lexical this._\n\n### 💡 Senior Engine & Architecture Insight\n> In ES modules and strict mode, bare function calls default `this` to `undefined` instead of `window`. Class bodies are always executed in strict mode by default.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between call, apply, and bind?**\n  *A:* `call` invokes the function immediately with comma-separated arguments. `apply` invokes immediately with an array of arguments. `bind` returns a new function with `this` permanently bound without invoking it immediately.\n- **Q: Can you re-bind an arrow function using .bind()?**\n  *A:* No. Arrow functions have no `this` binding of their own; calling `.bind()` on an arrow function has no effect on its `this` value.",
+      "spokenTip": "`this` depends on HOW a function is called, unless it is an arrow function, where it depends on WHERE it was written.",
+      "tags": [
+        "javascript",
+        "this",
+        "arrow-functions",
+        "execution-context",
+        "bind"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_04",
+      "deckId": "deck_javascript",
+      "front": "How does the Prototype Chain work in JavaScript, and how do ES6 Classes map to prototype-based inheritance?",
+      "back": "Every JavaScript object has an internal `[[Prototype]]` link (accessible via `Object.getPrototypeOf(obj)` or `__proto__`). When querying a property, the engine traverses this chain up to `Object.prototype` (and finally `null`). ES6 `class` syntax is syntactic sugar over constructor functions and prototype inheritance.\n\n**Key Points:**\n- Prototype lookup delegation vs copying\n- Difference between prototype (property on constructor functions) and [[Prototype]] / __proto__ (internal link on instances)\n- Class methods exist on Class.prototype (shared across instances), whereas arrow fields exist on each instance",
+      "notes": "### Comprehensive Senior Answer\nJavaScript uses prototypal delegation rather than classical copy-based inheritance. Every object has an internal link `[[Prototype]]` to another object. When you access `obj.method()`, if the property does not exist directly on `obj` (`hasOwnProperty`), the engine inspects `Object.getPrototypeOf(obj)` and continues up the chain until it finds the property or reaches `null`.\n\nES6 `class` syntax is syntactic sugar. When you write `class Animal { speak() {} }`, JavaScript creates a constructor function and attaches `speak` to `Animal.prototype`. The `extends` keyword links the child prototype to the parent prototype via `Object.setPrototypeOf(Dog.prototype, Animal.prototype)`.\n\n### Code Example\n```javascript\n// Prototypal inheritance under the hood\nfunction Animal(name) {\n  this.name = name;\n}\nAnimal.prototype.speak = function() {\n  return `${this.name} makes a noise.`;\n};\n\nfunction Dog(name, breed) {\n  Animal.call(this, name); // Super constructor call\n  this.breed = breed;\n}\n// Set prototype delegation chain\nObject.setPrototypeOf(Dog.prototype, Animal.prototype);\nDog.prototype.bark = function() { return 'Woof!'; };\n\nconst dog = new Dog('Rex', 'Shepherd');\nconsole.log(dog.speak()); // Delegated to Animal.prototype: \"Rex makes a noise.\"\nconsole.log(dog instanceof Animal); // true\nconsole.log(Object.getPrototypeOf(Object.prototype)); // null (end of chain)\n\n// ES6 Class Equivalent (Syntactic sugar):\nclass AnimalClass {\n  constructor(name) { this.name = name; }\n  speak() { return `${this.name} makes a noise.`; } // Placed on AnimalClass.prototype\n}\n```\n_Demonstrates prototype chain delegation, super calls, and the ES6 class equivalent._\n\n### 💡 Senior Engine & Architecture Insight\n> Methods declared inside an ES6 `class` body are stored on `Class.prototype` and shared across all instances (memory efficient). Class field arrow functions (`speak = () => {}`) are created as separate function instances on every object instance.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `prototype` and `__proto__`?**\n  *A:* `prototype` is a property on constructor functions used to build `[[Prototype]]` on new instances. `__proto__` (or `Object.getPrototypeOf()`) is the actual prototype reference on an object instance.\n- **Q: What is at the very end of every prototype chain?**\n  *A:* `Object.prototype.__proto__`, which is `null`.",
+      "spokenTip": "JavaScript uses prototypal delegation where objects inherit directly from other objects through a prototype chain.",
+      "tags": [
+        "javascript",
+        "prototypes",
+        "classes",
+        "inheritance",
+        "oop"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_05",
+      "deckId": "deck_javascript",
+      "front": "Explain the JavaScript Event Loop, Call Stack, Microtask Queue, Macrotask Queue, and requestAnimationFrame rendering timing.",
+      "back": "JavaScript is single-threaded with a synchronous Call Stack. Microtasks (`Promise.then`, `queueMicrotask`, `MutationObserver`) drain completely until empty after every task before rendering. Macrotasks (`setTimeout`, `setInterval`, I/O, UI events) execute one per event loop cycle. `requestAnimationFrame` runs just before browser style/layout calculations and painting.\n\n**Key Points:**\n- Microtasks: Promise .then/.catch/.finally, queueMicrotask, MutationObserver\n- Macrotasks: setTimeout, setInterval, I/O, UI event handlers\n- Microtask queue drains completely before browser rendering\n- rAF runs before layout and paint",
+      "notes": "### Comprehensive Senior Answer\nThe Event Loop coordinates JavaScript execution and browser rendering:\n1. **Synchronous Call Stack**: Code executes synchronously until the stack is completely empty.\n2. **Microtask Queue**: The engine checks the Microtask Queue and drains ALL microtasks (including microtasks queued by other microtasks) until the queue is empty.\n3. **Render Pipeline**: If a frame is due (typically every 16.6ms for 60Hz), the browser executes `requestAnimationFrame` callbacks, recalculates CSS/layout (reflow), and paints pixels to the screen.\n4. **Macrotask (Task) Queue**: The engine picks the single oldest task from the Task Queue (e.g. `setTimeout` callback or user DOM event), pushes it to the Call Stack, and runs it.\n5. The cycle repeats continuously.\n\n### Code Example\n```javascript\nconsole.log('1: Sync Stack');\n\nsetTimeout(() => {\n  console.log('2: Macrotask (setTimeout)');\n}, 0);\n\nPromise.resolve().then(() => {\n  console.log('3: Microtask 1');\n}).then(() => {\n  console.log('4: Microtask 2 (chained)');\n});\n\nqueueMicrotask(() => {\n  console.log('5: Microtask 3 (queueMicrotask)');\n});\n\nconsole.log('6: Sync Stack End');\n\n// Execution Output Order:\n// 1: Sync Stack\n// 6: Sync Stack End\n// 3: Microtask 1\n// 5: Microtask 3 (queueMicrotask)\n// 4: Microtask 2 (chained)\n// 2: Macrotask (setTimeout)\n```\n_Demonstrates synchronous stack execution, complete microtask draining, and subsequent macrotask execution._\n\n### 💡 Senior Engine & Architecture Insight\n> An infinite recursive microtask loop (`function loop() { Promise.resolve().then(loop); }`) will starve the macrotask queue and render pipeline, completely freezing the browser tab and preventing UI updates or user clicks.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `setTimeout(fn, 0)` and `queueMicrotask(fn)`?**\n  *A:* `queueMicrotask` runs immediately after the current synchronous script finishes and before rendering. `setTimeout(fn, 0)` queues a macrotask that runs in a future event loop turn after rendering.\n- **Q: Why should animation updates be placed inside `requestAnimationFrame` instead of `setInterval`?**\n  *A:* `requestAnimationFrame` syncs with the monitor refresh rate (e.g. 60Hz/120Hz) and pauses in background tabs, whereas `setInterval` runs on arbitrary timers, causing frame drops, jank, and battery drain.",
+      "spokenTip": "The key rule to remember is that the microtask queue is drained completely until empty before the browser can render or execute the next macrotask.",
+      "tags": [
+        "javascript",
+        "event-loop",
+        "microtasks",
+        "macrotasks",
+        "promises",
+        "concurrency"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_06",
+      "deckId": "deck_javascript",
+      "front": "Compare Promise.all, Promise.allSettled, Promise.race, and Promise.any. How do you implement concurrency limiting?",
+      "back": "`Promise.all` fails fast on the first rejection; `allSettled` waits for all promises to settle regardless of success or error; `race` settles with the first promise that resolves or rejects; `any` resolves with the first successful value and rejects with an `AggregateError` only if all fail.\n\n**Key Points:**\n- Failure behavior: all (first reject), allSettled (never rejects), race (first settle), any (AggregateError if all reject)\n- Async/await is syntactic sugar over Promises that flattens callback chains\n- Need for concurrency throttling (e.g. p-limit / semaphore pattern)",
+      "notes": "### Comprehensive Senior Answer\nThe 4 Promise combinators serve distinct use cases:\n- **`Promise.all`**: All-or-nothing. Resolves with an array of values if all succeed; aborts immediately on the first rejection. Best for fetching required dependent data on page load.\n- **`Promise.allSettled`**: Always waits for all promises to finish and returns `{ status: \"fulfilled\", value }` or `{ status: \"rejected\", reason }`. Best for independent bulk operations where partial failure is acceptable.\n- **`Promise.race`**: Settles with whichever promise finishes first, whether fulfilled or rejected. Great for implementing request timeouts.\n- **`Promise.any`**: Resolves with the fastest successful promise, ignoring rejections until all fail. Great for fetching data from multiple redundant mirror servers.\n\nFor high-volume tasks, firing 500 promises via `Promise.all` can exhaust network sockets or rate limits. We implement a **Concurrency Pool** to run a maximum of N active promises concurrently.\n\n### Code Example\n```javascript\n// Concurrency Pool (limits active parallel promises)\nasync function asyncPool(limit, tasks) {\n  const results = [];\n  const executing = new Set();\n\n  for (const task of tasks) {\n    const p = Promise.resolve().then(() => task());\n    results.push(p);\n    executing.add(p);\n\n    const clean = () => executing.delete(p);\n    p.then(clean, clean);\n\n    if (executing.size >= limit) {\n      await Promise.race(executing); // Wait until at least one slot frees up\n    }\n  }\n\n  return Promise.all(results);\n}\n\n// Usage: Run 50 tasks with maximum 4 concurrent workers\n// const tasks = urls.map(url => () => fetch(url).then(r => r.json()));\n// const data = await asyncPool(4, tasks);\n```\n_Implements a clean concurrency pool using Promise.race and Set tracking._\n\n### 💡 Senior Engine & Architecture Insight\n> Firing unthrottled `Promise.all` requests against backend microservices or browser connections (which cap at 6 concurrent TCP connections per domain in HTTP/1.1) causes request waterfalls and connection queueing.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What error is thrown when all promises in `Promise.any` reject?**\n  *A:* An `AggregateError`, which contains an `errors` array holding the rejection reasons from all promises.\n- **Q: How do you cancel a pending fetch Promise in modern JavaScript?**\n  *A:* Use `AbortController`. Pass `controller.signal` to `fetch(url, { signal })` and invoke `controller.abort()` to cancel the request.",
+      "spokenTip": "Pick Promise.all for all-or-nothing, allSettled for independent bulk jobs, any for fastest successful mirror, and race for timeouts.",
+      "tags": [
+        "javascript",
+        "promises",
+        "async-await",
+        "promise-all",
+        "concurrency"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_07",
+      "deckId": "deck_javascript",
+      "front": "How do you implement custom Debounce and Throttle functions from scratch, and when do you choose each?",
+      "back": "Debounce delays execution until a quiet pause has elapsed (e.g. user stops typing for 300ms in a search box). Throttle guarantees execution at most once per fixed time interval (e.g. scroll or window resize handler firing at most once every 100ms).\n\n**Key Points:**\n- Debounce: resets timer on every call; executes after timeout\n- Throttle: enforces a maximum execution frequency over time\n- Cleanup: always provide a cancel/clear method for SPA unmounting",
+      "notes": "### Comprehensive Senior Answer\nDebouncing and throttling are rate-limiting techniques for event listeners:\n- **Debounce**: Groups a burst of rapid events into a single call. Every new trigger resets the countdown timer. Only when the user pauses for the specified delay does the function execute. Best for auto-saving form drafts, window resize recalculations, and search autocomplete inputs.\n- **Throttle**: Enforces a maximum execution rate over time. It guarantees the function executes at regular intervals (e.g. every 100ms) during continuous events. Best for scroll position tracking, drag-and-drop coordinate math, and game loops.\n\nIn senior implementations, always preserve the `this` context, forward arguments, and provide a `.cancel()` method to clear pending timers on component unmount.\n\n### Code Example\n```javascript\n// 1. Debounce implementation with cancellation\nfunction debounce(fn, delay) {\n  let timerId = null;\n\n  const debounced = function (...args) {\n    if (timerId) clearTimeout(timerId);\n    timerId = setTimeout(() => {\n      fn.apply(this, args);\n      timerId = null;\n    }, delay);\n  };\n\n  debounced.cancel = () => {\n    if (timerId) {\n      clearTimeout(timerId);\n      timerId = null;\n    }\n  };\n\n  return debounced;\n}\n\n// 2. Throttle implementation\nfunction throttle(fn, limit) {\n  let inThrottle = false;\n\n  return function (...args) {\n    if (!inThrottle) {\n      fn.apply(this, args);\n      inThrottle = true;\n      setTimeout(() => {\n        inThrottle = false;\n      }, limit);\n    }\n  };\n}\n```\n_Custom debounce with timer reset and cancellation, and throttle with flag lock._\n\n### 💡 Senior Engine & Architecture Insight\n> Failing to cancel pending debounced callbacks when an Angular/React component unmounts causes memory leaks and errors when the callback tries to update state on an unmounted component.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is leading-edge (immediate) debounce versus trailing-edge debounce?**\n  *A:* Leading-edge debounce executes immediately on the first call and then suppresses subsequent calls until a quiet pause. Trailing-edge (standard) waits for the quiet pause before executing.\n- **Q: How does RxJS handle debouncing and throttling in Angular?**\n  *A:* RxJS provides `debounceTime(ms)` and `throttleTime(ms)` operators that work seamlessly inside observable pipes with automatic cancellation.",
+      "spokenTip": "Debounce waits for silence; throttle paces continuous activity.",
+      "tags": [
+        "javascript",
+        "debounce",
+        "throttle",
+        "performance",
+        "utilities"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_js_08",
+      "deckId": "deck_javascript",
+      "front": "Explain Shallow vs Deep Copy, equality checks (== vs === vs Object.is), and structuredClone.",
+      "back": "`==` performs loose type coercion; `===` checks value and type strictly without coercion (except `NaN !== NaN` and `-0 === +0`); `Object.is` handles `NaN` and `+0/-0` accurately. Shallow copy (`...`, `Object.assign`) copies references to nested objects. `structuredClone` performs native deep copying supporting circular references, Maps, Sets, and Dates.\n\n**Key Points:**\n- structuredClone handles circular references, ArrayBuffers, Dates, Maps, Sets\n- JSON.stringify limitations with functions, undefined, symbols, and dates\n- Differences between == coercion rules, === strict equality, and Object.is",
+      "notes": "### Comprehensive Senior Answer\nWhen copying objects:\n- **Shallow Copy** (`{ ...obj }`, `Object.assign()`): Copies primitive properties, but copies memory references for nested objects and arrays. Modifying a nested property in the clone mutates the original object.\n- **Deep Copy**:\n  - Legacy `JSON.parse(JSON.stringify(obj))` has major flaws: it strips functions and `undefined`, converts `Date` to strings, changes `NaN`/`Infinity` to `null`, and throws on circular references.\n  - Native `structuredClone(obj)`: The modern Web standard. It supports circular references, Dates, RegExps, Maps, Sets, and ArrayBuffers.\n\nFor equality:\n- `==` performs loose type coercion (e.g. `\"\" == 0` is true).\n- `===` checks type and value strictly without coercion, but has two quirks: `NaN === NaN` is `false`, and `+0 === -0` is `true`.\n- `Object.is` fixes these quirks: `Object.is(NaN, NaN)` is `true`, and `Object.is(+0, -0)` is `false`.\n\n### Code Example\n```javascript\nconst original = {\n  name: 'Interview Anki',\n  date: new Date(),\n  tags: new Set(['js', 'ts']),\n  nested: { score: 100 }\n};\n\n// 1. Shallow Copy (nested object is shared!)\nconst shallow = { ...original };\nshallow.nested.score = 200; // Mutates original.nested.score!\n\n// 2. Deep Clone via native structuredClone\nconst deep = structuredClone(original);\ndeep.nested.score = 500; // original.nested.score remains 200!\nconsole.log(deep.date instanceof Date); // true\nconsole.log(deep.tags instanceof Set);  // true\n\n// 3. Object.is vs === edge cases\nconsole.log(NaN === NaN);            // false\nconsole.log(Object.is(NaN, NaN));    // true\nconsole.log(+0 === -0);              // true\nconsole.log(Object.is(+0, -0));      // false\n```\n_Demonstrates shallow vs structuredClone deep copy and Object.is edge case comparisons._\n\n### 💡 Senior Engine & Architecture Insight\n> `structuredClone` cannot clone DOM nodes, functions, or prototype chains (it clones plain data objects). If an object contains class methods, `structuredClone` will throw a `DataCloneError`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why does React use `Object.is` for state comparison?**\n  *A:* React uses `Object.is` in `useState` and `useMemo` so that updating state from `NaN` to `NaN` does not trigger an unnecessary re-render.\n- **Q: How do you check if two distinct objects are deeply equal in JavaScript?**\n  *A:* Because `===` checks memory reference, you must write a recursive deep equality comparison or use utilities like `lodash.isEqual`.",
+      "spokenTip": "Always use strict equality `===` and native `structuredClone()` for reliable deep copying.",
+      "tags": [
+        "javascript",
+        "equality",
+        "cloning",
+        "structured-clone",
+        "immutability"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

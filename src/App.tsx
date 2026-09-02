@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Deck, ReviewRating, UserProfile } from './types';
-import { auth, DatabaseService, generateDefaultDecksAndCards } from './firebase';
+import { auth, DatabaseService } from './firebase';
 import { onAuthStateChanged, signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { calculateNextReview } from './utils/srs';
+import { loadFullDecksAndCards, syncContentLibrary } from './services/contentSync';
+import { appStorage } from './services/storage';
 import { MobileHeader } from './components/MobileHeader';
 import { BottomNavigation } from './components/BottomNavigation';
 import { DecksView } from './components/DecksView';
@@ -14,17 +16,9 @@ import { UserProfileModal } from './components/UserProfileModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(() => DatabaseService.getLocalProfile());
-  const [decks, setDecks] = useState<Deck[]>(() => {
-    const local = DatabaseService.getLocalDecks();
-    if (local && local.length > 0) return local;
-    return generateDefaultDecksAndCards('local_user').decks;
-  });
-  const [cards, setCards] = useState<Card[]>(() => {
-    const local = DatabaseService.getLocalCards();
-    if (local && local.length > 0) return local;
-    return generateDefaultDecksAndCards('local_user').cards;
-  });
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
   const [currentTab, setCurrentTab] = useState<'decks' | 'study' | 'add' | 'browser' | 'stats'>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
@@ -35,7 +29,61 @@ export default function App() {
   const [defaultDeckForNewCard, setDefaultDeckForNewCard] = useState<string | undefined>(undefined);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Initialize Firebase Auth & Realtime Sync
+  // 1. Instant Cache-First Local Load (0ms startup)
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLocalFirst() {
+      const localProfile = await appStorage.getUserProfile('local_user');
+      if (localProfile && isMounted) {
+        setProfile(localProfile);
+      }
+
+      const initial = await loadFullDecksAndCards('local_user');
+      if (isMounted && initial.decks.length > 0) {
+        setDecks(initial.decks);
+        setCards(initial.cards);
+      }
+    }
+
+    loadLocalFirst();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Online / Offline status monitoring
+  useEffect(() => {
+    const handleOnline = () => {
+      setSyncStatus('syncing');
+      syncContentLibrary().then(({ updated, decks: freshDecks }) => {
+        if (updated) {
+          loadFullDecksAndCards(currentUser?.uid || 'local_user').then(res => {
+            setDecks(res.decks);
+            setCards(res.cards);
+          });
+        }
+        setSyncStatus('synced');
+      }).catch(() => setSyncStatus('offline'));
+    };
+
+    const handleOffline = () => setSyncStatus('offline');
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus('offline');
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [currentUser]);
+
+  // 3. Initialize Firebase Auth & Cloud Sync
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -52,20 +100,19 @@ export default function App() {
           setProfile(userProfile);
           setSyncStatus('synced');
         } catch (err) {
-          console.warn('Initial data load failed, fallback active:', err);
+          console.warn('Initial data load notice, local fallback active:', err);
           setSyncStatus('offline');
         }
       } else {
-        // Sign in anonymously by default for zero-friction instant persistent database
+        // Sign in anonymously by default for seamless persistent cloud sync
         try {
           await signInAnonymously(auth);
         } catch (authErr) {
-          console.warn('Anonymous auth failed, fallback to local storage:', authErr);
+          console.warn('Anonymous auth offline notice:', authErr);
           setSyncStatus('offline');
-          const localDecks = DatabaseService.getLocalDecks();
-          const localCards = DatabaseService.getLocalCards();
-          setDecks(localDecks);
-          setCards(localCards);
+          const localData = await loadFullDecksAndCards('local_user');
+          setDecks(localData.decks);
+          setCards(localData.cards);
         }
       }
     });
@@ -73,25 +120,18 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Real-time Firestore Subscriptions when user is active
+  // 4. Real-time Progress Sync when user is logged in
   useEffect(() => {
     if (!currentUser) return;
 
-    const unsubDecks = DatabaseService.subscribeToDecks(currentUser.uid, (syncedDecks) => {
-      if (syncedDecks && syncedDecks.length > 0) {
-        setDecks(syncedDecks);
-      }
-    });
-
-    const unsubCards = DatabaseService.subscribeToCards(currentUser.uid, (syncedCards) => {
-      if (syncedCards && syncedCards.length > 0) {
-        setCards(syncedCards);
-      }
+    const unsubProgress = DatabaseService.subscribeToProgress(currentUser.uid, async () => {
+      const refreshed = await loadFullDecksAndCards(currentUser.uid);
+      setDecks(refreshed.decks);
+      setCards(refreshed.cards);
     });
 
     return () => {
-      unsubDecks();
-      unsubCards();
+      unsubProgress();
     };
   }, [currentUser]);
 
@@ -118,10 +158,10 @@ export default function App() {
       updatedAt: new Date().toISOString()
     };
 
-    // Update in-memory cards state immediately
+    // Update in-memory state immediately (optimistic update)
     setCards(prev => prev.map(c => c.id === card.id ? updatedCard : c));
 
-    // Log review to Firebase
+    // Log review & save progress
     const reviewLog = {
       id: `review_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: currentUser?.uid || 'local_user',
@@ -253,21 +293,15 @@ export default function App() {
     }
   };
 
-  // Sync / Restore All Default 27 Decks (Optimistic instant response)
+  // Sync / Restore All Default 27 Decks from Content Library
   const handleSyncDefaultDecks = async () => {
-    const userId = currentUser?.uid || 'local_user';
-    const { decks: freshDecks, cards: freshCards } = generateDefaultDecksAndCards(userId);
-    
-    // 1. Instant 0ms local state update
-    setDecks(freshDecks);
-    setCards(freshCards);
-    DatabaseService.saveLocalDecks(freshDecks);
-    DatabaseService.saveLocalCards(freshCards);
     setSyncStatus('syncing');
-
-    // 2. Non-blocking cloud sync in background
     try {
-      await DatabaseService.syncAllDefaultDecks(userId);
+      const result = await syncContentLibrary();
+      const userId = currentUser?.uid || 'local_user';
+      const refreshed = await loadFullDecksAndCards(userId);
+      setDecks(refreshed.decks);
+      setCards(refreshed.cards);
       setSyncStatus('synced');
     } catch (err) {
       console.warn('Sync default decks error:', err);
@@ -275,10 +309,10 @@ export default function App() {
     }
   };
 
-  // Export Data as JSON
+  // Export Data as JSON Backup
   const handleExportData = () => {
     const exportPayload = {
-      version: '1.0',
+      version: '2.0',
       exportedAt: new Date().toISOString(),
       user: profile,
       decks,
@@ -294,30 +328,29 @@ export default function App() {
     downloadAnchor.remove();
   };
 
-  // Import Data from JSON
+  // Import Data from JSON Backup
   const handleImportData = (file: File) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const content = e.target?.result as string;
         const parsed = JSON.parse(content);
-        if (parsed.decks && Array.isArray(parsed.decks) && parsed.cards && Array.isArray(parsed.cards)) {
+        if (parsed.cards && Array.isArray(parsed.cards)) {
           const userId = currentUser?.uid || 'local_user';
-          const importedDecks: Deck[] = parsed.decks.map((d: any) => ({ ...d, userId }));
-          const importedCards: Card[] = parsed.cards.map((c: any) => ({ ...c, userId }));
-
-          setDecks(importedDecks);
-          setCards(importedCards);
-
-          for (const d of importedDecks) {
-            await DatabaseService.saveDeck(d);
+          for (const card of parsed.cards) {
+            await DatabaseService.saveCard({ ...card, userId });
           }
-          for (const c of importedCards) {
-            await DatabaseService.saveCard(c);
+          if (parsed.decks && Array.isArray(parsed.decks)) {
+            for (const deck of parsed.decks) {
+              await DatabaseService.saveDeck({ ...deck, userId });
+            }
           }
-          alert(`Successfully imported ${importedDecks.length} decks and ${importedCards.length} cards!`);
+          const refreshed = await loadFullDecksAndCards(userId);
+          setDecks(refreshed.decks);
+          setCards(refreshed.cards);
+          alert(`Successfully restored ${parsed.cards.length} cards!`);
         } else {
-          alert('Invalid backup format. File must contain "decks" and "cards" arrays.');
+          alert('Invalid backup format. File must contain "cards" array.');
         }
       } catch (err) {
         console.error('Import error:', err);

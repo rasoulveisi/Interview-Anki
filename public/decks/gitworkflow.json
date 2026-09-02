@@ -1,0 +1,85 @@
+{
+  "deck": {
+    "id": "deck_gitworkflow",
+    "name": "Git & Engineering Workflow",
+    "description": "Trunk-Based vs GitFlow, Merge vs Rebase, Conventional Commits, Husky, lint-staged, and automated SemVer release.",
+    "category": "gitworkflow",
+    "color": "#D97706",
+    "iconName": "GitBranch",
+    "isDefault": true,
+    "totalCards": 4
+  },
+  "cards": [
+    {
+      "id": "card_gpt_fe_09",
+      "deckId": "deck_gitworkflow",
+      "front": "What should a production-grade frontend CI/CD pipeline verify beyond “the application builds”?",
+      "back": "The pipeline should produce a reproducible, immutable artifact and verify formatting or lint rules, type checking, unit and component tests, selected integration or browser tests, dependency and secret scanning, and bundle budgets. Environment-specific values should normally be injected through a controlled runtime or deployment mechanism rather than rebuilding unreviewed source for each environment.\n\n**Key Points:**\n- Covers artifact immutability, quality gates, security, and budgets.\n- Plans atomic delivery, smoke tests, telemetry identity, and rollback.\n- Accounts for independent API deployment.",
+      "notes": "### Comprehensive Senior Answer\nThe pipeline should produce a reproducible, immutable artifact and verify formatting or lint rules, type checking, unit and component tests, selected integration or browser tests, dependency and secret scanning, and bundle budgets. Environment-specific values should normally be injected through a controlled runtime or deployment mechanism rather than rebuilding unreviewed source for each environment.\n\nThe release stage should deploy atomically, set correct cache headers, retain source maps in a protected error-monitoring system, run smoke tests against the deployed version, and support fast rollback. API compatibility matters: frontend and backend cannot assume perfectly synchronized deployment. Feature flags or backward-compatible contracts allow staged rollout. I would attach commit and build identifiers to telemetry and expose them in diagnostics so incidents can be tied to the exact artifact.\n\n### 💡 Senior Engine & Architecture Insight\n> Covers artifact immutability, quality gates, security, and budgets.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you handle environment-specific API base URLs?**\n- **Why can a frontend rollback fail even when the old files still exist?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Covers artifact immutability, quality gates, security, and budgets.\n✅ Plans atomic delivery, smoke tests, telemetry identity, and rollback.\n✅ Accounts for independent API deployment.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Builds separately from an unpinned branch in every environment.\n⚠️ Assumes uploading files is sufficient deployment validation.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Covers artifact immutability, quality gates, security, and budgets.",
+      "tags": [
+        "gitworkflow",
+        "CI/CD / Deployment",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_ops_08",
+      "deckId": "deck_gitworkflow",
+      "front": "How would you deploy frontend, API, and database changes independently while keeping the system available?",
+      "back": "I would design contracts for an overlap window. Database changes use expand-and-contract migrations. The API accepts both old and new request shapes or introduces additive fields before removing old ones. The frontend feature remains behind a flag until the compatible API and schema are present. Artifacts are immutable, versioned, and promoted through environments with the same build.\n\n**Key Points:**\n- Plans an explicit mixed-version window.\n- Uses additive contracts, flags, immutable artifacts, and staged rollout.\n- Treats rollback and telemetry as cross-layer concerns.",
+      "notes": "### Comprehensive Senior Answer\nI would design contracts for an overlap window. Database changes use expand-and-contract migrations. The API accepts both old and new request shapes or introduces additive fields before removing old ones. The frontend feature remains behind a flag until the compatible API and schema are present. Artifacts are immutable, versioned, and promoted through environments with the same build.\n\nDeployment can use rolling, blue-green, or canary strategy depending on infrastructure, with readiness checks, smoke tests, user-impact metrics, and automatic or operator-controlled rollback. A rollback plan must consider schema and data compatibility; reversing code is easier than reversing a destructive migration. I would correlate telemetry by frontend and API release combination, because mixed versions are expected during rollout. Cleanup of compatibility code happens only after usage confirms old clients are gone.\n\n### 💡 Senior Engine & Architecture Insight\n> Plans an explicit mixed-version window.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What makes a database migration backward compatible?**\n- **How would you detect that old frontend clients are still active?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Plans an explicit mixed-version window.\n✅ Uses additive contracts, flags, immutable artifacts, and staged rollout.\n✅ Treats rollback and telemetry as cross-layer concerns.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Requires frontend and backend deployments to be perfectly simultaneous.\n⚠️ Uses destructive schema changes before compatible code is live.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Plans an explicit mixed-version window.",
+      "tags": [
+        "gitworkflow",
+        "CI/CD / Safe Deployment",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_git_01",
+      "deckId": "deck_gitworkflow",
+      "front": "Contrast Trunk-Based Development with GitFlow for modern frontend teams. What are the pros and cons of git merge vs git rebase?",
+      "back": "Trunk-Based Development uses short-lived feature branches (< 2 days) merged frequently into `main` behind Feature Flags, enabling continuous delivery. GitFlow uses long-lived `develop`, `release`, and `hotfix` branches, introducing merge debt and slow releases. `git merge` preserves full history with a merge commit; `git rebase` rewrites commits on top of the target branch for a clean, linear git history.\n\n**Key Points:**\n- Trunk-Based Development: short-lived feature branches (<48h) + Feature Flags\n- GitFlow drawbacks: long-lived branch merge debt and slow release cadence\n- Rebase creates clean linear history; Merge preserves real timeline\n- Golden Rule of Rebasing: never rebase public shared branches\n- Squash and merge for clean PR history",
+      "notes": "### Comprehensive Senior Answer\nBranching strategies directly determine team velocity:\n1. **Trunk-Based vs GitFlow**:\n   - *GitFlow*: High ceremony with multiple parallel long-lived branches (`develop`, `feature/*`, `release/*`, `master`). Leads to painful merge conflicts, delayed feedback, and \"integration hell\".\n   - *Trunk-Based Development*: Developers work on small feature branches that live < 24-48 hours and merge directly into `main`. Large incomplete features are safely hidden behind client-side or server-side **Feature Flags** (LaunchDarkly / Unleash).\n2. **Merge vs Rebase**:\n   - `git merge main`: Creates a new merge commit. Non-destructive and preserves exact historical timeline, but creates cluttered commit graphs.\n   - `git rebase main`: Re-plays your feature commits on top of latest `main`. Produces a completely linear history, making `git bisect` trivial for debugging regressions.\n   - *Golden Rule of Rebase*: Never rebase a public shared branch (like `main` or `develop`). Only rebase your local unmerged feature branch.\n\n### Code Example\n```shell\n# Keeping local feature branch up to date with linear history:\ngit checkout feature/user-profile\ngit fetch origin\ngit rebase origin/main\n\n# If conflicts occur:\n# 1. Resolve conflict markers in files\ngit add .\ngit rebase --continue\n\n# Interactive rebase to clean up messy local commits before PR:\ngit rebase -i HEAD~3\n# (Mark commits as 'pick', 'squash', or 'fixup')\n```\n_Shows commands for rebasing local feature branch on origin/main and interactive commit squashing._\n\n### 💡 Senior Engine & Architecture Insight\n> Modern high-performing teams use **Squash and Merge** on GitHub/GitLab PRs: all 15 messy work-in-progress commits on a feature branch are squashed into a single clean, atomic commit on `main`, keeping the trunk linear and easy to revert with `git revert <commit-id>`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How does `git bisect` work to find regressions?**\n  *A:* `git bisect` performs a binary search through commit history between a known good commit and bad commit, checking out intermediate commits to pinpoint the exact commit that introduced a bug in O(log N) time.\n- **Q: What is the difference between `git pull` and `git pull --rebase`?**\n  *A:* `git pull` runs `git fetch` followed by `git merge` (creating a merge commit). `git pull --rebase` runs `git fetch` and then rebases your local commits on top of the remote branch, avoiding clutter merge commits.",
+      "spokenTip": "Trunk-based development with short-lived branches and linear squash merges is the gold standard for high-velocity teams.",
+      "tags": [
+        "git",
+        "gitworkflow",
+        "trunk-based",
+        "gitflow",
+        "rebase",
+        "merge",
+        "ci-cd"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_git_02",
+      "deckId": "deck_gitworkflow",
+      "front": "How do you set up an automated frontend quality gate using Conventional Commits, Husky, lint-staged, and Semantic Release?",
+      "back": "Husky configures Git hooks (`pre-commit`, `commit-msg`). `lint-staged` runs ESLint, Prettier, and type-checks strictly on staged files for sub-second feedback. `commitlint` enforces Conventional Commit formats (`feat:`, `fix:`, `refactor:`), allowing tools like Semantic Release to automatically compute SemVer versions, generate changelogs, and deploy tags in CI/CD.\n\n**Key Points:**\n- Husky for Git hook orchestration (pre-commit, commit-msg)\n- lint-staged for performance (analyzing only staged git files)\n- Conventional Commits spec (feat, fix, docs, style, refactor, test, chore)\n- Semantic Release automated versioning and changelog generation based on commit history",
+      "notes": "### Comprehensive Senior Answer\nAutomating code quality before code reaches the repository:\n1. **Pre-commit Hook (Husky + `lint-staged`)**: When the developer runs `git commit`, Husky intercepts. `lint-staged` runs `eslint --fix` and `prettier --write` only on the modified files in the git index, preventing malformed code from ever entering git history.\n2. **Commit-msg Hook (`commitlint`)**: Enforces `type(scope): subject` syntax (`feat(auth): add biometric login`, `fix(cart): resolve discount calculation`).\n3. **Automated CI/CD Release (Semantic Release)**: In GitHub Actions, Semantic Release inspects commit messages on `main`:\n   - `fix:` triggers a `PATCH` release (`1.0.1`)\n   - `feat:` triggers a `MINOR` release (`1.1.0`)\n   - `BREAKING CHANGE:` triggers a `MAJOR` release (`2.0.0`)\nThis automates semantic versioning, GitHub releases, and changelog generation without human error.\n\n### Code Example\n```json\n// package.json configuration for Husky & lint-staged\n{\n  \"scripts\": {\n    \"prepare\": \"husky install\"\n  },\n  \"lint-staged\": {\n    \"*.{ts,tsx,js}\": [\n      \"eslint --fix\",\n      \"prettier --write\"\n    ],\n    \"*.{css,scss,html,json}\": [\n      \"prettier --write\"\n    ]\n  }\n}\n\n// Example Conventional Commit Message:\n// feat(checkout): add Apple Pay one-click payment\n// \n// BREAKING CHANGE: replaces legacy payment tokens with PaymentMethod IDs\n```\n_Configuration for Husky pre-commit hooks, lint-staged filters, and conventional commit structure._\n\n### 💡 Senior Engine & Architecture Insight\n> Running linters across an entire 200,000-line repository on every commit is too slow and frustrates developers. `lint-staged` filters execution strictly to files in the git index (`git status`), keeping pre-commit verification sub-second.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you run TypeScript type checking in `lint-staged`?**\n  *A:* TypeScript (`tsc --noEmit`) cannot check isolated individual files because it needs full project context. Configure a script: `\"*.{ts,tsx}\": () => \"tsc -p tsconfig.json --noEmit\"`.\n- **Q: What is the purpose of `commitizen`?**\n  *A:* An interactive CLI prompt (`git cz`) that guides developers to format Conventional Commits with proper types, scopes, and breaking change warnings.",
+      "spokenTip": "Catch formatting and type errors on pre-commit with Husky and lint-staged; automate versioning with Conventional Commits.",
+      "tags": [
+        "gitworkflow",
+        "husky",
+        "lint-staged",
+        "conventional-commits",
+        "semantic-release",
+        "dx"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

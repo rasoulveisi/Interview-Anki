@@ -1,0 +1,226 @@
+{
+  "deck": {
+    "id": "deck_rxjs",
+    "name": "RxJS Reactive Programming",
+    "description": "Observables, Subjects, Higher-order operators (switchMap/mergeMap/concatMap/exhaustMap), Combinators, and Leak Prevention.",
+    "category": "rxjs",
+    "color": "#EC4899",
+    "iconName": "GitMerge",
+    "isDefault": true,
+    "totalCards": 12
+  },
+  "cards": [
+    {
+      "id": "card_gpt_rx_01",
+      "deckId": "deck_rxjs",
+      "front": "Give a production example for `switchMap`, `mergeMap`, `concatMap`, and `exhaustMap`. What business behavior does each operator encode?",
+      "back": "I choose the operator from the concurrency rule, not from habit. `switchMap` fits a search or filter request where the newest intent replaces the old one. `mergeMap` fits independent work that may run concurrently, such as loading unrelated dashboard cards, while still requiring a concurrency limit if volume is high. `concatMap` fits operations that must preserve order, such as queued draft saves, accepting the latency of serialization. `exhaustMap` fits an action such as a submit or login click where repeated triggers should be ignored until the active operation completes.\n\n**Key Points:**\n- Explains business semantics, not only operator definitions.\n- Covers overlap, cancellation, ordering, and mutation safety.\n- Recognizes error placement as part of stream lifetime.",
+      "notes": "### Comprehensive Senior Answer\nI choose the operator from the concurrency rule, not from habit. `switchMap` fits a search or filter request where the newest intent replaces the old one. `mergeMap` fits independent work that may run concurrently, such as loading unrelated dashboard cards, while still requiring a concurrency limit if volume is high. `concatMap` fits operations that must preserve order, such as queued draft saves, accepting the latency of serialization. `exhaustMap` fits an action such as a submit or login click where repeated triggers should be ignored until the active operation completes.\n\nThe important point is that the operator defines product behavior under overlap. I would also consider cancellation, error placement, and whether a mutation is safe to repeat. A wrong flattening operator can produce stale screens, reordered writes, duplicate side effects, or an unresponsive button.\n\n### 💡 Senior Engine & Architecture Insight\n> Explains business semantics, not only operator definitions.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where should `catchError` be placed so the outer stream remains alive?**\n- **How would you limit concurrency with independent requests?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Explains business semantics, not only operator definitions.\n✅ Covers overlap, cancellation, ordering, and mutation safety.\n✅ Recognizes error placement as part of stream lifetime.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Always uses `switchMap` because it is common.\n⚠️ Claims unsubscribing necessarily cancels server-side work.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Explains business semantics, not only operator definitions.",
+      "tags": [
+        "rxjs",
+        "Comparison / Practical",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rx_02",
+      "deckId": "deck_rxjs",
+      "front": "You see nested subscriptions that load a user, then permissions, then a dashboard. What problems can this create, and how would you refactor it?",
+      "back": "Nested subscriptions hide sequencing, cancellation, error propagation, and cleanup across several imperative callbacks. They also make it easy for an older user request to continue updating the dashboard after the selected user changes.\n\n**Key Points:**\n- Identifies cancellation, cleanup, and stale update risks.\n- Composes dependent and independent work deliberately.\n- Keeps the pipeline readable with named transformations.",
+      "notes": "### Comprehensive Senior Answer\nNested subscriptions hide sequencing, cancellation, error propagation, and cleanup across several imperative callbacks. They also make it easy for an older user request to continue updating the dashboard after the selected user changes.\n\nI would compose one pipeline. The user selection becomes the source, then a flattening operator expresses whether a new selection cancels the previous workflow. Independent requests can be combined in parallel; dependent requests can be chained. I would map the final result into one view state and handle errors at the level where recovery is meaningful. Lifecycle cleanup belongs at the final subscription boundary, or the template can consume the stream through framework-supported mechanisms. I would not flatten everything into one unreadable expression; named functions and small typed transformations preserve clarity while keeping one controlled stream lifecycle.\n\n### 💡 Senior Engine & Architecture Insight\n> Identifies cancellation, cleanup, and stale update risks.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is a subscription inside a service acceptable?**\n- **How would you show partial dashboard data if one optional call fails?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Identifies cancellation, cleanup, and stale update risks.\n✅ Composes dependent and independent work deliberately.\n✅ Keeps the pipeline readable with named transformations.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Only says nested subscriptions look ugly.\n⚠️ Moves the nesting into another function without changing behavior.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Identifies cancellation, cleanup, and stale update risks.",
+      "tags": [
+        "rxjs",
+        "Code Review / Refactoring",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rx_03",
+      "deckId": "deck_rxjs",
+      "front": "A service uses `shareReplay` to avoid duplicate API calls. Later, users see stale data and memory usage grows. What would you inspect?",
+      "back": "I would inspect the source lifetime, replay buffer, ref-count behavior, and invalidation strategy. A replayed stream can retain the last value and keep the upstream subscription alive longer than expected, especially when the service itself is long-lived. Even when memory is acceptable, replaying forever can turn a one-time optimization into an undocumented cache.\n\n**Key Points:**\n- Separates multicasting, replay, and cache invalidation.\n- Examines source and subscriber lifetimes.\n- Uses profiling and explicit refresh semantics.",
+      "notes": "### Comprehensive Senior Answer\nI would inspect the source lifetime, replay buffer, ref-count behavior, and invalidation strategy. A replayed stream can retain the last value and keep the upstream subscription alive longer than expected, especially when the service itself is long-lived. Even when memory is acceptable, replaying forever can turn a one-time optimization into an undocumented cache.\n\nI would ask what the cache key is, when it should expire, what event invalidates it, and whether errors are replayed in the chosen configuration. For request caching, a dedicated cache or server-state abstraction may be clearer than a service property with implicit lifetime. If `shareReplay` remains appropriate, I would configure lifecycle behavior intentionally, ensure the source completes or disconnects as expected, and add a refresh path. Heap and subscription profiling should confirm both retention and duplicate-call behavior.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates multicasting, replay, and cache invalidation.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How is sharing an in-flight request different from caching data?**\n- **What should happen after a replayed request errors?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates multicasting, replay, and cache invalidation.\n✅ Examines source and subscriber lifetimes.\n✅ Uses profiling and explicit refresh semantics.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Treats `shareReplay(1)` as a universally safe cache.\n⚠️ Fixes stale data by adding random refresh timers.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates multicasting, replay, and cache invalidation.",
+      "tags": [
+        "rxjs",
+        "Debugging / Multicasting",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rx_04",
+      "deckId": "deck_rxjs",
+      "front": "Design the stream for a type-ahead search that supports debouncing, duplicate suppression, cancellation, loading state, and recoverable errors.",
+      "back": "I would start from the query input, normalize it, debounce based on the UX, and suppress consecutive equivalent queries. Empty or too-short queries should produce a deliberate empty state without an HTTP call. Then I would use latest-request semantics so a new query replaces the active request.\n\n**Key Points:**\n- Keeps the source stream alive after request errors.\n- Covers normalization, cancellation, and state modeling.\n- Tests timing and recovery behavior.",
+      "notes": "### Comprehensive Senior Answer\nI would start from the query input, normalize it, debounce based on the UX, and suppress consecutive equivalent queries. Empty or too-short queries should produce a deliberate empty state without an HTTP call. Then I would use latest-request semantics so a new query replaces the active request.\n\nInside the request branch, I would emit or derive loading state, map success to a typed result, and catch the request error inside that branch so one failure does not terminate the input stream. The state should distinguish initial loading, empty results, error, and perhaps stale data during refresh. I would avoid writing several unrelated subjects when one state stream can describe the screen. Tests should use virtual time where useful and explicitly cover fast input, out-of-order responses, empty queries, and recovery after an error.\n\n### 💡 Senior Engine & Architecture Insight\n> Keeps the source stream alive after request errors.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would you debounce keyboard input for an accessibility-sensitive command palette?**\n- **How would you preserve previous results while a refresh is running?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Keeps the source stream alive after request errors.\n✅ Covers normalization, cancellation, and state modeling.\n✅ Tests timing and recovery behavior.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Places `catchError` after the entire input pipeline and completes it.\n⚠️ Assumes debounce alone prevents stale results.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Keeps the source stream alive after request errors.",
+      "tags": [
+        "rxjs",
+        "Debugging / Search Workflow",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rx_05",
+      "deckId": "deck_rxjs",
+      "front": "Two components subscribe to the same HTTP-producing observable and the backend receives two requests. Explain why and give several valid solutions.",
+      "back": "Many observables are cold: each subscription independently executes the producer. If the observable wraps an HTTP request, two subscriptions can therefore make two calls. I would first confirm whether the duplicate subscriptions are actually necessary and whether the request should be shared only while in flight or cached after completion.\n\n**Key Points:**\n- Understands per-subscription execution.\n- Chooses among ownership, sharing, and caching.\n- Mentions invalidation and parameterized keys.",
+      "notes": "### Comprehensive Senior Answer\nMany observables are cold: each subscription independently executes the producer. If the observable wraps an HTTP request, two subscriptions can therefore make two calls. I would first confirm whether the duplicate subscriptions are actually necessary and whether the request should be shared only while in flight or cached after completion.\n\nSolutions include having one owner subscribe and pass data down, exposing a shared state stream from a feature facade, multicasting the in-flight request, or using a request-cache abstraction keyed by parameters. The correct solution needs invalidation and error semantics. I would also check for accidental duplicate consumption, such as both manual subscription and template subscription. I would not make every observable hot by default, because independent execution can be the desired behavior for commands or fresh reads.\n\n### 💡 Senior Engine & Architecture Insight\n> Understands per-subscription execution.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is the difference between a hot source and a shared cold source?**\n- **How would parameters affect the cache key?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Understands per-subscription execution.\n✅ Chooses among ownership, sharing, and caching.\n✅ Mentions invalidation and parameterized keys.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Claims observables always execute immediately when created.\n⚠️ Adds a global replay cache without expiry or keying.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Understands per-subscription execution.",
+      "tags": [
+        "rxjs",
+        "Mental Model / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rx_09",
+      "deckId": "deck_rxjs",
+      "front": "What subscription patterns commonly leak or keep doing work after an Angular component is destroyed, and what ownership rule would you apply?",
+      "back": "Long-lived sources such as router events, intervals, DOM events, shared subjects, and never-completing service streams need lifecycle-aware consumption. HTTP calls often complete, but they can still update obsolete state if the feature has moved on. Manual subscriptions become risky when cleanup is scattered or a nested subscription is forgotten.\n\n**Key Points:**\n- Distinguishes finite and long-lived sources.\n- Defines explicit subscription ownership.\n- Treats cancellation as a correctness concern too.",
+      "notes": "### Comprehensive Senior Answer\nLong-lived sources such as router events, intervals, DOM events, shared subjects, and never-completing service streams need lifecycle-aware consumption. HTTP calls often complete, but they can still update obsolete state if the feature has moved on. Manual subscriptions become risky when cleanup is scattered or a nested subscription is forgotten.\n\nMy ownership rule is that the layer creating a subscription is responsible for its lifetime. Templates should use framework-supported reactive consumption where practical. Imperative subscriptions should bind to the component or feature destruction lifecycle, while long-lived services should intentionally manage their own teardown. I would also avoid subscriptions used only to copy one reactive value into another. During review, I look for side effects, source completion guarantees, and whether cancellation is needed for correctness as well as memory.\n\n### 💡 Senior Engine & Architecture Insight\n> Distinguishes finite and long-lived sources.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why is a completed HTTP observable usually not a memory leak?**\n- **Can a subscription leak even if the component object is collected?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Distinguishes finite and long-lived sources.\n✅ Defines explicit subscription ownership.\n✅ Treats cancellation as a correctness concern too.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Says every subscription must be manually unsubscribed in identical fashion.\n⚠️ Relies on a shared array of subscriptions without understanding sources.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Distinguishes finite and long-lived sources.",
+      "tags": [
+        "rxjs",
+        "Lifecycle / Code Review",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_01",
+      "deckId": "deck_rxjs",
+      "front": "How do switchMap, mergeMap, concatMap, and exhaustMap differ in flattening inner Observables? When is each used?",
+      "back": "`switchMap` cancels the active inner observable when a new value arrives (best for search autocomplete). `mergeMap` runs all inner observables in parallel without order guarantees (best for concurrent independent saves). `concatMap` queues inner observables sequentially in exact arrival order (best for sequential writes). `exhaustMap` drops all incoming emissions while an inner observable is active (best for login and payment buttons).\n\n**Key Points:**\n- switchMap cancels prior inner streams (search / autocomplete)\n- mergeMap executes in parallel without cancellation or queuing\n- concatMap buffers and executes in strict arrival order (queues)\n- exhaustMap ignores subsequent triggers until the current inner stream completes (buttons)\n- Inner catchError placement is mandatory to prevent outer stream termination",
+      "notes": "### Comprehensive Senior Answer\nHigher-order mapping operators transform outer emissions into inner Observables and flatten them back into a single stream:\n- **`switchMap`**: Switches to the newest inner Observable, immediately unsubscribing from and cancelling the previous in-flight one. Ideal for search inputs where older search queries become irrelevant.\n- **`mergeMap`**: Runs inner Observables concurrently as they arrive. Order of completion is not guaranteed. Ideal for non-blocking parallel fetches or independent item saves.\n- **`concatMap`**: Subscribes to inner Observables one by one in sequence, waiting for the previous one to complete before starting the next. Ideal for transactions where order matters (like replay logs or queue processing).\n- **`exhaustMap`**: Ignores and drops all new outer emissions until the current inner Observable completes. Ideal for preventing double-submissions on login or payment buttons.\n\n### Code Example\n```typescript\nimport { fromEvent, of } from 'rxjs';\nimport { debounceTime, distinctUntilChanged, switchMap, exhaustMap, concatMap } from 'rxjs/operators';\n\n// 1. switchMap: Cancels previous in-flight search request\nconst searchInput = document.getElementById('search-box')!;\nfromEvent(searchInput, 'input').pipe(\n  debounceTime(300),\n  distinctUntilChanged(),\n  switchMap(e => fetchSearchResults((e.target as HTMLInputElement).value))\n).subscribe(results => renderUI(results));\n\n// 2. exhaustMap: Drops repeated clicks while payment is in progress\nconst payButton = document.getElementById('pay-btn')!;\nfromEvent(payButton, 'click').pipe(\n  exhaustMap(() => processPaymentApi())\n).subscribe(receipt => showConfirmation(receipt));\n\n// 3. concatMap: Guarantees strict sequential database saves\nconst saveQueue$ = of(item1, item2, item3).pipe(\n  concatMap(item => saveItemToBackend(item))\n);\n```\n_Demonstrates practical use cases: search cancellation, payment double-click prevention, and sequential queueing._\n\n### 💡 Senior Engine & Architecture Insight\n> Unsubscribing via `switchMap` actually aborts the underlying browser HTTP request when using Angular `HttpClient` or `fetch` with `AbortController`, saving network bandwidth and backend processing.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What happens if an error occurs inside a `switchMap` inner observable?**\n  *A:* If unhandled, the error bubbles up and terminates the entire outer stream permanently. To prevent this, always place `catchError` inside the inner observable pipeline.\n- **Q: How can you limit the concurrency of `mergeMap`?**\n  *A:* `mergeMap` accepts a second optional parameter: `mergeMap(fn, concurrentLimit)` (e.g. `mergeMap(fn, 3)` processes a maximum of 3 active requests in parallel).",
+      "spokenTip": "I use switchMap for search cancellation, mergeMap for parallel fetches, concatMap for strict sequential queuing, and exhaustMap to prevent double button clicks.",
+      "tags": [
+        "rxjs",
+        "operators",
+        "switchMap",
+        "mergeMap",
+        "concatMap",
+        "exhaustMap",
+        "reactivity"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_02",
+      "deckId": "deck_rxjs",
+      "front": "Compare Subject, BehaviorSubject, ReplaySubject, and AsyncSubject. What is the role of shareReplay({ bufferSize: 1, refCount: true })?",
+      "back": "`Subject` has no initial value and only emits future events. `BehaviorSubject` requires an initial value and emits the current value immediately to new subscribers. `ReplaySubject` buffers N past emissions. `AsyncSubject` emits only the final value upon completion. `shareReplay({ bufferSize: 1, refCount: true })` turns a cold HTTP observable into a warm cached stream and cleans up when all subscribers unsubscribe.\n\n**Key Points:**\n- Subject (no buffer) vs BehaviorSubject (1 current value + initial) vs ReplaySubject (N buffered values)\n- AsyncSubject emits only on completion\n- shareReplay({ bufferSize: 1, refCount: true }) converts cold observables into shared cached streams with safe teardown",
+      "notes": "### Comprehensive Senior Answer\nSubjects act as both an Observable and an Observer (allowing `.next()` calls to push data):\n1. **`Subject`**: Multicasts to active subscribers only. Late subscribers receive nothing that was emitted before they subscribed.\n2. **`BehaviorSubject`**: Holds a current state value accessible synchronously via `.getValue()`. New subscribers immediately receive the latest value upon subscribing.\n3. **`ReplaySubject(N)`**: Buffers the last N emitted values (or values within a time window) and replays all of them to new subscribers.\n4. **`AsyncSubject`**: Emits only the last emitted value, and only when `.complete()` is called.\n\n`shareReplay({ bufferSize: 1, refCount: true })` is crucial for caching HTTP requests. It shares a single HTTP call across multiple components. The `refCount: true` configuration ensures that when all components unmount and subscriptions drop to zero, the internal subscription is unsubscribed, preventing memory leaks.\n\n### Code Example\n```typescript\nimport { Injectable, inject } from '@angular/core';\nimport { HttpClient } from '@angular/common/http';\nimport { Observable, shareReplay } from 'rxjs';\n\n@Injectable({ providedIn: 'root' })\nexport class ConfigService {\n  private http = inject(HttpClient);\n\n  // Cached Observable: Fires HTTP GET only once across all subscribers\n  readonly config$: Observable<AppConfig> = this.http.get<AppConfig>('/api/config').pipe(\n    // CRITICAL: refCount: true prevents memory leak when subscribers unsubscribe!\n    shareReplay({ bufferSize: 1, refCount: true })\n  );\n}\n```\n_Uses shareReplay with bufferSize 1 and refCount true to cache API data without leaking memory._\n\n### 💡 Senior Engine & Architecture Insight\n> Using `shareReplay(1)` without `refCount: true` keeps the source observable alive indefinitely even when all components unsubscribe. In Angular, this can prevent destroyed components and services from being garbage collected.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should you avoid exposing raw `BehaviorSubject` instances publicly from services?**\n  *A:* Exposing a raw `BehaviorSubject` allows any component to call `.next()` and mutate state unpredictably. Instead, keep the subject `private` and expose it publicly as a read-only `asObservable()` or Signal.\n- **Q: When would you use `ReplaySubject` instead of `BehaviorSubject`?**\n  *A:* When you need to replay multiple historical values (e.g. the last 5 chat messages) or when you do not have a sensible default initial value at instantiation time.",
+      "spokenTip": "Use BehaviorSubject when you need an initial current value, and shareReplay({ bufferSize: 1, refCount: true }) to cache HTTP calls safely.",
+      "tags": [
+        "rxjs",
+        "subjects",
+        "behaviorsubject",
+        "replaysubject",
+        "shareReplay",
+        "multicasting"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_03",
+      "deckId": "deck_rxjs",
+      "front": "How do you prevent memory leaks in RxJS subscriptions? Contrast takeUntilDestroyed, toSignal(), async pipe, and manual unsubscribes.",
+      "back": "Uncleaned subscriptions keep component instances in memory. Modern best practices are: 1) The template `async` pipe (auto-subscribes and auto-unsubscribes); 2) `toSignal()` (converts observable to signal and handles cleanup); 3) `takeUntilDestroyed(destroyRef)` (unsubscribes automatically on component destruction). Manual subscription arrays are legacy and error-prone.\n\n**Key Points:**\n- Mechanism of memory leaks: long-lived observable retaining component closure references\n- Hierarchy of modern solutions: toSignal() > async pipe > takeUntilDestroyed() > manual ngOnDestroy\n- takeUntilDestroyed() constructor injection context vs explicit DestroyRef passing",
+      "notes": "### Comprehensive Senior Answer\nWhen a component subscribes to an infinite Observable (like a global service stream, timer, or router events), the closure retains the component reference. When the user navigates away, Angular destroys the DOM node, but the component instance remains in RAM—causing a memory leak.\n\nModern strategies to manage subscriptions in order of preference:\n1. **Template `async` Pipe / Control Flow**: Automatically manages subscription and unsubscription on view teardown.\n2. **`toSignal(obs$)`**: Modern Angular API that converts an Observable to a Signal and automatically cleans up the subscription when the injection context is destroyed.\n3. **`takeUntilDestroyed(this.destroyRef)`**: The modern operator that completes the stream automatically when the component is destroyed.\n4. **Manual `Subscription.unsubscribe()` in `ngOnDestroy`**: Legacy fallback, verbose and prone to developer oversight.\n\n### Code Example\n```typescript\nimport { Component, inject, DestroyRef } from '@angular/core';\nimport { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';\nimport { DataService } from './data.service';\n\n@Component({\n  selector: 'app-dashboard',\n  standalone: true,\n  template: `\n    <!-- 1. Signal Binding (Zero manual subscriptions!) -->\n    <div>Active Users: {{ activeUsers() }}</div>\n    \n    <!-- 2. Async Pipe Binding -->\n    @if (metrics$ | async; as metrics) {\n      <p>CPU: {{ metrics.cpu }}%</p>\n    }\n  `\n})\nexport class DashboardComponent {\n  private dataService = inject(DataService);\n  private destroyRef = inject(DestroyRef);\n\n  // Modern Approach 1: Convert to Signal with automatic teardown\n  activeUsers = toSignal(this.dataService.activeUsers$, { initialValue: 0 });\n\n  // Modern Approach 2: Async pipe observable\n  metrics$ = this.dataService.getLiveMetrics();\n\n  constructor() {\n    // Modern Approach 3: takeUntilDestroyed inside injection context\n    this.dataService.notifications$.pipe(\n      takeUntilDestroyed() // Automatically infers current injection DestroyRef\n    ).subscribe(notification => {\n      console.log('New alert:', notification);\n    });\n  }\n}\n```\n_Demonstrates toSignal, async pipe, and takeUntilDestroyed() automatic teardown._\n\n### 💡 Senior Engine & Architecture Insight\n> If `takeUntilDestroyed()` is called outside the constructor (e.g. inside `ngOnInit`), you must pass the injected `DestroyRef` explicitly: `takeUntilDestroyed(this.destroyRef)`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Do you need to unsubscribe from Angular HttpClient requests?**\n  *A:* HttpClient observables emit once and complete immediately, which triggers cleanup. However, unsubscribing before completion is still useful to cancel in-flight network requests if the user navigates away.\n- **Q: What is the risk of placing operators after `takeUntilDestroyed()` in an RxJS pipe?**\n  *A:* `takeUntilDestroyed()` should be placed near or at the very end of the pipe. Operators placed after it might not receive the complete notification properly or might introduce side effects.",
+      "spokenTip": "Prefer toSignal() and the async pipe for declarative cleanup, or takeUntilDestroyed() when manual subscriptions are necessary.",
+      "tags": [
+        "rxjs",
+        "subscriptions",
+        "takeUntilDestroyed",
+        "toSignal",
+        "memory-leaks",
+        "async-pipe"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_04",
+      "deckId": "deck_rxjs",
+      "front": "Contrast combineLatest, forkJoin, withLatestFrom, merge, and zip. Provide a real-world scenario for each.",
+      "back": "`combineLatest` emits when ANY source emits (after all have emitted at least once). `forkJoin` emits once with the final values when ALL sources complete. `withLatestFrom` samples the latest value from secondary streams only when the primary stream emits. `merge` interleaves emissions from all streams concurrently. `zip` pairs emissions by index (1st with 1st, 2nd with 2nd).\n\n**Key Points:**\n- combineLatest: fires on any emission after all have emitted at least once\n- forkJoin: requires all sources to complete; emits final values (Promise.all equivalent)\n- withLatestFrom: primary stream drives emissions, secondary stream provides data snapshot\n- merge: simple concurrent stream pass-through",
+      "notes": "### Comprehensive Senior Answer\nRxJS combination operators handle multi-stream synchronization:\n- **`combineLatest([a$, b$])`**: Waits for all streams to emit at least once, then emits a combined array whenever *any* source emits a new value. Ideal for dynamic filters (combining `searchTerm$`, `category$`, and `pagination$`).\n- **`forkJoin([a$, b$])`**: The RxJS equivalent of `Promise.all`. Waits for all sources to *complete* and emits their final values. Ideal for loading multiple independent HTTP endpoints on page initialization.\n- **`primary$.pipe(withLatestFrom(secondary$))`**: Emits only when the *primary* stream emits, taking the latest value of the secondary stream without letting the secondary stream trigger emissions. Ideal for form submission where you want to read current auth state on button click.\n- **`merge(a$, b$)`**: Flattens multiple streams into one, emitting values in real-time as they arrive. Ideal for combining multiple UI click events.\n- **`zip(a$, b$)`**: Pairs values strictly by emission index (1st with 1st, 2nd with 2nd). Ideal for lock-step step-by-step state matching.\n\n### Code Example\n```typescript\nimport { combineLatest, forkJoin, fromEvent } from 'rxjs';\nimport { map, withLatestFrom } from 'rxjs/operators';\n\n// 1. combineLatest: Reactive multi-criteria filter\nconst filteredProducts$ = combineLatest([\n  this.searchTermControl.valueChanges,\n  this.selectedCategory$,\n  this.priceRange$\n]).pipe(\n  map(([term, category, price]) => filterProducts(term, category, price))\n);\n\n// 2. forkJoin: Parallel HTTP calls on page init\nforkJoin({\n  user: this.http.get<User>('/api/me'),\n  permissions: this.http.get<string[]>('/api/permissions'),\n  preferences: this.http.get<Preferences>('/api/preferences')\n}).subscribe(({ user, permissions, preferences }) => {\n  initializeUserProfile(user, permissions, preferences);\n});\n\n// 3. withLatestFrom: Sample auth token on submit button click\nconst submitClick$ = fromEvent(submitBtn, 'click').pipe(\n  withLatestFrom(this.authToken$),\n  map(([event, token]) => ({ event, token }))\n);\n```\n_Real-world examples: combineLatest for UI filters, forkJoin for initial parallel HTTP, and withLatestFrom for sampling._\n\n### 💡 Senior Engine & Architecture Insight\n> If any source observable in `forkJoin` never completes (e.g. an infinite `interval()` or `BehaviorSubject`), the `forkJoin` will never emit anything. Ensure all sources are finite (or pipe them with `take(1)`).\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What happens if you pass an empty array to `forkJoin([])`?**\n  *A:* It completes immediately and emits an empty array (or empty object).\n- **Q: Why does `withLatestFrom` not emit if the secondary stream hasn't emitted its first value yet?**\n  *A:* `withLatestFrom` requires the secondary stream to have emitted at least one value to sample; otherwise, primary emissions are silently ignored.",
+      "spokenTip": "Use combineLatest for reactive filters, forkJoin for parallel HTTP completion, withLatestFrom for read-only state sampling, and merge for combined event streams.",
+      "tags": [
+        "rxjs",
+        "operators",
+        "combineLatest",
+        "forkJoin",
+        "withLatestFrom",
+        "merge",
+        "zip"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_05",
+      "deckId": "deck_rxjs",
+      "front": "How do you build custom, reusable pipeable RxJS operators in TypeScript, and what makes an operator mathematically pure and leak-free?",
+      "back": "A custom pipeable operator is a higher-order function that takes configuration parameters and returns an `UnaryFunction<Observable<T>, Observable<R>>` (`(source: Observable<T>) => Observable<R>`). It composes existing RxJS operators or uses `new Observable()` to emit transformed values, forwarding errors and completions while ensuring clean unsubscription.\n\n**Key Points:**\n- Custom pipeable operator structure: (source: Observable<T>) => Observable<R>\n- Composing existing operators ensures automatic teardown handling\n- Exponential backoff with jitter to prevent server thundering herd storms\n- Statelessness and purity across concurrent stream subscriptions",
+      "notes": "### Comprehensive Senior Answer\nCustom operators encapsulate repetitive stream logic (like exponential backoff retries, polling until a status is ready, or non-null filtering) without copy-pasting `.pipe()` blocks across services:\n\n1. **Functional Composition (Recommended)**: The cleanest way is returning a function that pipes the source observable through standard operators (like `filter`, `map`, `catchError`). This automatically handles teardowns and cancellation.\n2. **Low-Level `new Observable()` (When composing is insufficient)**: You instantiate `new Observable(subscriber => ...)` and subscribe to the source. You MUST return a teardown function or pass through `source.subscribe(subscriber)` so that when the downstream consumer unsubscribes, the upstream source is also unsubscribed.\n\n### Code Example\n```typescript\nimport { Observable, timer, throwError, MonoTypeOperatorFunction } from 'rxjs';\nimport { mergeMap, retry } from 'rxjs/operators';\n\n// Custom Operator: Retry with Exponential Backoff and Jitter\nexport function retryWithBackoff<T>({\n  maxRetries = 3,\n  initialDelayMs = 1000,\n  backoffFactor = 2\n} = {}): MonoTypeOperatorFunction<T> {\n  return (source: Observable<T>) =>\n    source.pipe(\n      retry({\n        count: maxRetries,\n        delay: (error, retryCount) => {\n          const delayTime = initialDelayMs * Math.pow(backoffFactor, retryCount - 1);\n          // Add random jitter (0 - 300ms) to prevent thundering herd problem\n          const jitter = Math.random() * 300;\n          console.warn(`Retry attempt #${retryCount} after ${delayTime + jitter}ms due to:`, error.message);\n          return timer(delayTime + jitter);\n        }\n      })\n    );\n}\n\n// Usage in Service:\n// http.get('/api/live-data').pipe(retryWithBackoff({ maxRetries: 4 }))\n```\n_Custom retryWithBackoff operator applying exponential backoff and random jitter._\n\n### 💡 Senior Engine & Architecture Insight\n> Always add **Jitter** (randomized millisecond variation) to exponential retry delays. If a backend service crashes and recovers, 1,000 clients retrying at identical predictable intervals will hammer the recovering server with synchronized spikes (the \"Thundering Herd\" problem).\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is `MonoTypeOperatorFunction<T>` in RxJS TypeScript types?**\n  *A:* It defines an operator where the input stream type and the output stream type are identical (`Observable<T> -> Observable<T>`).\n- **Q: Why should custom operators avoid holding mutable state variables outside the returned function closure?**\n  *A:* Because an operator function is instantiated once and reused across multiple subscribers; shared mutable state will leak data between concurrent subscriptions.",
+      "spokenTip": "To write a custom operator, write a function that returns `(source: Observable<T>) => source.pipe(...)`. This keeps it pure and handles cleanup automatically.",
+      "tags": [
+        "rxjs",
+        "custom-operators",
+        "retry",
+        "exponential-backoff",
+        "architecture",
+        "resilience"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_rxjs_06",
+      "deckId": "deck_rxjs",
+      "front": "Why does placing catchError in the wrong place break RxJS streams permanently, and how do you implement resilient polling and retry architectures?",
+      "back": "If `catchError` is placed on the *outer* stream, any error terminates the outer observable permanently and it will never emit again. For continuous streams (search boxes, intervals, websockets), `catchError` must be placed inside the *inner* mapping operator (`switchMap`) to catch the error locally and return a fallback observable without killing the outer listener.\n\n**Key Points:**\n- Unhandled RxJS errors terminate the observable contract permanently\n- Inner catchError placement inside switchMap protects outer stream lifecycle\n- Returning of(fallback) or EMPTY for graceful stream degradation\n- Conditional retries based on HTTP status codes (5xx vs 4xx)",
+      "notes": "### Comprehensive Senior Answer\nUnderstanding error propagation in RxJS is a key discriminator for senior developers:\n\n1. **The Terminal Nature of RxJS Errors**: By the ReactiveX specification, when an Observable encounters an unhandled error, it calls `observer.error()` and permanently terminates. It cannot recover or emit future values.\n2. **The Inner catchError Pattern**: In a live search input or polling dashboard (`interval().pipe(switchMap(...))`), if the HTTP request fails and `catchError` is at the root level, typing another letter in the search box or the next interval tick will do nothing because the stream is dead.\n3. **Solution**: Place `catchError` inside the `switchMap`: `switchMap(query => http.get(...).pipe(catchError(err => of([]))))`. The inner error is caught, the inner stream completes gracefully with an empty array fallback, and the outer search listener stays alive and responsive to future user inputs.\n\n### Code Example\n```typescript\nimport { fromEvent, of } from 'rxjs';\nimport { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';\n\nconst searchInput = document.getElementById('search-input')!;\n\n// ✅ RESILIENT STREAM: catchError is INSIDE switchMap!\nfromEvent(searchInput, 'input').pipe(\n  debounceTime(300),\n  distinctUntilChanged(),\n  switchMap(event => {\n    const term = (event.target as HTMLInputElement).value;\n    return apiService.search(term).pipe(\n      // Catches error for THIS specific HTTP request only!\n      catchError(err => {\n        notificationService.showError('Search failed. Showing offline results.');\n        return of([]); // Emits fallback empty array and completes inner stream\n      })\n    );\n  })\n).subscribe(results => {\n  // Outer stream NEVER dies! User can type new queries freely!\n  renderSearchResults(results);\n});\n```\n_Places catchError inside switchMap to protect the outer event listener from dying on network failure._\n\n### 💡 Senior Engine & Architecture Insight\n> To emit an error notification while continuing the stream, perform side effects inside `catchError` (like dispatching a toast action) and return `EMPTY` or `of(fallbackValue)` rather than re-throwing with `throwError`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between returning `EMPTY` and `of(null)` in `catchError`?**\n  *A:* `of(null)` emits `null` to downstream subscribers and then completes. `EMPTY` emits nothing at all and completes immediately.\n- **Q: How do you retry a failed stream only for network errors (503/504) while failing fast for client errors (400/401)?**\n  *A:* Inside the `retry` delay callback, inspect `error.status`. If `400 <= status < 500`, re-throw immediately using `throw error`; if `status >= 500`, return a `timer(1000)` to retry.",
+      "spokenTip": "Always put catchError inside switchMap, not on the outer stream, so API errors do not kill your search box or polling interval forever.",
+      "tags": [
+        "rxjs",
+        "error-handling",
+        "catchError",
+        "switchMap",
+        "resilience",
+        "architecture"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

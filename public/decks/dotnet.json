@@ -1,0 +1,307 @@
+{
+  "deck": {
+    "id": "deck_dotnet",
+    "name": ".NET / ASP.NET Core",
+    "description": "Request pipeline, middleware, DI lifetimes, async/await, thread pool, exception handling, JWT auth, and options pattern.",
+    "category": "dotnet",
+    "color": "#8B5CF6",
+    "iconName": "Cpu",
+    "isDefault": true,
+    "totalCards": 17
+  },
+  "cards": [
+    {
+      "id": "card_gpt_net_01",
+      "deckId": "deck_dotnet",
+      "front": "An ASP.NET Core request never reaches the endpoint, but the client receives a response. How would middleware ordering enter your investigation?",
+      "back": "Middleware runs in registration order on the way into the pipeline and unwinds in reverse when each component calls the next delegate. A middleware can short-circuit and return a response without reaching routing or the endpoint. I would inspect the configured order and identify authentication, authorization, exception handling, CORS, static files, rate limiting, or custom middleware that may stop the request.\n\n**Key Points:**\n- Understands ordered request and reverse response flow.\n- Names likely short-circuiting middleware.\n- Uses integration tests and safe diagnostics.",
+      "notes": "### Comprehensive Senior Answer\nMiddleware runs in registration order on the way into the pipeline and unwinds in reverse when each component calls the next delegate. A middleware can short-circuit and return a response without reaching routing or the endpoint. I would inspect the configured order and identify authentication, authorization, exception handling, CORS, static files, rate limiting, or custom middleware that may stop the request.\n\nI would add structured diagnostics around entry, exit, status code, and correlation ID, then reproduce with the exact route and method. Ordering matters because a component can only act on context established earlier—for example, authorization requires routing and authentication information. I would avoid logging bodies or credentials by default. The fix should preserve a deliberate pipeline order and include an integration test that exercises the real middleware stack.\n\n### 💡 Senior Engine & Architecture Insight\n> Understands ordered request and reverse response flow.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why should exception-handling middleware usually be early?**\n- **What does it mean for middleware to short-circuit?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Understands ordered request and reverse response flow.\n✅ Names likely short-circuiting middleware.\n✅ Uses integration tests and safe diagnostics.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Debugs only the controller method.\n⚠️ Moves middleware randomly until the request works.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Understands ordered request and reverse response flow.",
+      "tags": [
+        "dotnet",
+        "Request Pipeline / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_02",
+      "deckId": "deck_dotnet",
+      "front": "Explain transient, scoped, and singleton lifetimes through a real API example. What is a captive dependency problem?",
+      "back": "A transient service is created each time it is resolved and fits lightweight stateless helpers. A scoped service typically lives for one web request; EF Core contexts are commonly used this way so related operations share a unit of work. A singleton lives for the application process and must be thread-safe because many requests use it concurrently.\n\n**Key Points:**\n- Relates lifetimes to request ownership and thread safety.\n- Explains captive dependencies and disposal.\n- Uses explicit scopes only where appropriate.",
+      "notes": "### Comprehensive Senior Answer\nA transient service is created each time it is resolved and fits lightweight stateless helpers. A scoped service typically lives for one web request; EF Core contexts are commonly used this way so related operations share a unit of work. A singleton lives for the application process and must be thread-safe because many requests use it concurrently.\n\nA captive dependency occurs when a longer-lived service, especially a singleton, captures a shorter-lived scoped service. The scoped object can then outlive its intended request, hold stale state, or be used concurrently. I would redesign the responsibility, reduce the singleton lifetime, or create a scope explicitly only in infrastructure designed for background work. I would not inject a request-scoped context into a singleton cache. Lifetime choice follows ownership, mutability, disposal, and concurrency—not performance folklore.\n\n### 💡 Senior Engine & Architecture Insight\n> Relates lifetimes to request ownership and thread safety.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why is making every service transient not automatically safer?**\n- **How should a hosted background service obtain a scoped dependency?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Relates lifetimes to request ownership and thread safety.\n✅ Explains captive dependencies and disposal.\n✅ Uses explicit scopes only where appropriate.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Calls singleton services faster without discussing concurrency.\n⚠️ Injects a database context directly into a singleton.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Relates lifetimes to request ownership and thread safety.",
+      "tags": [
+        "dotnet",
+        "Dependency Injection / Reliability",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_03",
+      "deckId": "deck_dotnet",
+      "front": "Why can calling `.Result` or `.Wait()` on asynchronous I/O reduce API reliability, even when it appears to work in development?",
+      "back": "Blocking on asynchronous work occupies a request thread while the I/O is incomplete. Under load, enough blocked threads can cause thread-pool starvation, rising latency, and timeouts. Some environments also risk deadlock through synchronization contexts, although the server context differs from desktop UI environments. Exceptions are wrapped or handled less naturally as well.\n\n**Key Points:**\n- Connects blocking to thread-pool starvation under load.\n- Uses async end to end and propagates cancellation.\n- Distinguishes I/O-bound from CPU-bound work.",
+      "notes": "### Comprehensive Senior Answer\nBlocking on asynchronous work occupies a request thread while the I/O is incomplete. Under load, enough blocked threads can cause thread-pool starvation, rising latency, and timeouts. Some environments also risk deadlock through synchronization contexts, although the server context differs from desktop UI environments. Exceptions are wrapped or handled less naturally as well.\n\nI would make the call chain asynchronous end to end, await database and HTTP operations, pass cancellation tokens from the request, and avoid wrapping naturally asynchronous I/O in `Task.Run`. Async improves scalability for waiting work; it does not make CPU-heavy work free or parallel. For CPU-intensive processing, I would consider a bounded background worker or separate compute service. Load testing and thread-pool metrics would validate the improvement.\n\n### 💡 Senior Engine & Architecture Insight\n> Connects blocking to thread-pool starvation under load.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is `Task.Run` appropriate in a web API?**\n- **What happens if the client cancels the request?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Connects blocking to thread-pool starvation under load.\n✅ Uses async end to end and propagates cancellation.\n✅ Distinguishes I/O-bound from CPU-bound work.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Says async automatically creates a new thread.\n⚠️ Uses `Task.Run` around every database call.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Connects blocking to thread-pool starvation under load.",
+      "tags": [
+        "dotnet",
+        "Async / Performance",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_04",
+      "deckId": "deck_dotnet",
+      "front": "How would you keep an ASP.NET Core endpoint thin without moving all business logic into an unstructured “service” class?",
+      "back": "The endpoint should handle HTTP concerns: binding, authentication context, validation result, invoking the use case, and translating the result into an HTTP response. The application use case should express the business operation and coordinate domain logic and persistence through focused interfaces. Domain rules that belong to an entity or value object should stay there rather than becoming controller conditionals.\n\n**Key Points:**\n- Separates HTTP, use-case, domain, and persistence responsibilities.\n- Avoids a god service and DTO/entity coupling.\n- Uses vertical organization pragmatically.",
+      "notes": "### Comprehensive Senior Answer\nThe endpoint should handle HTTP concerns: binding, authentication context, validation result, invoking the use case, and translating the result into an HTTP response. The application use case should express the business operation and coordinate domain logic and persistence through focused interfaces. Domain rules that belong to an entity or value object should stay there rather than becoming controller conditionals.\n\nI would avoid a single service with dozens of unrelated methods. Features can be organized vertically so a command, handler, validators, mapping, and tests are close together. DTOs remain transport contracts and do not automatically become database entities. Cross-cutting behavior such as logging or transactions can use middleware, filters, or pipeline behaviors where that improves consistency. The goal is clear responsibility and testable seams, not layers for their own sake.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates HTTP, use-case, domain, and persistence responsibilities.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Where would mapping between request DTOs and domain objects occur?**\n- **When is direct endpoint-to-DbContext access acceptable?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates HTTP, use-case, domain, and persistence responsibilities.\n✅ Avoids a god service and DTO/entity coupling.\n✅ Uses vertical organization pragmatically.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Places all logic in controllers.\n⚠️ Creates one generic service and repository for every entity mechanically.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates HTTP, use-case, domain, and persistence responsibilities.",
+      "tags": [
+        "dotnet",
+        "API Architecture",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_06",
+      "deckId": "deck_dotnet",
+      "front": "How would you design global exception handling and logging so expected business failures are not reported as server crashes?",
+      "back": "I would represent expected outcomes—validation failure, not found, forbidden transition, or conflict—as typed results or known exceptions with deliberate mappings. An early exception handler catches unexpected exceptions, logs them once with a correlation or trace ID and safe context, and returns a generic problem response. It should not expose stack traces in production.\n\n**Key Points:**\n- Separates expected outcomes from unexpected exceptions.\n- Logs once with structured safe context and trace identity.\n- Aligns alert severity with user impact.",
+      "notes": "### Comprehensive Senior Answer\nI would represent expected outcomes—validation failure, not found, forbidden transition, or conflict—as typed results or known exceptions with deliberate mappings. An early exception handler catches unexpected exceptions, logs them once with a correlation or trace ID and safe context, and returns a generic problem response. It should not expose stack traces in production.\n\nLogs need structured fields such as operation, entity identifier where safe, user or tenant pseudonymous context, duration, and release. I would avoid logging the same exception at every layer and avoid swallowing it after returning an incorrect success response. Alerts should focus on unhandled failures and user impact rather than every 4xx response. Integration tests should verify status, content type, trace ID, and that sensitive details are absent.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates expected outcomes from unexpected exceptions.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would a domain exception be reasonable?**\n- **Should a 404 be logged as an error?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates expected outcomes from unexpected exceptions.\n✅ Logs once with structured safe context and trace identity.\n✅ Aligns alert severity with user impact.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses exceptions for every validation branch.\n⚠️ Returns stack traces to simplify frontend debugging.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates expected outcomes from unexpected exceptions.",
+      "tags": [
+        "dotnet",
+        "Exception Handling / Observability",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_08",
+      "deckId": "deck_dotnet",
+      "front": "How would JWT authentication and policy-based authorization work across the request pipeline, and what common mistakes would you watch for?",
+      "back": "Authentication validates the token's signature, issuer, audience, lifetime, and other required properties, then creates the user principal. Authorization evaluates that principal and resource context against endpoint policies. A role or claim in a token is only trusted after validation, and sensitive resource checks often require loading the resource—for example verifying the user belongs to the order's tenant.\n\n**Key Points:**\n- Separates authentication from resource authorization.\n- Validates token properties and avoids sensitive token contents.\n- Uses policies and cross-tenant tests.",
+      "notes": "### Comprehensive Senior Answer\nAuthentication validates the token's signature, issuer, audience, lifetime, and other required properties, then creates the user principal. Authorization evaluates that principal and resource context against endpoint policies. A role or claim in a token is only trusted after validation, and sensitive resource checks often require loading the resource—for example verifying the user belongs to the order's tenant.\n\nI would use short-lived access tokens, protect refresh or session mechanisms, rotate keys safely, and avoid putting sensitive mutable data in long-lived tokens. Policies should express permissions or requirements rather than scattering role string checks. The API must authorize every operation; the frontend can only reflect likely access. Logging must never include raw tokens. Tests should cover missing, expired, wrong-audience, insufficient-permission, and cross-tenant access.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates authentication from resource authorization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why can a valid token still be unauthorized for a resource?**\n- **How would permission changes take effect before a long-lived token expires?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates authentication from resource authorization.\n✅ Validates token properties and avoids sensitive token contents.\n✅ Uses policies and cross-tenant tests.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Decodes a JWT and trusts its claims without validation.\n⚠️ Relies on frontend roles to protect API routes.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates authentication from resource authorization.",
+      "tags": [
+        "dotnet",
+        "Authentication / Authorization",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_09",
+      "deckId": "deck_dotnet",
+      "front": "An API request starts a report that can take five minutes. How would you redesign the interaction?",
+      "back": "I would avoid holding the HTTP request open for the full job. The API validates and authorizes the command, records a durable job with an idempotency key, enqueues work transactionally or through a reliable outbox pattern, and returns an accepted response with a job identifier and status location. A background worker processes it with bounded concurrency, cancellation rules, retries for transient failures, and a terminal failure state.\n\n**Key Points:**\n- Uses a durable job and accepted/status resource pattern.\n- Plans idempotency, retry, observability, and secure result access.\n- Recognizes the database-to-queue consistency problem.",
+      "notes": "### Comprehensive Senior Answer\nI would avoid holding the HTTP request open for the full job. The API validates and authorizes the command, records a durable job with an idempotency key, enqueues work transactionally or through a reliable outbox pattern, and returns an accepted response with a job identifier and status location. A background worker processes it with bounded concurrency, cancellation rules, retries for transient failures, and a terminal failure state.\n\nThe frontend can poll with backoff, use push notifications, or combine both, and should survive navigation or refresh. The result needs an expiry and secure download authorization. Progress should be meaningful rather than fabricated. I would capture job duration, queue age, retry count, and failure reason. A process-local fire-and-forget task is unsafe because deployment or process failure loses the work.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses a durable job and accepted/status resource pattern.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you prevent duplicate report generation?**\n- **What if the database write succeeds but enqueueing fails?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses a durable job and accepted/status resource pattern.\n✅ Plans idempotency, retry, observability, and secure result access.\n✅ Recognizes the database-to-queue consistency problem.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Starts an untracked task inside the request and returns 200.\n⚠️ Keeps the browser request open indefinitely.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses a durable job and accepted/status resource pattern.",
+      "tags": [
+        "dotnet",
+        "Background Processing / Reliability",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_10",
+      "deckId": "deck_dotnet",
+      "front": "What would you unit test and integration test for an ASP.NET Core endpoint that creates an invoice?",
+      "back": "I would unit test pure calculations and domain rules such as totals, tax decisions, and invalid state transitions. The application use case can be tested with controlled dependencies for orchestration and expected outcomes. The HTTP integration test should run through real routing, middleware, authentication setup, validation, serialization, exception mapping, and a test database close enough to production behavior to catch query and constraint issues.\n\n**Key Points:**\n- Places pure rules, orchestration, and HTTP pipeline at appropriate levels.\n- Uses a realistic relational database for important query behavior.\n- Covers security, idempotency, constraints, and contract shape.",
+      "notes": "### Comprehensive Senior Answer\nI would unit test pure calculations and domain rules such as totals, tax decisions, and invalid state transitions. The application use case can be tested with controlled dependencies for orchestration and expected outcomes. The HTTP integration test should run through real routing, middleware, authentication setup, validation, serialization, exception mapping, and a test database close enough to production behavior to catch query and constraint issues.\n\nKey scenarios include success, invalid input, unauthorized and forbidden access, duplicate or idempotent request, database constraint failure, concurrency conflict, and cancellation. I would verify both status and structured response contract, not only that a method was called. For database integration, each test needs isolation and deterministic cleanup. A small end-to-end test can confirm the frontend contract, but it should not replace API-level integration coverage.\n\n### 💡 Senior Engine & Architecture Insight\n> Places pure rules, orchestration, and HTTP pipeline at appropriate levels.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would you mock `DbContext`?**\n- **How would you test authentication without using a real identity provider?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Places pure rules, orchestration, and HTTP pipeline at appropriate levels.\n✅ Uses a realistic relational database for important query behavior.\n✅ Covers security, idempotency, constraints, and contract shape.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Mocks the controller and considers the endpoint fully tested.\n⚠️ Uses only an in-memory collection for all database behavior.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Places pure rules, orchestration, and HTTP pipeline at appropriate levels.",
+      "tags": [
+        "dotnet",
+        "Testing Strategy",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-aspnet-core-overview",
+      "deckId": "deck_dotnet",
+      "front": "What is ASP.NET Core, and how does modern .NET differ from the legacy .NET Framework?",
+      "back": "ASP.NET Core is a modern, cross-platform, high-performance, open-source framework for building web apps and APIs. Modern .NET (from .NET 5+ to .NET 8/9) is cross-platform, modular, and fast, unlike the Windows-only, monolithic .NET Framework 4.x.\n\n**Key Points:**\n- Cross-platform (Linux, Windows, macOS, Docker containers)\n- Modern .NET is modular and unified (.NET 8/9 LTS)\n- Built-in Dependency Injection and configuration system\n- High-performance Kestrel web server\n- Lightweight memory footprint compared to legacy System.Web",
+      "notes": "### Comprehensive Senior Answer\nThe way I usually explain it is that modern .NET and ASP.NET Core were completely rewritten from the ground up. The old .NET Framework was tightly coupled to Windows and IIS via `System.Web`. Modern .NET runs seamlessly on Linux containers, macOS, and Windows. It features a lightweight Kestrel web server, built-in Dependency Injection, unified configuration, and high-performance asynchronous pipelines (like Span<T> and Memory<T>). In production today, we run ASP.NET Core microservices inside Docker containers on Linux with tiny memory footprints.\n\n### Code Example\n```csharp\n// Modern .NET Minimal API in Program.cs\nvar builder = WebApplication.CreateBuilder(args);\nbuilder.Services.AddEndpointsApiExplorer();\nbuilder.Services.AddSwaggerGen();\n\nvar app = builder.Build();\napp.MapGet(\"/api/health\", () => Results.Ok(new { status = \"Healthy\", timestamp = DateTime.UtcNow }));\napp.Run();\n```\n_Modern ASP.NET Core simplified startup with top-level statements and minimal API endpoints._\n\n### 💡 Senior Engine & Architecture Insight\n> Modern .NET eliminated the GAC (Global Assembly Cache) and machine-wide dependencies; apps are self-contained or framework-dependent deployments easily packaged in Docker Alpine/Debian distroless images.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is Kestrel in ASP.NET Core?**\n  *A:* Kestrel is ASP.NET Core's cross-platform, event-driven, high-performance web server based on Libuv and managed sockets.\n- **Q: What is the difference between Controllers and Minimal APIs in .NET 8?**\n  *A:* Controllers use reflection, action filters, and model binding within the MVC pipeline (great for large traditional CRUD APIs). Minimal APIs map routes directly to lambdas with minimal overhead and faster startup time (great for microservices and cloud functions).\n- **Q: What is Native AOT (Ahead-Of-Time compilation) in .NET 8/9?**\n  *A:* Native AOT compiles .NET C# directly into native machine code instead of IL bytecode and JIT, resulting in instant startup (<10ms), lower memory usage, and zero JIT overhead.",
+      "spokenTip": "I highlight cross-platform Linux support, built-in DI, the fast Kestrel server, and drastic memory/CPU performance improvements.",
+      "tags": [
+        "ASP.NET Core",
+        ".NET",
+        "Architecture",
+        "C#",
+        "Cross-Platform"
+      ],
+      "difficulty": "Beginner",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-middleware-pipeline",
+      "deckId": "deck_dotnet",
+      "front": "How does the ASP.NET Core Request Pipeline work, and why does Middleware order matter?",
+      "back": "The request pipeline is a series of middleware components executed in a Russian-doll (bidirectional) sequence. Each middleware can inspect the request, pass it to `next()`, and modify the response on the way back. Order matters critically because components depend on earlier processing.\n\n**Key Points:**\n- Bidirectional pipeline (Request in, Response out)\n- Next delegate invokes subsequent middleware\n- Short-circuiting when conditions fail (e.g. rate limit / auth)\n- Critical order: ExceptionHandler -> CORS -> AuthN -> AuthZ -> Endpoints\n- Difference from MVC Filters (HttpContext vs ActionContext)",
+      "notes": "### Comprehensive Senior Answer\nIn ASP.NET Core, incoming HTTP requests pass through a sequence of middleware delegates. Think of it as a bidirectional chain: Request flows in through Middleware 1, 2, and 3 to the endpoint, and the response flows back out through 3, 2, and 1. Order is vital! For example, `app.UseCors()` must come before `app.UseAuthentication()`, and `app.UseAuthentication()` must come before `app.UseAuthorization()`. If you put authorization before authentication, the system wouldn't know who the user is yet and would reject valid requests. Similarly, exception-handling middleware should be placed at the very top so it can catch unhandled exceptions bubbling up from any downstream component.\n\n### Code Example\n```csharp\nvar app = builder.Build();\n\n// 1. Global Exception Handler (catches errors from everything below)\napp.UseExceptionHandler();\n\n// 2. Security & Routing\napp.UseHttpsRedirection();\napp.UseRouting();\n\n// 3. CORS (before auth!)\napp.UseCors(\"AllowAngularApp\");\n\n// 4. Authentication (who are you?)\napp.UseAuthentication();\n\n// 5. Authorization (what can you do?)\napp.UseAuthorization();\n\n// 6. Endpoint Execution\napp.MapControllers();\n```\n_Standard ASP.NET Core middleware ordering._\n\n### 💡 Senior Engine & Architecture Insight\n> A custom middleware can short-circuit the pipeline by not calling `await next(context)`. This is how rate-limiting or authentication filters terminate early and return 401 or 429 immediately without wasting CPU invoking downstream controllers.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between Middleware and Action Filters in ASP.NET Core?**\n  *A:* Middleware is global to all HTTP requests at the raw HttpContext level. Filters run inside the MVC/Controller pipeline and have access to MVC-specific context like action parameters, ModelState, and ActionResult.\n- **Q: What happens if you place `app.UseCors()` after `app.UseAuthentication()`?**\n  *A:* Unauthorized requests will fail auth before CORS headers get attached to the response, causing the browser to show a confusing \"CORS policy error\" instead of the real 401/403 status code.\n- **Q: How do you write a custom inline middleware in Program.cs?**\n  *A:* Use `app.Use(async (context, next) => { ... await next(context); ... });`.",
+      "spokenTip": "The way I think about it is like a bidirectional Russian doll: the first middleware in is the last middleware out.",
+      "tags": [
+        "Middleware",
+        "Pipeline",
+        "ASP.NET Core",
+        "C#",
+        "HTTP"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-dependency-injection-lifetimes",
+      "deckId": "deck_dotnet",
+      "front": "What are the three Dependency Injection lifetimes in ASP.NET Core, and what are their common pitfalls?",
+      "back": "Transient (new instance every time requested), Scoped (one instance per HTTP request scope), and Singleton (one instance created once and shared across the entire application lifetime).\n\n**Key Points:**\n- Transient: new instance every resolution\n- Scoped: one instance per HTTP request (DbContext, Repositories)\n- Singleton: one instance for entire app lifecycle (Caches, Bus connections)\n- Captive Dependency: Singleton holding a Scoped reference\n- Scope validation in ASP.NET Core development environment",
+      "notes": "### Comprehensive Senior Answer\nIn ASP.NET Core, we configure services in `IServiceCollection` with three lifetimes: Transient is best for lightweight, stateless services like calculators or formatters. Scoped is used for services that maintain state during an HTTP request—our `DbContext` and repository classes are almost always Scoped so that a single database transaction or entity change tracker is shared throughout that one HTTP request. Singleton is created once when the app starts, which is great for in-memory caches, background queue workers, or HttpClient instances. The biggest pitfall is a **Captive Dependency**: injecting a Scoped service (like `DbContext`) into a Singleton service. That causes the Scoped service to live forever in memory, leading to memory leaks and multithreading concurrency crashes on EF Core.\n\n### Code Example\n```csharp\n// Service Registration in Program.cs\nbuilder.Services.AddTransient<IEmailValidator, EmailValidator>(); // New instance each time\nbuilder.Services.AddScoped<IOrderRepository, OrderRepository>();   // 1 per HTTP request\nbuilder.Services.AddScoped<AppDbContext>();                        // 1 per HTTP request\nbuilder.Services.AddSingleton<ICacheService, InMemoryCache>();    // 1 shared across app\n\n// PITFALL: Injecting DbContext (Scoped) into a Singleton background worker\n// Fix: Inject IServiceScopeFactory into the Singleton and create a scope manually!\n```\n_Registering lifetimes and understanding how DbContext fits the Scoped lifetime._\n\n### 💡 Senior Engine & Architecture Insight\n> In ASP.NET Core, the DI container validates scopes in development (`ValidateScopes = true`). If you accidentally resolve a Scoped service from the root provider or from a Singleton, it throws an `InvalidOperationException` at startup, preventing production bugs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should DbContext NOT be a Singleton?**\n  *A:* DbContext is not thread-safe and tracks entity state in memory. If multiple HTTP requests hit a Singleton DbContext concurrently, it throws concurrency exceptions and leaks memory.\n- **Q: What is the Service Locator anti-pattern?**\n  *A:* Injecting `IServiceProvider` and calling `provider.GetService<T>()` manually inside classes. It hides dependencies, makes unit testing difficult, and bypasses constructor contracts.\n- **Q: How do you safely use a Scoped DbContext inside a Singleton BackgroundService?**\n  *A:* Inject `IServiceScopeFactory`, call `using var scope = _scopeFactory.CreateScope();`, and resolve the DbContext from `scope.ServiceProvider.GetRequiredService<AppDbContext>()`.",
+      "spokenTip": "Transient is \"fresh instance every time\", Scoped is \"one per HTTP request\", and Singleton is \"one for the app lifetime\". Always beware of captive dependencies.",
+      "tags": [
+        "Dependency Injection",
+        "ASP.NET Core",
+        "C#",
+        "DbContext",
+        "Architecture"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-async-await-threadpool",
+      "deckId": "deck_dotnet",
+      "front": "How does async/await work in .NET, what is the Thread Pool, and how do you prevent Thread Starvation?",
+      "back": "`async/await` transforms your method into a compiler-generated state machine. When an asynchronous I/O operation (like a database query or HTTP call) begins, the thread is released back to the Thread Pool to serve other incoming requests, avoiding blocking.\n\n**Key Points:**\n- Async/await compiles into a state machine\n- Frees ThreadPool threads during I/O wait times\n- Thread Starvation caused by .Result, .Wait(), or Task.WaitAll() blocking\n- CancellationTokens allow cancelling ongoing SQL/HTTP work when client disconnects\n- Goal is server throughput and scalability, not single-request speed",
+      "notes": "### Comprehensive Senior Answer\nIn ASP.NET Core, high throughput depends on not tying up threads during waiting periods. When we call `await _db.Orders.ToListAsync(cancellationToken)`, we are performing non-blocking I/O. The OS kernel and socket handles wait for the database, while our .NET thread is immediately returned to the Thread Pool to process other HTTP requests. When the database responds, an I/O completion port triggers a Thread Pool thread to resume execution at the await point. If developers make the mistake of calling `.Result` or `.Wait()` on an async Task, they synchronously block the thread. Under high traffic, this exhausts all available Thread Pool worker threads—a fatal scenario known as **Thread Pool Starvation**.\n\n### Code Example\n```csharp\n// GOOD: Asynchronous non-blocking I/O with CancellationToken\n[HttpGet(\"{id}\")]\npublic async Task<ActionResult<OrderDto>> GetOrder(int id, CancellationToken ct)\n{\n    var order = await _db.Orders\n        .AsNoTracking()\n        .FirstOrDefaultAsync(o => o.Id == id, ct);\n\n    return order == null ? NotFound() : Ok(_mapper.Map<OrderDto>(order));\n}\n\n// BAD (Thread Starvation Anti-pattern):\n// var order = _db.Orders.FirstOrDefaultAsync().Result; // BLOCKS THREAD!\n```\n_Always propagate async all the way down and pass CancellationTokens._\n\n### 💡 Senior Engine & Architecture Insight\n> `CancellationToken` is crucial for performance. When a user navigates away in Angular or cancels an HTTP request, the browser aborts the TCP connection. ASP.NET Core signals the `CancellationToken`, which cancels the underlying SQL query on the database server, saving expensive database CPU.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `Task` and `ValueTask` in C#?**\n  *A:* `Task` is a reference type allocated on the heap. `ValueTask` is a value type struct used for hot paths where the operation often completes synchronously (e.g. from an in-memory cache), avoiding heap allocations.\n- **Q: Does async/await make an individual query run faster?**\n  *A:* No, it actually has tiny state machine overhead. Its benefit is server scalability and throughput, allowing the server to handle vastly more concurrent users.\n- **Q: What is `ConfigureAwait(false)` and is it needed in ASP.NET Core?**\n  *A:* `ConfigureAwait(false)` avoids capturing the SynchronizationContext. ASP.NET Core has no SynchronizationContext (unlike legacy ASP.NET on IIS or WPF/WinForms), so `ConfigureAwait(false)` is not strictly needed in web apps, though still recommended in class libraries.",
+      "spokenTip": "The main goal of async/await in web apps is scalability, not speed. It frees up threads while waiting for I/O so the server can handle 10,000 requests with only a few dozen threads.",
+      "tags": [
+        "Async",
+        "Threading",
+        "C#",
+        "Performance",
+        "ASP.NET Core"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-global-exception-handling",
+      "deckId": "deck_dotnet",
+      "front": "How do you implement Global Exception Handling in modern ASP.NET Core?",
+      "back": "In modern .NET 8+, we use the `IExceptionHandler` interface combined with `app.UseExceptionHandler()`, returning standardized RFC 7807 ProblemDetails responses while logging structured error details.\n\n**Key Points:**\n- Centralized handling via IExceptionHandler or middleware\n- RFC 7807 ProblemDetails response standard\n- Exception mapping to appropriate HTTP status codes\n- Never expose raw stack traces in production\n- Structured logging with Correlation IDs for traceability",
+      "notes": "### Comprehensive Senior Answer\nIn modern ASP.NET Core, we avoid putting repetitive try-catch blocks in every controller action. Instead, we let unhandled exceptions bubble up to a centralized global handler. In .NET 8, we implement the `IExceptionHandler` interface. In its `TryHandleAsync` method, we log the exception with a Correlation ID, map specific domain exceptions (like `NotFoundException` or `ValidationException`) to appropriate HTTP status codes (404, 400, 500), and write a standard RFC 7807 `ProblemDetails` JSON object to the response. In production, we ensure sensitive stack traces and database connection strings are never leaked to the client.\n\n### Code Example\n```csharp\n// .NET 8+ Custom Global Exception Handler\npublic class GlobalExceptionHandler : IExceptionHandler\n{\n    private readonly ILogger<GlobalExceptionHandler> _logger;\n\n    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) => _logger = logger;\n\n    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception ex, CancellationToken ct)\n    {\n        _logger.LogError(ex, \"Unhandled exception occurred: {Message}\", ex.Message);\n\n        var (status, title) = ex switch\n        {\n            KeyNotFoundException => (StatusCodes.Status404NotFound, \"Resource Not Found\"),\n            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, \"Unauthorized\"),\n            ArgumentException => (StatusCodes.Status400BadRequest, \"Invalid Request Arguments\"),\n            _ => (StatusCodes.Status500InternalServerError, \"An unexpected server error occurred\")\n        };\n\n        var problemDetails = new ProblemDetails\n        {\n            Status = status,\n            Title = title,\n            Detail = status == 500 ? \"Internal error. Contact support.\" : ex.Message,\n            Instance = httpContext.Request.Path\n        };\n\n        httpContext.Response.StatusCode = status;\n        await httpContext.Response.WriteAsJsonAsync(problemDetails, ct);\n        return true;\n    }\n}\n```\n_Modern ASP.NET Core IExceptionHandler returning ProblemDetails._\n\n### 💡 Senior Engine & Architecture Insight\n> Using Serilog with structured logging (e.g. `{UserId}`, `{CorrelationId}`, `{Path}`) allows logs to be indexed in Elasticsearch or Datadog, making it easy to trace an issue from a frontend error notification back to the exact backend log line.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is RFC 7807 ProblemDetails?**\n  *A:* A standardized JSON specification for HTTP API error responses containing type, title, status, detail, and instance fields.\n- **Q: How do you prevent stack traces from leaking in production?**\n  *A:* Only return `ex.StackTrace` if `app.Environment.IsDevelopment()` is true; in production, return generic user-friendly messages and log the stack trace internally.\n- **Q: Can you chain multiple `IExceptionHandler` implementations in .NET 8?**\n  *A:* Yes. If `TryHandleAsync` returns `false`, .NET passes the exception to the next registered handler in the DI container until one returns `true`.",
+      "spokenTip": "We use IExceptionHandler to centralize error logging, return RFC 7807 ProblemDetails, and avoid leaking internal stack traces.",
+      "tags": [
+        "Error Handling",
+        "Logging",
+        "ASP.NET Core",
+        "Security",
+        "ProblemDetails"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-jwt-auth-claims-roles-policies",
+      "deckId": "deck_dotnet",
+      "front": "How do Authentication, Authorization, Claims, Roles, and Policies work together in ASP.NET Core?",
+      "back": "Authentication identifies WHO the user is (e.g. validating a JWT signature). Authorization determines WHAT they can do. Claims are key-value attributes about the user. Policies evaluate one or more claims or custom requirements to grant access.\n\n**Key Points:**\n- Authentication: validates identity (JwtBearer middleware)\n- ClaimsPrincipal and Claims (facts about user)\n- Roles vs Policy-based authorization (Policies are more flexible)\n- Custom AuthorizationHandler for complex business logic\n- Short-lived Access Tokens paired with Refresh Tokens",
+      "notes": "### Comprehensive Senior Answer\nThe way I break it down in an interview is: Authentication happens first. With JWT, the `JwtBearerHandler` validates the token's signature, issuer, audience, and expiration. If valid, it constructs a `ClaimsPrincipal` populated with `Claims` (like `sub`, `email`, `role`, `department`). Next is Authorization. While we can use simple Role-based authorization like `[Authorize(Roles = \"Admin\")]`, modern enterprise applications use **Policy-Based Authorization**. Policies let you define rich requirements, such as requiring a minimum age, a specific department claim, or matching a tenant ID. We write custom `AuthorizationHandler<TRequirement>` to encapsulate clean business security rules.\n\n### Code Example\n```csharp\n// Program.cs Policy Definition\nbuilder.Services.AddAuthorization(options =>\n{\n    options.AddPolicy(\"MustBeSeniorFinance\", policy =>\n        policy.RequireRole(\"Manager\")\n              .RequireClaim(\"Department\", \"Finance\")\n              .RequireClaim(\"ClearanceLevel\", \"3\", \"4\", \"5\"));\n});\n\n// Applied on Controller or Minimal API\n[Authorize(Policy = \"MustBeSeniorFinance\")]\n[HttpPost(\"approve-budget\")]\npublic IActionResult ApproveBudget() => Ok();\n```\n_Policy-based authorization combining roles and custom claims._\n\n### 💡 Senior Engine & Architecture Insight\n> For fine-grained permissions, avoid hardcoding roles. Instead, issue granular permission claims in the JWT (e.g. `permissions: [\"orders.read\", \"orders.refund\"]`). This way, frontend feature flags and backend policy checks evaluate the exact same permission keys.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between Access Token and Refresh Token?**\n  *A:* Access tokens are short-lived (e.g. 15 mins) and sent on every API call. Refresh tokens are long-lived, securely stored (HttpOnly cookie or database), and used solely to obtain a new access token without re-prompting for credentials.\n- **Q: What happens if a JWT secret key is shorter than 256 bits (32 bytes)?**\n  *A:* The HMAC-SHA256 algorithm will throw an `ArgumentOutOfRangeException` on startup because cryptographic standards require at least 256 bits for security.\n- **Q: What is Resource-Based Authorization in ASP.NET Core?**\n  *A:* Evaluating authorization against a specific data entity at runtime (e.g. verifying `document.AuthorId == user.Id`) via `IAuthorizationService.AuthorizeAsync(User, document, \"EditPolicy\")`.",
+      "spokenTip": "Authentication validates identity; Claims are facts about you; Policies are business rules that inspect those claims to grant or deny access.",
+      "tags": [
+        "Auth",
+        "JWT",
+        "Security",
+        "ASP.NET Core",
+        "C#",
+        "Policies"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-options-pattern-config",
+      "deckId": "deck_dotnet",
+      "front": "What is the Options Pattern in ASP.NET Core, and how do you manage environment-specific configurations and secrets?",
+      "back": "The Options Pattern binds strongly typed C# classes to configuration sections in `appsettings.json`. For environment configurations, ASP.NET Core merges appsettings.Development.json, Environment Variables, and Azure Key Vault / AWS Secrets Manager.\n\n**Key Points:**\n- Strongly typed configuration classes bound from JSON/Environment\n- IOptions<T> (static), IOptionsSnapshot<T> (scoped/dynamic), IOptionsMonitor<T> (real-time notifications)\n- Hierarchical config override order (Environment variables override appsettings.json)\n- Secret management: dotnet user-secrets in dev, Key Vault/Env vars in prod",
+      "notes": "### Comprehensive Senior Answer\nIn ASP.NET Core, we avoid reading raw magic strings from `IConfiguration[\"Smtp:Host\"]`. Instead, we use the Options Pattern. We create a strongly typed class, say `EmailSettings`, and register it using `builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection(\"EmailSettings\"))`. Then in our services, we inject `IOptions<EmailSettings>` (or `IOptionsSnapshot` if we want configuration reloaded on change without restarting the app). For secrets (like database passwords and API keys), we never commit them to Git. In local development we use the .NET Secret Manager (`dotnet user-secrets`), and in production we inject them via Kubernetes Environment Variables or cloud key vaults.\n\n### Code Example\n```csharp\n// Strongly typed Options class\npublic class SmtpOptions\n{\n    public string Host { get; set; } = string.Empty;\n    public int Port { get; set; }\n    public string Username { get; set; } = string.Empty;\n}\n\n// Program.cs\nbuilder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(\"Smtp\"));\n\n// Injected into service\npublic class EmailService\n{\n    private readonly SmtpOptions _options;\n    public EmailService(IOptions<SmtpOptions> options)\n    {\n        _options = options.Value;\n    }\n}\n```\n_Using IOptions<T> for clean, testable configuration._\n\n### 💡 Senior Engine & Architecture Insight\n> `IOptions<T>` is a singleton read once at startup. `IOptionsSnapshot<T>` is scoped and recomputes per HTTP request (great if configuration dynamically updates). `IOptionsMonitor<T>` is a singleton that listens for file change notifications via `OnChange()`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: In what order does ASP.NET Core load configuration providers?**\n  *A:* appsettings.json -> appsettings.{Environment}.json -> User Secrets (Dev only) -> Environment Variables -> Command line arguments (last one wins).\n- **Q: How do you validate Options on application startup?**\n  *A:* Use `.ValidateDataAnnotations()` with attributes like `[Required, Range]` or `.Validate(opt => opt.Port > 0, \"Port must be positive\")` paired with `.ValidateOnStart()`.\n- **Q: Why should `IOptionsSnapshot` NOT be injected into a Singleton service?**\n  *A:* Because `IOptionsSnapshot` is a Scoped service, injecting it into a Singleton creates a Captive Dependency; use `IOptionsMonitor` in Singletons instead.",
+      "spokenTip": "The Options Pattern provides strongly typed, validated configuration classes instead of magic strings.",
+      "tags": [
+        "Configuration",
+        "Options Pattern",
+        "ASP.NET Core",
+        "Best Practices",
+        "C#"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-minimal-api-vs-controllers",
+      "deckId": "deck_dotnet",
+      "front": "Compare Minimal APIs and Controller-based APIs in modern ASP.NET Core (.NET 8/9). How do Endpoint Filters, performance, and structure differ?",
+      "back": "Minimal APIs use direct route lambdas (`app.MapGet()`), eliminating the heavy MVC controller pipeline, reducing memory overhead, and improving startup performance by ~30%. Controllers provide structured class-based organization, automatic model validation attributes, and Action Filters. Use Minimal APIs for microservices and cloud functions; use Controllers for large enterprise monoliths with complex shared filter pipelines.\n\n**Key Points:**\n- Minimal APIs: lower memory allocations, faster startup, no MVC reflection\n- Route Groups (app.MapGroup) for versioning and URL prefixing\n- Endpoint Filters for cross-cutting validation and timing\n- TypedResults for automatic OpenAPI schema inference and unit testability",
+      "notes": "### Comprehensive Senior Answer\nIn modern .NET 8/9:\n1. **Minimal APIs**: Introduced in .NET 6 and expanded in .NET 8 with Typed Results (`TypedResults.Ok()`) and Route Groups (`app.MapGroup(\"/api/v1/users\")`). They bypass MVC reflection overhead, model binders, and action selectors, mapping HTTP endpoints directly to lightweight delegates.\n2. **Endpoint Filters (`AddEndpointFilter`)**: Minimal APIs use endpoint filters that run before and after route execution, similar to MVC Action Filters. They provide clean cross-cutting validation (via FluentValidation) and logging.\n3. **Controllers (`[ApiController]`)**: Ideal for large enterprise apps with 100+ endpoints where class-based grouping, constructor injection, and legacy filters provide familiar organizational structure.\n4. **Performance Difference**: Minimal APIs have lower allocations and faster cold-start times, making them the standard choice for Docker container microservices and AWS Lambda / Azure Functions.\n\n### Code Example\n```csharp\n// Modern Minimal API with Route Group, FluentValidation Filter, and TypedResults\nvar group = app.MapGroup(\"/api/products\")\n    .WithTags(\"Products\")\n    .AddEndpointFilter(async (invocationContext, next) => {\n        // Endpoint Filter for cross-cutting logging or validation\n        var stopwatch = Stopwatch.StartNew();\n        var result = await next(invocationContext);\n        stopwatch.Stop();\n        app.Logger.LogInformation(\"Request executed in {Elapsed}ms\", stopwatch.ElapsedMilliseconds);\n        return result;\n    });\n\ngroup.MapGet(\"/\", async (AppDbContext db, CancellationToken ct) => \n    TypedResults.Ok(await db.Products.AsNoTracking().ToListAsync(ct)));\n\ngroup.MapPost(\"/\", async (ProductCreateDto dto, AppDbContext db, IValidator<ProductCreateDto> validator) => {\n    var validationResult = await validator.ValidateAsync(dto);\n    if (!validationResult.IsValid) return Results.ValidationProblem(validationResult.ToDictionary());\n\n    var product = new Product { Name = dto.Name, Price = dto.Price };\n    db.Products.Add(product);\n    await db.SaveChangesAsync();\n    return TypedResults.Created($\"/api/products/{product.Id}\", product);\n});\n```\n_Shows .NET 8 Route Groups, TypedResults, and Endpoint Filters._\n\n### 💡 Senior Engine & Architecture Insight\n> To avoid massive 2,000-line `Program.cs` files when using Minimal APIs, organize endpoints into extension methods or feature slices using libraries like FastEndpoints or custom `IEndpoint` module interfaces.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What are TypedResults in .NET 8 and why are they preferred over `Results.Ok()` in Minimal APIs?**\n  *A:* `TypedResults` return strongly typed implementation types (`Ok<Product>`, `NotFound`) rather than `IResult`, enabling compile-time type safety and automatic OpenAPI / Swagger response schema generation without needing `[ProducesResponseType]` attributes.\n- **Q: Can you use both Controllers and Minimal APIs in the same ASP.NET Core project?**\n  *A:* Yes! You can call both `builder.Services.AddControllers()` and `app.MapControllers()` alongside `app.MapGet()` in the same `Program.cs`.",
+      "spokenTip": "Minimal APIs map routes directly to lambdas with lower memory and faster startup; Controllers offer class-based structure for large monolithic APIs.",
+      "tags": [
+        "ASP.NET Core",
+        "Minimal APIs",
+        "Controllers",
+        "C#",
+        ".NET",
+        "Performance"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_dotnet-background-service-hosted",
+      "deckId": "deck_dotnet",
+      "front": "How do you implement long-running background tasks in ASP.NET Core using BackgroundService? How do you resolve scoped dependencies safely?",
+      "back": "Inherit from `BackgroundService` and override `ExecuteAsync(CancellationToken stoppingToken)`. Because `BackgroundService` is registered as a Singleton, you must inject `IServiceScopeFactory`, create an explicit scope (`using var scope = _scopeFactory.CreateScope()`), and resolve Scoped services (`DbContext`) inside the loop, while respecting the cancellation token for graceful shutdown.\n\n**Key Points:**\n- BackgroundService / IHostedService for background asynchronous tasks\n- Resolving Scoped dependencies (DbContext) via IServiceScopeFactory\n- Graceful shutdown coordination via CancellationToken\n- HostOptions.ShutdownTimeout configuration\n- PeriodicTimer in modern .NET for reliable scheduled ticks",
+      "notes": "### Comprehensive Senior Answer\nIn ASP.NET Core, background processing (like queue consumers, message bus listeners, or periodic cleanup tasks) is implemented using `BackgroundService` (an abstract implementation of `IHostedService`):\n\n1. **Lifecycle & Execution**: The framework invokes `ExecuteAsync(stoppingToken)` at application startup. The method runs on a background Thread Pool task in a non-blocking `while (!stoppingToken.IsCancellationRequested)` loop.\n2. **Scoped Dependency Resolution (Captive Dependency Fix)**: You cannot inject a Scoped `DbContext` directly into a Singleton `BackgroundService` constructor. Instead, inject `IServiceScopeFactory`. Inside the loop, create a new scope: `using var scope = _scopeFactory.CreateScope()`. Resolve `scope.ServiceProvider.GetRequiredService<AppDbContext>()`. When the loop iteration finishes, the scope disposes, cleaning up database connections and memory.\n3. **Graceful Shutdown**: When the application shuts down (SIGTERM or container stop), ASP.NET Core signals the `CancellationToken`. The background worker stops taking new jobs, finishes in-flight records, and exits cleanly without data corruption.\n\n### Code Example\n```csharp\npublic class OutboxMessagePublisher : BackgroundService\n{\n    private readonly IServiceScopeFactory _scopeFactory;\n    private readonly ILogger<OutboxMessagePublisher> _logger;\n\n    public OutboxMessagePublisher(IServiceScopeFactory scopeFactory, ILogger<OutboxMessagePublisher> logger)\n    {\n        _scopeFactory = scopeFactory;\n        _logger = logger;\n    }\n\n    protected override async Task ExecuteAsync(CancellationToken stoppingToken)\n    {\n        _logger.LogInformation(\"Outbox Publisher worker started.\");\n\n        while (!stoppingToken.IsCancellationRequested)\n        {\n            try\n            {\n                // Create an explicit scope to resolve Scoped DbContext safely!\n                using var scope = _scopeFactory.CreateScope();\n                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();\n\n                var pendingMessages = await db.OutboxMessages\n                    .Where(m => m.ProcessedAt == null)\n                    .Take(20)\n                    .ToListAsync(stoppingToken);\n\n                foreach (var msg in pendingMessages)\n                {\n                    // Publish to RabbitMQ / Azure Service Bus...\n                    msg.ProcessedAt = DateTime.UtcNow;\n                }\n\n                await db.SaveChangesAsync(stoppingToken);\n            }\n            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)\n            {\n                _logger.LogError(ex, \"Error processing outbox messages\");\n            }\n\n            // Periodic delay respecting cancellation token\n            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);\n        }\n    }\n}\n```\n_BackgroundService creating manual IServiceScopeFactory scopes to resolve DbContext safely._\n\n### 💡 Senior Engine & Architecture Insight\n> ASP.NET Core provides a default 30-second shutdown timeout (`HostOptions.ShutdownTimeout`). If your background worker is processing a massive batch and takes 45 seconds, the host will forcibly kill the process unless `ShutdownTimeout` is configured accordingly.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between `IHostedService` and `BackgroundService`?**\n  *A:* `IHostedService` requires implementing `StartAsync` and `StopAsync` manually. `BackgroundService` implements `IHostedService` and provides the simpler `ExecuteAsync` cancellation-loop abstraction.\n- **Q: How do you run recurring cron-like jobs in .NET without third-party libraries?**\n  *A:* Use `PeriodicTimer` in .NET 6+: `using var timer = new PeriodicTimer(TimeSpan.FromMinutes(10)); while (await timer.WaitForNextTickAsync(stoppingToken)) { ... }`.",
+      "spokenTip": "Inherit from BackgroundService, create explicit scopes via IServiceScopeFactory to resolve DbContext, and always listen to stoppingToken for graceful shutdown.",
+      "tags": [
+        "ASP.NET Core",
+        "BackgroundService",
+        "IHostedService",
+        "Threading",
+        "C#",
+        "Dependency Injection"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

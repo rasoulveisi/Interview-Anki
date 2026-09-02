@@ -1,0 +1,324 @@
+{
+  "deck": {
+    "id": "deck_reactcore",
+    "name": "React.js — Core & Fundamentals",
+    "description": "React philosophy vs Angular, JSX, Virtual DOM/Reconciliation, useEffect/useLayoutEffect/useRef, list keys, and hooks.",
+    "category": "reactcore",
+    "color": "#06B6D4",
+    "iconName": "Atom",
+    "isDefault": true,
+    "totalCards": 18
+  },
+  "cards": [
+    {
+      "id": "card_gpt_rc_01",
+      "deckId": "deck_reactcore",
+      "front": "What does it mean for a React component to be pure during rendering, and what production problems appear when render logic has side effects?",
+      "back": "During rendering, a component should calculate UI from its current props, state, and context without changing external systems or mutating values it does not own. React may render more than once, pause work, or discard a render before committing it. A side effect inside render—such as making a request, writing storage, subscribing, or mutating a shared object—can therefore run unexpectedly, duplicate work, or leave the outside world inconsistent with what was committed.\n\n**Key Points:**\n- Separates render calculation, event handling, and external synchronization.\n- Understands that a render may not commit.\n- Does not confuse purity with zero computation.",
+      "notes": "### Comprehensive Senior Answer\nDuring rendering, a component should calculate UI from its current props, state, and context without changing external systems or mutating values it does not own. React may render more than once, pause work, or discard a render before committing it. A side effect inside render—such as making a request, writing storage, subscribing, or mutating a shared object—can therefore run unexpectedly, duplicate work, or leave the outside world inconsistent with what was committed.\n\nEvent-driven effects belong in event handlers, and synchronization with external systems belongs in an effect or a dedicated data layer. Pure rendering also makes components easier to test because the same inputs produce the same description of UI. Expensive calculation is not automatically a side effect, but it may need restructuring or measured memoization.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates render calculation, event handling, and external synchronization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Is calling `Date.now()` during render pure?**\n- **Where should analytics for a button click be sent?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates render calculation, event handling, and external synchronization.\n✅ Understands that a render may not commit.\n✅ Does not confuse purity with zero computation.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Starts network requests directly in the component body.\n⚠️ Assumes each render happens exactly once and always reaches the DOM.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates render calculation, event handling, and external synchronization.",
+      "tags": [
+        "reactcore",
+        "Mental Model / Why",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Foundation",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_02",
+      "deckId": "deck_reactcore",
+      "front": "A component receives a server record, lets the user edit it, and must reset when a different record is selected. Which values should remain props, which should be local state, and what synchronization risks exist?",
+      "back": "The selected record identity and authoritative loaded data should usually remain inputs from the parent or server-state layer. The editable draft can be local state because it intentionally diverges while the user types. I would initialize or reset that draft at a deliberate boundary—often by keying the editor by record identity or handling an explicit selection transition—rather than continuously copying props into state.\n\n**Key Points:**\n- Distinguishes authoritative data, draft state, and derived values.\n- Defines reset behavior from record identity and product rules.\n- Recognizes prop-to-state synchronization can destroy edits.",
+      "notes": "### Comprehensive Senior Answer\nThe selected record identity and authoritative loaded data should usually remain inputs from the parent or server-state layer. The editable draft can be local state because it intentionally diverges while the user types. I would initialize or reset that draft at a deliberate boundary—often by keying the editor by record identity or handling an explicit selection transition—rather than continuously copying props into state.\n\nBlind synchronization in an effect can overwrite unsaved edits whenever a new object reference arrives, including a background refetch of the same record. I would define the product rule: preserve the draft, prompt before switching, or replace it when the identity changes. Derived values such as a formatted full name should be calculated from the draft rather than stored separately. Save state and server validation errors also need clear ownership.\n\n### 💡 Senior Engine & Architecture Insight\n> Distinguishes authoritative data, draft state, and derived values.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would using a `key` to reset the editor be appropriate?**\n- **How would you handle a background refetch while the draft is dirty?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Distinguishes authoritative data, draft state, and derived values.\n✅ Defines reset behavior from record identity and product rules.\n✅ Recognizes prop-to-state synchronization can destroy edits.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Copies every prop into local state automatically.\n⚠️ Stores formatted and derived values as additional state.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Distinguishes authoritative data, draft state, and derived values.",
+      "tags": [
+        "reactcore",
+        "State Design / Practical",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Foundation",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_03",
+      "deckId": "deck_reactcore",
+      "front": "When do you actually need `useEffect`, and what are common cases where an effect is a sign that state has been modeled poorly?",
+      "back": "I use an effect to synchronize React state with an external system after a commit: a subscription, browser API, imperative widget, network lifecycle not owned by a data library, or telemetry tied to visibility. The effect should describe setup and cleanup for that synchronization.\n\n**Key Points:**\n- Defines effects as external synchronization.\n- Moves derivation and event consequences to the right places.\n- Considers cleanup and commit timing.",
+      "notes": "### Comprehensive Senior Answer\nI use an effect to synchronize React state with an external system after a commit: a subscription, browser API, imperative widget, network lifecycle not owned by a data library, or telemetry tied to visibility. The effect should describe setup and cleanup for that synchronization.\n\nI usually do not need an effect to calculate one value from props or state, handle a user event, reset all state through indirect synchronization, or pass data upward. Derived values can be calculated during render; event consequences belong in the handler; shared state may belong in a common owner. Effects that copy one state variable into another create extra renders and synchronization bugs. Before adding one, I ask, “What external system is being synchronized?” If there is none, I look for a simpler data-flow design.\n\n### 💡 Senior Engine & Architecture Insight\n> Defines effects as external synchronization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would document-title synchronization use an effect?**\n- **Where should a request triggered by a submit button live?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Defines effects as external synchronization.\n✅ Moves derivation and event consequences to the right places.\n✅ Considers cleanup and commit timing.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses effects for every state change.\n⚠️ Uses an effect only to keep two local values equal.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Defines effects as external synchronization.",
+      "tags": [
+        "reactcore",
+        "Effects / Why",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_04",
+      "deckId": "deck_reactcore",
+      "front": "An interval inside `useEffect` always sees the initial count. Explain the stale-closure problem and give more than one valid fix.",
+      "back": "The callback closes over the values from the render in which the effect was created. If the dependency array prevents the effect from being recreated, the interval keeps reading that old count. One fix is a functional state update when the operation only depends on the previous value, such as `setCount(c => c + 1)`. Another is to include the changing dependency and correctly tear down and recreate the interval. For callbacks that must remain stable but read the latest non-rendering value, a ref can be appropriate.\n\n**Key Points:**\n- Explains closures across renders.\n- Offers functional update, dependency, and ref options with trade-offs.\n- Includes effect cleanup.",
+      "notes": "### Comprehensive Senior Answer\nThe callback closes over the values from the render in which the effect was created. If the dependency array prevents the effect from being recreated, the interval keeps reading that old count. One fix is a functional state update when the operation only depends on the previous value, such as `setCount(c => c + 1)`. Another is to include the changing dependency and correctly tear down and recreate the interval. For callbacks that must remain stable but read the latest non-rendering value, a ref can be appropriate.\n\nI would choose based on semantics rather than bypassing the dependency rule. The cleanup must clear the interval, including during unmount and development checks. Adding a mutable global or suppressing the dependency warning would hide the closure model rather than solve it.\n\n### 💡 Senior Engine & Architecture Insight\n> Explains closures across renders.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When is a ref appropriate for the latest value?**\n- **Why might recreating the interval on every count change be undesirable?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Explains closures across renders.\n✅ Offers functional update, dependency, and ref options with trade-offs.\n✅ Includes effect cleanup.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Blames React for caching the variable incorrectly.\n⚠️ Disables the hooks dependency rule as the primary fix.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Explains closures across renders.",
+      "tags": [
+        "reactcore",
+        "Code Reading / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_05",
+      "deckId": "deck_reactcore",
+      "front": "Why can using an array index as a list key corrupt input state when rows are inserted or reordered?",
+      "back": "A key tells React which child identity should be preserved among siblings. When the index is used, inserting or moving an item changes which business record owns a given key. React may reuse the existing component instance and DOM state for a different record, so uncontrolled input values, local row state, focus, or animation state appears to move to the wrong item.\n\n**Key Points:**\n- Connects keys to preserved identity and local state.\n- Uses stable domain identifiers.\n- Explains when an index may be harmless and why random keys are harmful.",
+      "notes": "### Comprehensive Senior Answer\nA key tells React which child identity should be preserved among siblings. When the index is used, inserting or moving an item changes which business record owns a given key. React may reuse the existing component instance and DOM state for a different record, so uncontrolled input values, local row state, focus, or animation state appears to move to the wrong item.\n\nI would use a stable identifier from the data that represents the same logical item across renders. A key only needs to be unique among siblings, not globally. Index keys can be acceptable for a truly static list that never reorders, inserts, deletes, or carries meaningful child state, but that assumption should be explicit. Random keys are worse because they force remounting on every render and discard state.\n\n### 💡 Senior Engine & Architecture Insight\n> Connects keys to preserved identity and local state.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How can changing a key intentionally reset a component?**\n- **Does a key become available as a normal component prop?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Connects keys to preserved identity and local state.\n✅ Uses stable domain identifiers.\n✅ Explains when an index may be harmless and why random keys are harmful.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Says keys exist only to remove a console warning.\n⚠️ Generates a new random key during every render.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Connects keys to preserved identity and local state.",
+      "tags": [
+        "reactcore",
+        "Rendering / Reconciliation",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_06",
+      "deckId": "deck_reactcore",
+      "front": "How would you choose between controlled and uncontrolled form inputs for a large React form?",
+      "back": "Controlled inputs keep the current value in React state and make conditional UI, cross-field rules, and immediate normalization straightforward, but updating many fields can cause unnecessary work if the form is poorly structured. Uncontrolled inputs let the DOM hold the current value and can reduce render pressure, especially when a form library reads values through refs and tracks only required metadata.\n\n**Key Points:**\n- Explains ownership and performance trade-offs.\n- Considers form libraries and field-level subscriptions.\n- Covers reset, dirty state, server errors, and accessibility.",
+      "notes": "### Comprehensive Senior Answer\nControlled inputs keep the current value in React state and make conditional UI, cross-field rules, and immediate normalization straightforward, but updating many fields can cause unnecessary work if the form is poorly structured. Uncontrolled inputs let the DOM hold the current value and can reduce render pressure, especially when a form library reads values through refs and tracks only required metadata.\n\nI would choose by behavior rather than ideology. A small dynamic form may be cleanest as controlled. A large form can use a form library with field-level subscriptions or uncontrolled internals while still presenting a typed model on submit. I would avoid mixing modes for the same input, define how default values reset, and keep server errors, dirty state, and accessibility consistent. Profiling should guide performance changes rather than assuming controlled inputs are inherently too slow.\n\n### 💡 Senior Engine & Architecture Insight\n> Explains ownership and performance trade-offs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you reset an uncontrolled input when a different record loads?**\n- **What makes file inputs a special case?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Explains ownership and performance trade-offs.\n✅ Considers form libraries and field-level subscriptions.\n✅ Covers reset, dirty state, server errors, and accessibility.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Claims one approach is always correct.\n⚠️ Switches an input between controlled and uncontrolled during its lifetime.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Explains ownership and performance trade-offs.",
+      "tags": [
+        "reactcore",
+        "Forms / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Practical",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_07",
+      "deckId": "deck_reactcore",
+      "front": "A click handler calls `setCount(count + 1)` three times but the result increases by one. Why, and when should you use a functional state update?",
+      "back": "Each render has a snapshot of state. All three calls read the same `count` value from that event handler's render, so they request the same next value. React may batch those updates. A functional update such as `setCount(c => c + 1)` receives the pending value from the update queue, so three updates compose to an increase of three.\n\n**Key Points:**\n- Explains snapshots, batching, and queued updater functions.\n- Uses functional updates based on dependency on prior state.\n- Includes immutable object or array updates.",
+      "notes": "### Comprehensive Senior Answer\nEach render has a snapshot of state. All three calls read the same `count` value from that event handler's render, so they request the same next value. React may batch those updates. A functional update such as `setCount(c => c + 1)` receives the pending value from the update queue, so three updates compose to an increase of three.\n\nI use the functional form whenever the next state depends on the previous state, especially across queued or asynchronous updates. If the new value is derived entirely from current props or event data and does not depend on the previous value, a direct value is fine. I would also avoid mutating an object and passing the same reference; the update should produce the intended new state while preserving unchanged branches.\n\n### 💡 Senior Engine & Architecture Insight\n> Explains snapshots, batching, and queued updater functions.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What does it mean that state is a snapshot?**\n- **How would you update one item in an array state safely?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Explains snapshots, batching, and queued updater functions.\n✅ Uses functional updates based on dependency on prior state.\n✅ Includes immutable object or array updates.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Assumes state setters synchronously mutate the variable.\n⚠️ Uses a timer to make each increment work.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Explains snapshots, batching, and queued updater functions.",
+      "tags": [
+        "reactcore",
+        "State Updates / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_08",
+      "deckId": "deck_reactcore",
+      "front": "How would you split a complex React feature among components and custom hooks without moving every line into a hook?",
+      "back": "I would split by responsibility and change pattern. Components own rendering and interaction composition. A custom hook is useful when stateful behavior or external synchronization has a reusable or independently testable contract—for example query-parameter state, keyboard navigation, or a multi-step workflow. Pure data transformation can remain a normal function; moving it into a hook adds lifecycle constraints without benefit.\n\n**Key Points:**\n- Separates pure functions, components, and stateful hooks.\n- Keeps state near its owner and exposes intents.\n- Uses cohesion and change patterns as boundaries.",
+      "notes": "### Comprehensive Senior Answer\nI would split by responsibility and change pattern. Components own rendering and interaction composition. A custom hook is useful when stateful behavior or external synchronization has a reusable or independently testable contract—for example query-parameter state, keyboard navigation, or a multi-step workflow. Pure data transformation can remain a normal function; moving it into a hook adds lifecycle constraints without benefit.\n\nI would keep state close to the smallest common owner, expose intent-based callbacks rather than raw setters, and use composition for visual flexibility. A hook should return a focused API, not the entire internal state machine by default. If the hook becomes a hidden service with many unrelated responsibilities, it should be split or backed by a clearer state abstraction. The goal is understandable ownership, not maximizing the number of files or hooks.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates pure functions, components, and stateful hooks.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When should two components share a custom hook versus share state?**\n- **How would you test a custom hook?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates pure functions, components, and stateful hooks.\n✅ Keeps state near its owner and exposes intents.\n✅ Uses cohesion and change patterns as boundaries.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Moves all component code into one giant hook.\n⚠️ Treats using the same hook twice as automatically sharing state.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates pure functions, components, and stateful hooks.",
+      "tags": [
+        "reactcore",
+        "Component Architecture",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_09",
+      "deckId": "deck_reactcore",
+      "front": "What problems is React Context good at solving, and why can putting a large frequently changing application state into one context hurt architecture and performance?",
+      "back": "Context is useful for values needed by a subtree where explicit prop passing would add noise: theme, locale, authenticated session metadata, or a scoped service-like dependency. A consumer re-renders when the provider value it reads changes, so one large object that changes frequently can update many consumers and obscure which parts depend on what.\n\n**Key Points:**\n- Uses Context for scoped dependencies and low-frequency shared values.\n- Understands provider value changes and broad consumers.\n- Distinguishes Context from full state-management capabilities.",
+      "notes": "### Comprehensive Senior Answer\nContext is useful for values needed by a subtree where explicit prop passing would add noise: theme, locale, authenticated session metadata, or a scoped service-like dependency. A consumer re-renders when the provider value it reads changes, so one large object that changes frequently can update many consumers and obscure which parts depend on what.\n\nI would split contexts by responsibility and change frequency, keep provider values stable where practical, and separate data from dispatch if that improves the consumer contract. Context does not provide server caching, normalized entity tooling, transaction semantics, or automatic fine-grained selection. For complex shared state, an external store or purpose-built server-state library may be clearer. I would also scope providers close to the feature when state should reset with that subtree.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses Context for scoped dependencies and low-frequency shared values.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Why can creating a new provider value object every render matter?**\n- **When would prop passing be clearer than context?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses Context for scoped dependencies and low-frequency shared values.\n✅ Understands provider value changes and broad consumers.\n✅ Distinguishes Context from full state-management capabilities.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Treats Context as a drop-in solution for every global state problem.\n⚠️ Places all server data and form values in one provider.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses Context for scoped dependencies and low-frequency shared values.",
+      "tags": [
+        "reactcore",
+        "Context / State Management",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_rc_10",
+      "deckId": "deck_reactcore",
+      "front": "How would you test a React component that loads data, supports retry, and opens an accessible details dialog?",
+      "back": "I would test from the user's perspective. With the network boundary controlled, the test renders the component, verifies an accessible loading indication, resolves a successful response, and finds content by role or visible text. A failure case returns a structured error, verifies actionable feedback, activates retry through a real user event, and then resolves successfully.\n\n**Key Points:**\n- Tests observable behavior and accessibility.\n- Controls success, failure, retry, and focus paths.\n- Avoids component internals and unexpected network traffic.",
+      "notes": "### Comprehensive Senior Answer\nI would test from the user's perspective. With the network boundary controlled, the test renders the component, verifies an accessible loading indication, resolves a successful response, and finds content by role or visible text. A failure case returns a structured error, verifies actionable feedback, activates retry through a real user event, and then resolves successfully.\n\nFor the dialog, I would open it through the UI and assert its accessible name, relevant content, focus behavior, keyboard close behavior, and focus restoration. I would avoid asserting internal hook calls, component state, or exact markup. Network handlers should fail on unexpected requests. A smaller integration test can cover the data layer separately, while one end-to-end journey confirms the feature against a deployed API. The test should be deterministic and include cleanup.\n\n### 💡 Senior Engine & Architecture Insight\n> Tests observable behavior and accessibility.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What would you mock and what would you keep real?**\n- **Why are role-based queries usually preferable to test IDs?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Tests observable behavior and accessibility.\n✅ Controls success, failure, retry, and focus paths.\n✅ Avoids component internals and unexpected network traffic.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Asserts implementation-specific hook calls.\n⚠️ Uses snapshots as the only test for the dialog.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Tests observable behavior and accessibility.",
+      "tags": [
+        "reactcore",
+        "Testing",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_01",
+      "deckId": "deck_reactcore",
+      "front": "How does React’s Virtual DOM and Fiber Reconciliation work compared to Angular’s fine-grained Signals and Change Detection?",
+      "back": "React uses a Virtual DOM with the Fiber architecture, splitting work into a non-blocking Render/Reconciliation phase (diffing VDOM trees) and a synchronous Commit phase (applying DOM updates). Angular historically used top-down Zone.js dirty checking, but modern Angular uses fine-grained reactive Signals to update specific DOM bindings directly without tree-wide diffing.\n\n**Key Points:**\n- React: Virtual DOM diffing, Fiber tree, 2-phase execution (Render vs Commit)\n- Angular: Direct template compilation, Signals reactive graph, zero VDOM overhead\n- React re-runs the entire function component body on state changes\n- Impact of object reference recreation on downstream child re-renders",
+      "notes": "### Comprehensive Senior Answer\nThe core difference is top-down component re-execution versus fine-grained reactive graph propagation:\n- **React (Fiber & VDOM)**: When state updates in React (`setState`), React re-executes the entire component function and produces a new Virtual DOM tree. The **Fiber reconciler** compares the new VDOM with the old one (Render Phase, which can be paused/split in Concurrent Mode), calculates the minimal set of DOM mutations (diff), and synchronously applies them to the real DOM during the **Commit Phase**.\n- **Angular (Signals & Zoneless)**: In modern Angular, a Signal update directly notifies the specific DOM binding or view that read the signal. Angular does not build or diff a Virtual DOM; it updates real DOM nodes directly with surgical precision.\n\n### Code Example\n```typescript\n// React: Component function re-executes on state changes\nimport React, { useState } from 'react';\n\nexport function CounterWidget() {\n  const [count, setCount] = useState(0);\n  console.log('CounterWidget function body re-executed!');\n\n  return (\n    <div>\n      <p>Count: {count}</p>\n      {/* Creates a new Virtual DOM element tree on every click */}\n      <button onClick={() => setCount(prev => prev + 1)}>Increment</button>\n    </div>\n  );\n}\n\n// React Fiber 2-Phase Execution:\n// 1. Render Phase (Asynchronous / Interruptible): Compares JSX Fiber nodes\n// 2. Commit Phase (Synchronous): Updates real browser DOM and runs useLayoutEffect\n```\n_Illustrates how React components re-execute entirely on state updates vs Fiber two-phase reconciliation._\n\n### 💡 Senior Engine & Architecture Insight\n> Because React components re-execute on every render, functions and objects declared inside the component body get brand-new memory references every render unless wrapped in `useCallback` or `useMemo`. In Angular, class component instances persist across change detection cycles.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the purpose of the Fiber data structure in React?**\n  *A:* Fiber is a linked-list representation of the component tree that allows React to pause, prioritize, and resume rendering work across animation frames (Concurrent React).\n- **Q: What is the difference between the Render Phase and Commit Phase in React?**\n  *A:* The Render phase is pure, side-effect free, and calculates differences in memory (can be aborted). The Commit phase is synchronous and applies actual DOM mutations and mutations to the browser screen.",
+      "spokenTip": "React re-runs component functions and diffs Virtual DOM trees, whereas modern Angular uses reactive Signals to update exact DOM nodes directly.",
+      "tags": [
+        "react",
+        "virtual-dom",
+        "fiber",
+        "reconciliation",
+        "angular-vs-react"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_02",
+      "deckId": "deck_reactcore",
+      "front": "How do useEffect, useLayoutEffect, and useRef work under the hood? What are Stale Closures and how do you prevent them?",
+      "back": "`useEffect` runs asynchronously *after* browser paint. `useLayoutEffect` runs synchronously *before* paint (used for measuring DOM and avoiding layout flicker). `useRef` holds a persistent mutable reference that survives renders without triggering re-renders. Stale closures occur when an effect or callback captures an outdated variable from a past render without listing it in the dependency array.\n\n**Key Points:**\n- useEffect (async after paint) vs useLayoutEffect (sync before paint, prevents layout shifts)\n- useRef stores mutable values across renders without causing re-renders\n- Stale closure mechanism: lexical capture of outdated state in dependency-less closures\n- Fixing stale closures via functional state updates (setCount(prev => prev + 1))",
+      "notes": "### Comprehensive Senior Answer\nReact Hooks rely on array index positions internally to associate state with the Fiber node across renders:\n1. **`useEffect`**: Schedules a callback that executes asynchronously after the browser paints the screen. Best for data fetching, event listeners, and non-visual side effects.\n2. **`useLayoutEffect`**: Executes synchronously after React performs DOM mutations but *before* the browser paints pixels on screen. Use this when you must measure DOM dimensions (`getBoundingClientRect`) and synchronously adjust styles to prevent visual layout flicker.\n3. **`useRef`**: Returns `{ current: initialValue }`. Modifying `.current` does not trigger a re-render. Great for storing DOM node references, timer IDs, or previous state values.\n4. **Stale Closures**: Because JavaScript functions capture variables lexically at creation time, an effect or interval referencing `count` will always see its initial value (`0`) if `count` is omitted from the dependency array. Fix via functional updater `setCount(prev => prev + 1)` or adding the dependency.\n\n### Code Example\n```typescript\nimport React, { useState, useEffect, useLayoutEffect, useRef } from 'react';\n\nexport function TimerWidget() {\n  const [count, setCount] = useState(0);\n  const tooltipRef = useRef<HTMLDivElement>(null);\n\n  // 1. Stale Closure Prevention: Use functional updater\n  useEffect(() => {\n    const timer = setInterval(() => {\n      // ✅ Correct: reads latest state without needing 'count' in deps!\n      setCount(prev => prev + 1);\n    }, 1000);\n\n    return () => clearInterval(timer); // Teardown cleanup on unmount\n  }, []);\n\n  // 2. useLayoutEffect: Measure DOM synchronously before paint to avoid flicker\n  useLayoutEffect(() => {\n    if (tooltipRef.current) {\n      const rect = tooltipRef.current.getBoundingClientRect();\n      if (rect.right > window.innerWidth) {\n        tooltipRef.current.style.left = `${window.innerWidth - rect.width}px`;\n      }\n    }\n  }, []);\n\n  return <div>Count: {count} <div ref={tooltipRef}>Tooltip</div></div>;\n}\n```\n_Demonstrates functional updater to prevent stale closures, useLayoutEffect for layout measurement, and useRef._\n\n### 💡 Senior Engine & Architecture Insight\n> Never lie to React in dependency arrays by disabling ESLint `react-hooks/exhaustive-deps`. If an effect depends on a variable, either include it, move the logic inside the effect, or store the value in a `useRef` if you need read-only access without re-triggering the effect.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: When does the cleanup function returned by `useEffect` execute?**\n  *A:* It executes before the effect re-runs on the next render (with the old closure values), and once when the component unmounts.\n- **Q: What is the difference between `useRef` and a plain variable declared outside the component?**\n  *A:* A variable declared outside the component is shared globally across all mounted instances of that component. `useRef` creates a distinct, isolated reference per component instance.",
+      "spokenTip": "useLayoutEffect runs before paint for DOM measurements; useEffect runs after paint; use functional state updates to fix stale closures.",
+      "tags": [
+        "react",
+        "hooks",
+        "useeffect",
+        "uselayouteffect",
+        "useref",
+        "stale-closures"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_03",
+      "deckId": "deck_reactcore",
+      "front": "How do keys work in React list reconciliation, and what bugs occur when using array index as a key?",
+      "back": "Keys give React a stable identity to match virtual DOM nodes across renders. If items are reordered, added, or deleted, using the array index as key causes React to mutate existing DOM nodes and preserve incorrect internal component state (like inputs, checkboxes, or focus states). Unique stable IDs (e.g. `item.id`) must always be used.\n\n**Key Points:**\n- Keys provide stable identity across Fiber reconciliation cycles\n- Index as key bug: state retention in wrong items when inserting/deleting elements\n- Entity IDs (item.id) guarantee correct DOM node reuse\n- Using keys on standalone components to trigger deliberate full-tree state resets",
+      "notes": "### Comprehensive Senior Answer\nDuring reconciliation, React diffs children by comparing their `type` and `key`:\n- If the `key` matches an existing node, React reuses that DOM node and Fiber instance, only patching modified attributes.\n- If a `key` changes, React completely destroys the old component (unmounting and resetting its local state) and creates a brand-new instance.\n\n**Why array index as key is an anti-pattern**:\nIf you have 3 items `[A, B, C]` with indices `0, 1, 2` and you delete item `A`, the remaining items `[B, C]` now receive indices `0, 1`. React assumes index `0` and `1` are the same components and simply updates their props, while deleting index `2`. If item `A` had an uncontrolled text input or checkbox state, that local state will visually bleed into item `B`! Always use stable, unique business IDs.\n\n### Code Example\n```typescript\n// ❌ BAD: Using array index causes state leakage when deleting items\n{items.map((item, index) => (\n  <TodoItem key={index} item={item} />\n))}\n\n// ✅ GOOD: Using stable, unique entity ID\n{items.map((item) => (\n  <TodoItem key={item.id} item={item} />\n))}\n\n// Senior Pattern: Changing 'key' intentionally to force a full component state reset\nexport function UserProfile({ userId }: { userId: string }) {\n  // Changing key unmounts old form and mounts fresh form with clean initial state!\n  return <EditUserForm key={userId} userId={userId} />;\n}\n```\n_Shows why entity IDs are mandatory for lists and how changing keys intentionally resets component state._\n\n### 💡 Senior Engine & Architecture Insight\n> You can use `key` on individual non-list components as a clean architectural pattern: passing `key={userId}` forces React to unmount the entire component subtree and recreate its initial state from scratch when the user ID changes, eliminating manual reset logic.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: When is it safe to use array index as a key?**\n  *A:* Only when the list is strictly static: it is never reordered, filtered, added to, or deleted, and items have zero internal state or uncontrolled inputs.\n- **Q: What happens if you use `Math.random()` as a key on every render?**\n  *A:* React treats every item as a brand-new component on every render, completely destroying and recreating the entire DOM tree, causing input focus loss and severe performance degradation.",
+      "spokenTip": "Keys establish persistent element identity. Using array indices leads to state corruption when items are inserted or removed.",
+      "tags": [
+        "react",
+        "keys",
+        "reconciliation",
+        "lists",
+        "performance"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_04",
+      "deckId": "deck_reactcore",
+      "front": "When should you actually use useMemo and useCallback, and what makes premature memoization harmful in React?",
+      "back": "`useCallback` caches a function definition between renders. `useMemo` caches the result of an expensive calculation. You should only use them when passing callbacks or objects to memoized children (`React.memo`), when values are used in dependency arrays, or when calculating truly expensive computations. Overusing them adds memory and execution overhead for zero performance gain.\n\n**Key Points:**\n- useCallback memoizes function instances; useMemo memoizes computed return values\n- Passing callbacks to React.memo children requires useCallback to preserve referential equality\n- Overuse overhead: memory allocation for dependency arrays and shallow comparison costs\n- Contrast with Angular class instance methods",
+      "notes": "### Comprehensive Senior Answer\nIn React, component functions re-run from top to bottom on every state change. Every inline function (`() => {}`) and object literal (`{}`) gets a new memory reference on every single render.\n\nHowever, re-creating a simple function is extremely cheap for the JavaScript engine. You only need `useCallback` when that function is passed as a prop to a child wrapped in `React.memo`, or when it is listed in another hook's dependency array (like `useEffect`).\n\n`useMemo` is for caching CPU-heavy operations—like filtering or sorting 10,000 array items. If you wrap a simple `items.length > 0` check in `useMemo`, the cost of allocating the dependency array and running comparisons is higher than the calculation itself.\n\n### Code Example\n```typescript\nimport React, { useState, useMemo, useCallback } from 'react';\n\nexport function ProductCatalog({ products }: { products: Product[] }) {\n  const [filter, setFilter] = useState('');\n  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');\n\n  // ✅ Good use of useMemo: Expensive filtering and sorting over large dataset\n  const filteredProducts = useMemo(() => {\n    return products\n      .filter(p => p.name.toLowerCase().includes(filter.toLowerCase()))\n      .sort((a, b) => sortOrder === 'asc' ? a.price - b.price : b.price - a.price);\n  }, [products, filter, sortOrder]);\n\n  // ✅ Good use of useCallback: Passed to memoized child item\n  const handleAddToCart = useCallback((productId: string) => {\n    cartService.add(productId);\n  }, []);\n\n  return (\n    <div>\n      <input value={filter} onChange={e => setFilter(e.target.value)} />\n      <ProductList items={filteredProducts} onAdd={handleAddToCart} />\n    </div>\n  );\n}\n```\n_Shows appropriate use of useMemo for heavy collection sorting and useCallback for callbacks passed to memoized children._\n\n### 💡 Senior Engine & Architecture Insight\n> In Angular, methods on a component class stay bound to the instance across Change Detection cycles. In React, because components are pure functions, function references are recreated on every tick unless stabilized with `useCallback`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Does `useCallback(fn, deps)` do anything other than `useMemo(() => fn, deps)`?**\n  *A:* No. `useCallback(fn, deps)` is syntactic sugar for `useMemo(() => fn, deps)` specifically designed for function definitions.\n- **Q: How does React 19 Compiler change the need for `useMemo` and `useCallback`?**\n  *A:* The React Compiler analyzes data flow at build time and automatically memoizes values and callbacks, making manual `useMemo` and `useCallback` largely unnecessary in new codebases.",
+      "spokenTip": "I only reach for `useCallback` when passing callbacks to `React.memo` components, and `useMemo` for heavy calculations or preserving object references in dependency arrays.",
+      "tags": [
+        "react",
+        "usememo",
+        "usecallback",
+        "performance",
+        "memoization",
+        "hooks"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_05",
+      "deckId": "deck_reactcore",
+      "front": "What is the difference between Controlled and Uncontrolled components in React, and why do libraries like React Hook Form prefer uncontrolled inputs for large forms?",
+      "back": "Controlled components bind input value and change handlers directly to React state (`value={state}`, `onChange={setState}`), causing the entire component to re-render on every keystroke. Uncontrolled components let the browser DOM manage input state natively and read values on demand via `useRef`. React Hook Form uses uncontrolled inputs to eliminate keystroke re-renders across large forms.\n\n**Key Points:**\n- Controlled: React state holds value, triggers render on every keystroke\n- Uncontrolled: DOM holds value, read via useRef or FormData\n- React Hook Form uncontrolled architecture for high-performance forms\n- Comparison to Angular Reactive Forms and ngModel",
+      "notes": "### Comprehensive Senior Answer\nIn React form architecture:\n- **Controlled Components**: React state is the single source of truth. Every keystroke updates state, triggering a re-render of the component and all children. This is great for instant field validation, dynamic formatting (like credit card masking), and conditional inputs, but scales poorly on 50-field enterprise forms.\n- **Uncontrolled Components**: The DOM maintains its own input state natively. You read the value when needed (e.g. on form submit) using `useRef` or `FormData`.\n- **Modern Standard (React Hook Form)**: It registers DOM inputs directly via ref subscriptions. It only re-renders the specific field that failed validation rather than re-rendering the entire form on every character typed, delivering 60fps typing performance.\n\n### Code Example\n```typescript\n// 1. Controlled Input (Re-renders component on EVERY keystroke)\nfunction ControlledInput() {\n  const [val, setVal] = useState('');\n  console.log('Re-rendered!');\n  return <input value={val} onChange={e => setVal(e.target.value)} />;\n}\n\n// 2. Uncontrolled with React Hook Form (Zero unnecessary re-renders)\nimport { useForm } from 'react-hook-form';\n\ninterface FormData {\n  email: string;\n  age: number;\n}\n\nexport function EnterpriseForm() {\n  const { register, handleSubmit, formState: { errors } } = useForm<FormData>();\n\n  const onSubmit = (data: FormData) => {\n    console.log('Submitting without keystroke re-renders:', data);\n  };\n\n  return (\n    <form onSubmit={handleSubmit(onSubmit)}>\n      {/* Uncontrolled ref binding */}\n      <input {...register('email', { required: 'Email required' })} />\n      {errors.email && <span>{errors.email.message}</span>}\n      <button type=\"submit\">Submit</button>\n    </form>\n  );\n}\n```\n_Compares controlled state re-renders with uncontrolled ref registration via React Hook Form._\n\n### 💡 Senior Engine & Architecture Insight\n> Controlled inputs in React correspond to `[(ngModel)]` or `formControl.valueChanges` in Angular. In Angular, Reactive Forms separate model values from DOM rendering; in React, `useState` on a controlled input forces Virtual DOM diffing on every keystroke.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: When MUST you use a controlled component instead of uncontrolled?**\n  *A:* When you need instant real-time UI reactions to input—such as an autocomplete suggestion dropdown, dynamic character count limiters, or disabling a submit button while typing.\n- **Q: How do you set initial default values in an uncontrolled component?**\n  *A:* Use `defaultValue=\"Initial Text\"` or `defaultChecked={true}` instead of `value` or `checked`.",
+      "spokenTip": "Controlled inputs re-render on every keystroke; uncontrolled inputs let the DOM hold state and use refs, giving much better performance on large forms.",
+      "tags": [
+        "react",
+        "forms",
+        "controlled-components",
+        "uncontrolled-components",
+        "react-hook-form",
+        "performance"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_06",
+      "deckId": "deck_reactcore",
+      "front": "How does Component Composition solve Prop Drilling without using Context or global state? What is the \"children as slots\" pattern?",
+      "back": "Component Composition solves prop drilling by passing instantiated React elements as `children` or explicit JSX props (e.g. `leftSlot={<Avatar />}`). Because the child element is evaluated in the parent’s scope, intermediate container components do not need to receive, pass, or re-render when that prop changes.\n\n**Key Points:**\n- Passing JSX elements as children or named slot props\n- Evaluation of children in parent scope avoids intermediate prop passing\n- Performance: intermediate layout containers bypass re-renders\n- Analogy to Angular multi-slot content projection (ng-content)",
+      "notes": "### Comprehensive Senior Answer\nBefore jumping to Context API or Redux to fix prop drilling, senior engineers use **Component Composition**:\n1. Instead of passing `user` down 5 layers (`Page -> Layout -> Header -> Nav -> UserProfile`), we instantiate `<UserProfile user={user} />` at the top level and pass it down as `{children}` or `userSlot={<UserProfile user={user} />}`.\n2. **Performance Benefit**: The intermediate components (`Layout`, `Header`, `Nav`) do not know or care about `user`. When `user` updates, only `UserProfile` and `Page` re-render; the intermediate layout components do NOT re-render!\n3. This is React's equivalent of Angular's `<ng-content select=\"...\">` multi-slot projection.\n\n### Code Example\n```typescript\nimport React, { ReactNode } from 'react';\n\n// Intermediate layout component: completely unaware of user data!\nfunction AppHeader({ leftSlot, rightSlot }: { leftSlot: ReactNode; rightSlot: ReactNode }) {\n  return (\n    <header className=\"header\">\n      <div className=\"left\">{leftSlot}</div>\n      <div className=\"right\">{rightSlot}</div>\n    </header>\n  );\n}\n\n// Top-level page: instantiates slots directly without prop drilling\nexport function DashboardPage({ user }: { user: User }) {\n  return (\n    <div>\n      <AppHeader\n        leftSlot={<h1>Dashboard</h1>}\n        rightSlot={<UserAvatar user={user} />} // user passed directly here!\n      />\n      <main>Content</main>\n    </div>\n  );\n}\n```\n_Demonstrates slot-based composition passing instantiated JSX elements to eliminate intermediate prop drilling._\n\n### 💡 Senior Engine & Architecture Insight\n> Using the `children` prop creates a powerful performance optimization: when `AppHeader` re-renders due to its own internal state, React reuses the existing `children` element object without re-rendering the child tree.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How is React slot composition similar to Angular Content Projection?**\n  *A:* In Angular, `<ng-content select=\"[header]\">` projects templates from the parent scope. In React, any prop can accept JSX (`headerSlot={<Header />}`), providing native multi-slot composition.\n- **Q: When does Component Composition fail and require Context API?**\n  *A:* When data is truly ambient and deeply needed by dozens of independent leaf components across the entire tree—such as Theme, Localization (i18n), or Authenticated User Session.",
+      "spokenTip": "Before adding Context or Redux for prop drilling, lift components up and pass them as children or slot props.",
+      "tags": [
+        "react",
+        "component-composition",
+        "prop-drilling",
+        "slots",
+        "architecture",
+        "patterns"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_07",
+      "deckId": "deck_reactcore",
+      "front": "Why does React Context often cause severe performance issues in large apps, and how do you design Context properly to prevent unnecessary re-renders?",
+      "back": "When a Context value changes, React forces EVERY component that calls `useContext(MyContext)` to re-render, even if the component only uses an unchanged property. To fix this: 1) Split big contexts into smaller, focused contexts (e.g. `UserContext` and `UserThemeContext`), 2) Separate State Context from Dispatch/Actions Context, and 3) Memoize the context value object with `useMemo`.\n\n**Key Points:**\n- Context lacks built-in selector subscriptions: all consumers re-render on any change\n- Splitting State Context and Dispatch Context\n- Memoizing Context provider value object with useMemo\n- When to graduate from Context to Zustand/TanStack Query for high-frequency data",
+      "notes": "### Comprehensive Senior Answer\nContext is designed for low-frequency global data (Theme, Locale, Current User). When developers put high-frequency state (like form inputs or active dashboard filters) into a single monolithic Context object:\n1. If property `A` updates, components that only read property `B` are still forced to re-render because `useContext` subscribes to the entire object reference.\n2. Unlike Redux or Zustand, Context lacks fine-grained selectors.\n\n**Best practice architecture for Context**:\n- **Separate State & Dispatch**: Create `CountStateContext` (for reading value) and `CountDispatchContext` (for actions/setters). Components that only trigger actions never re-render when state changes.\n- **Memoize Provider Value**: Always wrap provider value in `useMemo(() => ({ state, dispatch }), [state])` to prevent re-renders on unrelated parent renders.\n\n### Code Example\n```typescript\nimport React, { createContext, useContext, useReducer, useMemo, ReactNode } from 'react';\n\n// 1. Separate State and Dispatch Contexts\nconst AuthStateContext = createContext<AuthState | undefined>(undefined);\nconst AuthDispatchContext = createContext<AuthDispatch | undefined>(undefined);\n\nexport function AuthProvider({ children }: { children: ReactNode }) {\n  const [state, dispatch] = useReducer(authReducer, initialAuthState);\n\n  // Memoize state value\n  const stateValue = useMemo(() => state, [state]);\n\n  return (\n    <AuthStateContext.Provider value={stateValue}>\n      <AuthDispatchContext.Provider value={dispatch}>\n        {children}\n      </AuthDispatchContext.Provider>\n    </AuthStateContext.Provider>\n  );\n}\n\n// Custom hook with null check\nexport function useAuthState() {\n  const ctx = useContext(AuthStateContext);\n  if (!ctx) throw new Error('useAuthState must be used within AuthProvider');\n  return ctx;\n}\n\nexport function useAuthDispatch() {\n  const ctx = useContext(AuthDispatchContext);\n  if (!ctx) throw new Error('useAuthDispatch must be used within AuthProvider');\n  return ctx;\n}\n```\n_Splits state from dispatch into separate context providers and memoizes the state object._\n\n### 💡 Senior Engine & Architecture Insight\n> If you need high-frequency updates with granular selector subscriptions (e.g. only re-render when `state.user.preferences.theme` changes), use Zustand or TanStack Query instead of React Context.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why doesn't `React.memo` prevent a component from re-rendering if it consumes a changed Context?**\n  *A:* `useContext` bypasses `React.memo`. When the context value changes, React forces the consuming component to re-render regardless of whether its props are memoized.\n- **Q: How does React 19 `use(Context)` differ from `useContext(Context)`?**\n  *A:* `use(Context)` can be called conditionally inside `if` statements and loops, whereas `useContext` was restricted by traditional Hook rules.",
+      "spokenTip": "Context triggers re-renders on all consumers when its value updates; separate state from dispatch and split large contexts into smaller ones.",
+      "tags": [
+        "react",
+        "context-api",
+        "performance",
+        "usecontext",
+        "state-management",
+        "re-renders"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_react_08",
+      "deckId": "deck_reactcore",
+      "front": "How do Error Boundaries work in React, what errors can they NOT catch, and how does Suspense coordinate fallback loading states?",
+      "back": "Error Boundaries are class components implementing `componentDidCatch` or `getDerivedStateFromError` to catch rendering errors in child components and display fallback UI without crashing the whole app. They do NOT catch errors in event handlers, async code (`fetch`), or SSR. `Suspense` catches thrown Promises during rendering and displays fallback spinners until async work resolves.\n\n**Key Points:**\n- getDerivedStateFromError for rendering fallback; componentDidCatch for logging/telemetry\n- What Error Boundaries cannot catch: event handlers, async fetch, setTimeout, SSR\n- Suspense for lazy chunks and declarative async data fetching\n- Bridging async API errors to Error Boundaries via TanStack Query throwOnError",
+      "notes": "### Comprehensive Senior Answer\nIn React, an unhandled JavaScript error during rendering unmounts the entire component tree and displays a blank white screen.\n\n1. **Error Boundaries**: Wrap critical subtrees (e.g. widget grids or route views). When a child component throws during render, lifecycle, or constructors, `getDerivedStateFromError` updates state to render a fallback UI, while `componentDidCatch` logs the error to Sentry/DataDog.\n2. **Limitations**: Error Boundaries do *not* catch errors inside `onClick` event handlers (use standard `try/catch` there) or asynchronous `setTimeout` / `fetch` callbacks.\n3. **Suspense**: Coordinates async components or lazy-loaded bundles (`React.lazy`). When a child suspends by throwing a Promise, React pauses rendering that child, displays the `<Suspense fallback={<Spinner />}>`, and resumes rendering once the Promise resolves.\n\n### Code Example\n```typescript\nimport React, { Component, ErrorInfo, ReactNode, Suspense, lazy } from 'react';\n\n// 1. Error Boundary Component (Class component required)\ninterface Props { children: ReactNode; fallback: ReactNode; }\ninterface State { hasError: boolean; }\n\nexport class ErrorBoundary extends Component<Props, State> {\n  state: State = { hasError: false };\n\n  static getDerivedStateFromError(_: Error): State {\n    return { hasError: true };\n  }\n\n  componentDidCatch(error: Error, info: ErrorInfo) {\n    console.error('Logged to Sentry:', error, info.componentStack);\n  }\n\n  render() {\n    if (this.state.hasError) return this.props.fallback;\n    return this.props.children;\n  }\n}\n\n// 2. Combining Error Boundary with Suspense for Lazy Route Loading\nconst HeavyAnalyticsDashboard = lazy(() => import('./HeavyAnalyticsDashboard'));\n\nexport function AnalyticsView() {\n  return (\n    <ErrorBoundary fallback={<div className=\"error\">Failed to load analytics dashboard.</div>}>\n      <Suspense fallback={<div className=\"spinner\">Loading dashboard modules...</div>}>\n        <HeavyAnalyticsDashboard />\n      </Suspense>\n    </ErrorBoundary>\n  );\n}\n```\n_Shows full ErrorBoundary implementation wrapped with Suspense for resilient lazy-loaded dashboards._\n\n### 💡 Senior Engine & Architecture Insight\n> In modern React with TanStack Query, setting `useQuery({ ..., throwOnError: true })` bridges async fetch errors into Error Boundaries, giving unified declarative error handling across both render errors and API failures.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why are Error Boundaries still written as class components in modern React?**\n  *A:* Because React has not yet introduced functional Hook equivalents for `componentDidCatch` or `getDerivedStateFromError`.\n- **Q: How do you reset an Error Boundary state when the user clicks a \"Retry\" button?**\n  *A:* Provide a reset method on the Error Boundary that sets `{ hasError: false }` and re-mounts the children.",
+      "spokenTip": "Error Boundaries catch render errors and prevent white screens; Suspense catches thrown promises to manage loading spinners declaratively.",
+      "tags": [
+        "react",
+        "error-boundaries",
+        "suspense",
+        "react-lazy",
+        "resilience",
+        "error-handling"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

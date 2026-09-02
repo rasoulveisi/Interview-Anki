@@ -1,0 +1,86 @@
+{
+  "deck": {
+    "id": "deck_tooling",
+    "name": "Build, Tooling & Bundlers",
+    "description": "Vite vs Webpack vs esbuild, native ESM dev server, SemVer, npm ci, peerDependencies, and CI/CD pipelines.",
+    "category": "tooling",
+    "color": "#0284C7",
+    "iconName": "Cpu",
+    "isDefault": true,
+    "totalCards": 4
+  },
+  "cards": [
+    {
+      "id": "card_gpt_fe_02",
+      "deckId": "deck_tooling",
+      "front": "The initial JavaScript bundle grew by 40% after several feature releases. How would you identify the cause and reduce it without damaging maintainability?",
+      "back": "I would inspect the bundle graph by route and dependency, compare it with a known baseline, and identify whether the growth comes from application code, duplicated packages, locale data, polyfills, or a library imported through an expensive entry point. I would also check how much of the downloaded code executes during startup, because transfer size alone is incomplete.\n\n**Key Points:**\n- Uses comparative bundle analysis and execution cost.\n- Balances lazy loading against later navigation latency.\n- Adds enforceable budgets and an exception process.",
+      "notes": "### Comprehensive Senior Answer\nI would inspect the bundle graph by route and dependency, compare it with a known baseline, and identify whether the growth comes from application code, duplicated packages, locale data, polyfills, or a library imported through an expensive entry point. I would also check how much of the downloaded code executes during startup, because transfer size alone is incomplete.\n\nLikely fixes include moving real feature boundaries behind lazy routes, replacing or narrowing heavy dependencies, ensuring tree-shakable imports, removing duplicate versions, and deferring optional editors or charts. I would not split every file or hand-write a worse version of a library for a tiny gain. CI should enforce route or entry-point budgets with an intentional approval process for increases. I would validate startup and navigation on realistic networks so code splitting does not merely move the delay to the first interaction.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses comparative bundle analysis and execution cost.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How can a shared library accidentally enter the initial chunk?**\n- **When is a larger bundle acceptable?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses comparative bundle analysis and execution cost.\n✅ Balances lazy loading against later navigation latency.\n✅ Adds enforceable budgets and an exception process.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Deletes dependencies based only on package size websites.\n⚠️ Creates many tiny chunks without checking waterfalls.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses comparative bundle analysis and execution cost.",
+      "tags": [
+        "tooling",
+        "Bundle Performance / Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_fe_10",
+      "deckId": "deck_tooling",
+      "front": "What would you include in frontend observability so a team can diagnose production issues rather than only count JavaScript errors?",
+      "back": "I would collect uncaught errors and handled high-value failures with source-mapped stacks, release identity, route, browser, and sanitized feature context. I would add user-centric performance metrics, failed or slow request telemetry, and traces or correlation identifiers that connect a browser action to backend services. Key business journeys need success, failure, and abandonment events, not just page views.\n\n**Key Points:**\n- Connects errors, performance, requests, traces, and business outcomes.\n- Treats privacy, sampling, ownership, and alerting explicitly.\n- Includes release identity and monitoring verification.",
+      "notes": "### Comprehensive Senior Answer\nI would collect uncaught errors and handled high-value failures with source-mapped stacks, release identity, route, browser, and sanitized feature context. I would add user-centric performance metrics, failed or slow request telemetry, and traces or correlation identifiers that connect a browser action to backend services. Key business journeys need success, failure, and abandonment events, not just page views.\n\nPrivacy is a design constraint: I would avoid raw form values, tokens, personal data, and uncontrolled session recording. Events need sampling, deduplication, ownership, and alert thresholds tied to user impact. Dashboards should segment by release and environment so regressions are visible. A support-friendly diagnostic identifier can help users report an incident. Finally, telemetry must be tested; silently broken monitoring during deployment is itself a production risk.\n\n### 💡 Senior Engine & Architecture Insight\n> Connects errors, performance, requests, traces, and business outcomes.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you prevent an error-reporting loop?**\n- **Which context is useful for a failed checkout without exposing sensitive data?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Connects errors, performance, requests, traces, and business outcomes.\n✅ Treats privacy, sampling, ownership, and alerting explicitly.\n✅ Includes release identity and monitoring verification.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Logs every user action and form value.\n⚠️ Considers console logs sufficient production observability.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Connects errors, performance, requests, traces, and business outcomes.",
+      "tags": [
+        "tooling",
+        "Observability",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_tool_01",
+      "deckId": "deck_tooling",
+      "front": "How do modern build tools (Vite, esbuild, Turbopack) achieve 100x faster dev builds than legacy Webpack? Explain native ESM and HMR.",
+      "back": "Webpack bundles the entire application dependency graph before starting the dev server. **Vite** leverages native browser ES Modules (`<script type=\"module\">`): it pre-bundles third-party dependencies once using Go-based **esbuild** (100x faster), and serves application code on-demand without bundling. Hot Module Replacement (HMR) updates only the exact edited file without rebuilding the graph.\n\n**Key Points:**\n- Webpack: full app bundle required before dev server can serve requests\n- Vite: unbundled dev server serving native browser ES Modules on demand\n- esbuild (Go-based) for sub-second dependency pre-bundling\n- HMR efficiency: updating individual modules without full dependency graph rebuilds",
+      "notes": "### Comprehensive Senior Answer\nThe architectural shift between legacy and modern build tools comes down to bundling strategy during development:\n1. **Legacy Webpack / Angular CLI (Webpack)**:\n   - *Mechanism*: Webpack crawls every file in your application, transpiles TypeScript, bundles everything into in-memory chunks, and only then starts the dev server. As an app grows to 10,000 files, cold dev server starts take 60-120 seconds, and HMR takes seconds per save.\n2. **Vite & Modern Angular CLI (Vite + esbuild)**:\n   - *Dev Server (Unbundled Native ESM)*: The dev server starts instantly (< 300ms). When the browser loads the page, it requests files natively (`import ./app.js`). Vite intercepts the HTTP request, compiles that single TypeScript file on the fly using esbuild, and serves it.\n   - *Dependency Pre-bundling*: Vite uses esbuild (written in Go) to pre-bundle CommonJS/node_modules dependencies into optimized ESM once and caches them with HTTP 304 headers.\n   - *Production*: Uses Rollup / esbuild to generate tree-shaken, code-split static assets for production deployment.\n\n### Code Example\n```javascript\n// vite.config.ts (Modern Vite configuration)\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({\n  server: {\n    port: 3000,\n    hmr: {\n      overlay: true // Displays compile errors directly in browser overlay\n    }\n  },\n  optimizeDeps: {\n    // Pre-bundled via esbuild (compiled Go binary) on server start\n    include: ['lodash-es', 'rxjs', 'date-fns']\n  },\n  build: {\n    target: 'esnext',\n    minify: 'esbuild', // Sub-second minification\n    sourcemap: true,\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          vendor: ['rxjs', 'tslib']\n        }\n      }\n    }\n  }\n});\n```\n_Vite configuration demonstrating esbuild dependency pre-bundling and Rollup production chunking._\n\n### 💡 Senior Engine & Architecture Insight\n> Why esbuild is so fast: esbuild is written in native Go, compiles down to machine code, parses ASTs in parallel worker threads, and avoids intermediate serialization overhead common to JavaScript-based parsers.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why doesn't Vite use esbuild for production bundling instead of Rollup?**\n  *A:* While esbuild is blazing fast for compilation and minification, Rollup currently has more mature support for complex tree-shaking, CSS code splitting, and HTML plugin ecosystems.\n- **Q: How does modern Angular CLI (v17+) utilize Vite?**\n  *A:* Modern Angular CLI uses `esbuild` for compilation and Vite as the development server to provide instant startup and sub-second HMR.",
+      "spokenTip": "Vite starts instantly because it serves native ES modules on-demand in development instead of bundling the whole app up-front.",
+      "tags": [
+        "tooling",
+        "vite",
+        "webpack",
+        "esbuild",
+        "bundling",
+        "hmr",
+        "esm"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_tool_02",
+      "deckId": "deck_tooling",
+      "front": "How does Semantic Versioning (SemVer) work, and why is npm ci with package-lock.json mandatory in CI/CD pipelines?",
+      "back": "SemVer is `MAJOR.MINOR.PATCH` (`BREAKING.FEATURE.FIX`). In `package.json`, caret `^1.2.3` allows minor/patch updates (`< 2.0.0`), while tilde `~1.2.3` allows patch updates only (`< 1.3.0`). `npm ci` is mandatory in CI/CD because it strictly installs exact dependencies from `package-lock.json` without modifying the lockfile, guaranteeing 100% reproducible, deterministic builds.\n\n**Key Points:**\n- SemVer structure: MAJOR (breaking), MINOR (features), PATCH (fixes)\n- Prefixes: ^ (minor + patch) vs ~ (patch only) vs exact\n- package-lock.json integrity hashes and dependency resolution trees\n- npm ci (deterministic, fast, fails if out of sync) vs npm install (modifies lockfile)",
+      "notes": "### Comprehensive Senior Answer\nPackage management in enterprise environments requires deterministic repeatability:\n1. **SemVer (`MAJOR.MINOR.PATCH`)**:\n   - `MAJOR` (e.g. `2.0.0`): Incompatible breaking API changes.\n   - `MINOR` (e.g. `1.1.0`): Backwards-compatible new features.\n   - `PATCH` (e.g. `1.0.1`): Backwards-compatible bug fixes.\n2. **Version Prefixes in package.json**:\n   - `^1.2.3` (Caret): Allows updates to latest minor/patch (`>= 1.2.3 < 2.0.0`).\n   - `~1.2.3` (Tilde): Allows updates to latest patch only (`>= 1.2.3 < 1.3.0`).\n   - `1.2.3` (Exact): Pin strictly to this exact version.\n3. **Lockfile (`package-lock.json` / `pnpm-lock.yaml`)**:\n   - Records the exact pinned version, sub-dependency tree, and SHA-512 integrity hashes for every package.\n4. **`npm install` vs `npm ci`**:\n   - `npm install`: Updates `package-lock.json` if matching semver ranges are available. Running this on CI can pull in a newly released broken sub-dependency that broke 10 minutes ago!\n   - `npm ci`: Deletes `node_modules` and strictly installs the exact versions in `package-lock.json`. If `package.json` and `package-lock.json` are out of sync, `npm ci` throws an error and fails the build.\n\n### Code Example\n```json\n// package.json vs package-lock.json\n// package.json (Loose ranges)\n{\n  \"dependencies\": {\n    \"lodash\": \"^4.17.20\" // Allows npm install to pull 4.17.21 automatically!\n  }\n}\n\n// package-lock.json (Exact deterministic freeze)\n{\n  \"packages\": {\n    \"node_modules/lodash\": {\n      \"version\": \"4.17.21\",\n      \"resolved\": \"https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz\",\n      \"integrity\": \"sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==\"\n    }\n  }\n}\n\n// CI/CD Script (GitHub Actions / GitLab CI):\n// RUN: npm ci  <-- Guaranteed 100% deterministic build!\n```\n_Shows semver range in package.json versus exact integrity-hashed resolution in package-lock.json._\n\n### 💡 Senior Engine & Architecture Insight\n> Never add `package-lock.json` to `.gitignore`. Without committing your lockfile, different team members and CI/CD pipelines will download differing transient sub-dependencies, causing \"Works on my machine\" bugs.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is `npm audit` and how do you handle vulnerabilities in transitive dependencies?**\n  *A:* `npm audit` checks dependencies against known CVE databases. For transitive dependencies, use the `overrides` (npm) or `resolutions` (yarn/pnpm) field in `package.json` to force a patched version of a sub-dependency.\n- **Q: Why is `pnpm` more disk and speed efficient than traditional `npm`?**\n  *A:* `pnpm` uses a single global content-addressable storage store on disk, creating hard links in `node_modules` instead of duplicating gigabytes of packages across multiple projects.",
+      "spokenTip": "Always use npm ci in CI/CD pipelines because it strictly installs the exact pinned versions from package-lock.json without modifying it.",
+      "tags": [
+        "tooling",
+        "semver",
+        "npm",
+        "package-lock",
+        "ci-cd",
+        "dependencies",
+        "pnpm"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

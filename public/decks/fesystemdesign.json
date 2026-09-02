@@ -1,0 +1,103 @@
+{
+  "deck": {
+    "id": "deck_fesystemdesign",
+    "name": "Frontend System Design",
+    "description": "Real-time telemetry dashboards (500Hz), Autocomplete search systems, 1M row virtual tables, and multi-file resumable uploaders.",
+    "category": "fesystemdesign",
+    "color": "#D946EF",
+    "iconName": "Network",
+    "isDefault": true,
+    "totalCards": 5
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ui_10",
+      "deckId": "deck_fesystemdesign",
+      "front": "How would you model a multi-step approval workflow UI where available actions depend on status, role, feature flags, and server-side rules?",
+      "back": "I would treat the workflow as explicit states and transitions rather than scattering conditions across buttons. The server remains authoritative and should return current status, version, and allowed actions or enough policy data for the UI to derive them safely. The frontend can model this with a typed state machine or transition table, rendering actions from one policy layer.\n\n**Key Points:**\n- Centralizes state and transition rules.\n- Keeps authorization and concurrency authoritative on the server.\n- Tests a transition matrix and race conditions.",
+      "notes": "### Comprehensive Senior Answer\nI would treat the workflow as explicit states and transitions rather than scattering conditions across buttons. The server remains authoritative and should return current status, version, and allowed actions or enough policy data for the UI to derive them safely. The frontend can model this with a typed state machine or transition table, rendering actions from one policy layer.\n\nRole and feature flags improve the experience but do not authorize the operation. Every command includes the entity version so stale screens can receive a conflict and refresh. Pending transitions disable only incompatible actions, and failures preserve context with a recovery path. I would test the transition matrix, not only individual components, including role changes, flag rollout, stale versions, and actions that become invalid between display and submission.\n\n### 💡 Senior Engine & Architecture Insight\n> Centralizes state and transition rules.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Should the API return permissions or allowed actions?**\n- **How would you handle an approval that requires a comment and attachment?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Centralizes state and transition rules.\n✅ Keeps authorization and concurrency authoritative on the server.\n✅ Tests a transition matrix and race conditions.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Hides buttons and treats that as authorization.\n⚠️ Duplicates status conditions in many templates.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Centralizes state and transition rules.",
+      "tags": [
+        "fesystemdesign",
+        "Workflow Modeling",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_01",
+      "deckId": "deck_fesystemdesign",
+      "front": "Design an operations dashboard with several filterable widgets, near-real-time updates, role-specific actions, and export. Walk through browser, frontend, API, data, and deployment decisions.",
+      "back": "I would first clarify user roles, freshness, data volume, acceptable inconsistency between widgets, export size, and the most important task. The frontend route owns shareable filters in the URL and each widget has an independent loading, error, and freshness boundary. A query/cache layer keys data by tenant, role-relevant scope, and filters, while a real-time channel sends versioned invalidation or delta events with snapshot recovery.\n\n**Key Points:**\n- Clarifies freshness, volume, roles, and consistency first.\n- Designs independent UI fault boundaries and dashboard-shaped reads.\n- Includes exports, authorization, observability, and rollout.",
+      "notes": "### Comprehensive Senior Answer\nI would first clarify user roles, freshness, data volume, acceptable inconsistency between widgets, export size, and the most important task. The frontend route owns shareable filters in the URL and each widget has an independent loading, error, and freshness boundary. A query/cache layer keys data by tenant, role-relevant scope, and filters, while a real-time channel sends versioned invalidation or delta events with snapshot recovery.\n\nThe API should expose dashboard-shaped read models rather than forcing the browser to reconstruct large aggregates through many chatty calls. Expensive exports become durable background jobs with secure result links. Every action is authorized on the server and uses optimistic concurrency or idempotency as required. The database gets indexes and projections for the real filter paths. I would define performance budgets, traces across widgets, feature-flagged rollout, backward-compatible contracts, and degradation behavior when real-time updates or one dependency fails.\n\n### 💡 Senior Engine & Architecture Insight\n> Clarifies freshness, volume, roles, and consistency first.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would you use one dashboard endpoint or one endpoint per widget?**\n- **How would you make filters shareable without creating enormous URLs?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Clarifies freshness, volume, roles, and consistency first.\n✅ Designs independent UI fault boundaries and dashboard-shaped reads.\n✅ Includes exports, authorization, observability, and rollout.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Focuses only on drawing widgets.\n⚠️ Requires every widget to succeed before showing any content.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Clarifies freshness, volume, roles, and consistency first.",
+      "tags": [
+        "fesystemdesign",
+        "End-to-End Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_03",
+      "deckId": "deck_fesystemdesign",
+      "front": "Design an in-application notification center with unread counts, pagination, real-time delivery, and notification preferences.",
+      "back": "I would separate durable notification records from delivery channels. A notification has recipient scope, type, payload or render data, creation time, read state, and a stable ID. The API provides cursor pagination and an unread count, plus idempotent mark-read operations. Preferences control future delivery and channel behavior but should not silently erase already-created records unless that is the business rule.\n\n**Key Points:**\n- Separates durable records, channels, preferences, and UI cache.\n- Uses cursor pagination, idempotency, and reconnect reconciliation.\n- Includes safe rendering, accessibility, retention, and metrics.",
+      "notes": "### Comprehensive Senior Answer\nI would separate durable notification records from delivery channels. A notification has recipient scope, type, payload or render data, creation time, read state, and a stable ID. The API provides cursor pagination and an unread count, plus idempotent mark-read operations. Preferences control future delivery and channel behavior but should not silently erase already-created records unless that is the business rule.\n\nThe frontend query cache holds pages and count, applying versioned live events idempotently. On reconnect it refetches the count and recent page or resumes from a cursor. Optimistic mark-read can update both item and count, then reconcile with the server. Rendering must not trust arbitrary HTML payloads; structured templates and safe links are preferable. The system needs deduplication, retention, tenant isolation, accessibility for announcements, and metrics for creation, delivery lag, unread-count drift, and failures.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates durable records, channels, preferences, and UI cache.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you avoid the unread count becoming inconsistent?**\n- **Would you store rendered text or a template plus parameters?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates durable records, channels, preferences, and UI cache.\n✅ Uses cursor pagination, idempotency, and reconnect reconciliation.\n✅ Includes safe rendering, accessibility, retention, and metrics.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Keeps notifications only in a WebSocket connection.\n⚠️ Sends executable HTML from event payloads.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates durable records, channels, preferences, and UI cache.",
+      "tags": [
+        "fesystemdesign",
+        "Full-Stack Feature Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_fesys_01",
+      "deckId": "deck_fesystemdesign",
+      "front": "Frontend System Design: Design a high-frequency real-time stock/crypto or IoT telemetry dashboard receiving 500+ updates per second without freezing the UI.",
+      "back": "Key Architecture: 1) WebSocket client with auto-reconnection & heartbeat; 2) In-Memory Ring Buffer / Web Worker to buffer incoming ticks and crunch indicators; 3) Throttled RAF Dispatcher: batch UI updates to 60fps (16.6ms intervals) using `requestAnimationFrame`; 4) Localized Change Detection (OnPush / Signals) or Canvas/WebGL for charting.\n\n**Key Points:**\n- Decoupling ingestion frequency (500Hz) from display refresh rate (60Hz)\n- requestAnimationFrame / bufferTime(16) throttling\n- Web Workers for indicator crunching and calculations\n- Canvas / WebGL for charts over DOM/SVG\n- Binary serialization (Protobuf / MessagePack)",
+      "notes": "### Comprehensive Senior Answer\nSystem Design Walkthrough:\n1. **Network Layer**: WebSocket connection with binary protocols (Protocol Buffers or MessagePack) to reduce payload size. Reconnection backoff with jitter.\n2. **Buffer & Ingestion Layer**: Store streaming ticks in a typed circular ring buffer. Calculate moving averages, order book depth, and RSI indicators inside a dedicated **Web Worker** to keep the UI main thread free.\n3. **Render Throttling (60Hz Sync)**: Flush updates from the buffer to the UI at 60fps using a `requestAnimationFrame` loop or RxJS `bufferTime(16)`. Do not trigger re-renders on every individual tick.\n4. **Rendering Strategy**:\n   - Grid/Tables: Use Virtual Scrolling and fine-grained Signals so only the changed cell value updates, bypassing full table re-renders.\n   - Live Charts: Use HTML5 Canvas or WebGL (PixiJS / Lightweight Charts) instead of SVG or DOM elements.\n5. **Resilience**: Backpressure detection—if the main thread frame rate drops below 30fps, dynamically increase the buffer window and downsample tick frequencies.\n\n### Code Example\n```typescript\n// Decouple Ingestion from 60fps Rendering Loop\ninterface StockTick {\n  symbol: string;\n  price: number;\n  timestamp: number;\n}\n\nexport class TelemetryStreamManager {\n  private buffer: Map<string, StockTick> = new Map();\n  private rafId: number | null = null;\n  private onFlushCallback: (batch: StockTick[]) => void;\n\n  constructor(onFlush: (batch: StockTick[]) => void) {\n    this.onFlushCallback = onFlush;\n  }\n\n  // 1. Ingest 500+ ticks per second from WebSocket\n  ingestTick(tick: StockTick) {\n    // Store latest price in map (collapses duplicates within the frame)\n    this.buffer.set(tick.symbol, tick);\n\n    if (!this.rafId) {\n      // 2. Schedule single render flush on the next animation frame (16.6ms)\n      this.rafId = requestAnimationFrame(() => this.flush());\n    }\n  }\n\n  private flush() {\n    const batch = Array.from(this.buffer.values());\n    this.buffer.clear();\n    this.rafId = null;\n    // 3. Dispatch batch to Fine-Grained Signal or Canvas chart\n    this.onFlushCallback(batch);\n  }\n}\n```\n_Decouples 500Hz network stream ingestion from 60fps UI rendering using requestAnimationFrame batching._\n\n### 💡 Senior Engine & Architecture Insight\n> If you push 500 updates/sec directly into the React/Angular change detection tree, the main thread will lock up completely. You must decouple network ingestion rate (500Hz) from screen rendering refresh rate (60Hz) using a buffer and `requestAnimationFrame`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should you choose HTML5 Canvas over SVG for high-frequency charts?**\n  *A:* SVG creates thousands of individual DOM elements that browser engines must layout, repaint, and manage in memory. Canvas is an immediate-mode bitmap rasterized directly on the GPU without DOM tree overhead.\n- **Q: How do you handle client backpressure when the browser cannot keep up with network throughput?**\n  *A:* Drop intermediate price ticks and retain only the latest price per symbol per animation frame (lossy collapsing), or notify the backend via WebSocket to downsample the stream frequency.",
+      "spokenTip": "Decouple network ingestion from screen refresh: buffer streaming messages in a worker or ring buffer and flush to the DOM at 60fps via requestAnimationFrame.",
+      "tags": [
+        "fesystemdesign",
+        "system-design",
+        "websockets",
+        "telemetry",
+        "high-frequency",
+        "raf",
+        "web-workers"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_fesys_02",
+      "deckId": "deck_fesystemdesign",
+      "front": "Frontend System Design: Design an enterprise-grade Autocomplete & Search system with keyboard navigation, caching, race condition prevention, and offline capability.",
+      "back": "Key Architecture: 1) Input pipeline with `debounceTime(250)` and `distinctUntilChanged()`; 2) `switchMap` to cancel stale in-flight requests; 3) Multi-tier cache (In-Memory LRU Cache + IndexedDB fallback); 4) Complete WAI-ARIA Combobox accessibility (`role=\"combobox\"`, `aria-autocomplete=\"list\"`, `aria-activedescendant`); 5) Full keyboard navigation (Arrow Up/Down, Enter, Escape).\n\n**Key Points:**\n- Race condition prevention via switchMap or AbortSignal\n- LRU caching for instant re-queries\n- WAI-ARIA Combobox 1.2 specifications and aria-activedescendant focus pattern\n- Highlighting matching text tokens in results",
+      "notes": "### Comprehensive Senior Answer\nSystem Architecture Breakdown:\n1. **Input Pipeline**: Listen to `input` event -> filter empty query -> `debounceTime(250)` -> `distinctUntilChanged()`.\n2. **Cancellation & Race Conditions**: Pipe through `switchMap()` or `AbortController`. When user types a new character, abort previous HTTP network socket immediately.\n3. **Caching Strategy**: Implement an in-memory **LRU Cache** (e.g. max 100 queries) to return instant results for previously typed queries without hitting the network. Stale-While-Revalidate pattern.\n4. **Accessibility (WAI-ARIA Combobox Pattern)**:\n   - Container: `role=\"combobox\"`, `aria-expanded=\"true/false\"`, `aria-controls=\"results-listbox\"`\n   - Results list: `role=\"listbox\"`, items `role=\"option\"`\n   - Manage active item with `aria-activedescendant=\"option-id\"` as the user presses ArrowUp / ArrowDown without losing focus from the input box.\n5. **Keyboard Support**: Down/Up navigates suggestions, Enter selects, Escape closes suggestions and clears.\n\n### Code Example\n```typescript\n// Complete Reactive Search Service Pipeline with LRU Cache\nimport { Injectable, inject } from '@angular/core';\nimport { HttpClient } from '@angular/common/http';\nimport { Observable, of, debounceTime, distinctUntilChanged, switchMap, tap, catchError } from 'rxjs';\n\nexport interface SearchResult {\n  id: string;\n  title: string;\n  category: string;\n}\n\n@Injectable({ providedIn: 'root' })\nexport class AutocompleteSearchService {\n  private http = inject(HttpClient);\n  private lruCache = new Map<string, SearchResult[]>(); // Simple LRU Cache\n  private readonly MAX_CACHE = 100;\n\n  search(query$: Observable<string>): Observable<SearchResult[]> {\n    return query$.pipe(\n      debounceTime(250),\n      distinctUntilChanged(),\n      switchMap((term) => {\n        const cleanTerm = term.trim().toLowerCase();\n        if (!cleanTerm) return of([]);\n\n        // 1. Check LRU Cache for instant sub-millisecond response\n        if (this.lruCache.has(cleanTerm)) {\n          return of(this.lruCache.get(cleanTerm)!);\n        }\n\n        // 2. Fetch from API with automatic cancellation of in-flight queries\n        return this.http.get<SearchResult[]>(`/api/search?q=${encodeURIComponent(cleanTerm)}`).pipe(\n          tap((results) => {\n            if (this.lruCache.size >= this.MAX_CACHE) {\n              const oldestKey = this.lruCache.keys().next().value;\n              if (oldestKey) this.lruCache.delete(oldestKey);\n            }\n            this.lruCache.set(cleanTerm, results);\n          }),\n          catchError(() => of([]))\n        );\n      })\n    );\n  }\n}\n```\n_Reactive Autocomplete search service with LRU in-memory caching and switchMap cancellation._\n\n### 💡 Senior Engine & Architecture Insight\n> Stale race conditions occur when query \"abc\" returns slower than query \"abcd\". `switchMap` (or `AbortController` in fetch) cancels the in-flight HTTP request for \"abc\", ensuring older slower network responses can never overwrite newer search results.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should you manage focus with `aria-activedescendant` rather than focusing the `<li>` elements directly?**\n  *A:* Using `aria-activedescendant` keeps keyboard focus inside the `<input>` element so the user can continue typing or editing without losing cursor position, while still announcing the active dropdown item to screen readers.\n- **Q: How do you highlight the matching substring in autocomplete results safely?**\n  *A:* Split the text into matching and non-matching tokens using regex and render them with `<mark>` or `<strong>` tags, escaping HTML to prevent XSS injection.",
+      "spokenTip": "Debounce input, switchMap to cancel stale queries, cache via LRU, and follow the W3C Combobox ARIA pattern.",
+      "tags": [
+        "fesystemdesign",
+        "system-design",
+        "search",
+        "autocomplete",
+        "debounce",
+        "switchMap",
+        "a11y",
+        "lru-cache"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

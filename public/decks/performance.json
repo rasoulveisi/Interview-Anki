@@ -1,0 +1,158 @@
+{
+  "deck": {
+    "id": "deck_performance",
+    "name": "Frontend Performance & Vitals",
+    "description": "Core Web Vitals (LCP, INP, CLS), Virtual Scrolling 100k items, Tree Shaking, Bundle Optimization, and Code Splitting.",
+    "category": "performance",
+    "color": "#10B981",
+    "iconName": "Zap",
+    "isDefault": true,
+    "totalCards": 8
+  },
+  "cards": [
+    {
+      "id": "card_gpt_ui_09",
+      "deckId": "deck_performance",
+      "front": "A table can contain 100,000 rows with selection, keyboard navigation, and inline editing. How would virtualization affect component and state design?",
+      "back": "Virtualization means most rows are not mounted, so DOM presence cannot be the source of truth for selection, edits, or focus identity. I would keep state keyed by stable row identifiers outside row component instances. The virtualizer needs deterministic row measurement or a strategy for variable heights, overscan tuned to scrolling behavior, and a way to restore focus when a row re-enters the viewport.\n\n**Key Points:**\n- Separates logical state from mounted DOM.\n- Covers data fetching, identity, focus, editing, and accessibility.\n- Recognizes virtualization does not solve backend scale.",
+      "notes": "### Comprehensive Senior Answer\nVirtualization means most rows are not mounted, so DOM presence cannot be the source of truth for selection, edits, or focus identity. I would keep state keyed by stable row identifiers outside row component instances. The virtualizer needs deterministic row measurement or a strategy for variable heights, overscan tuned to scrolling behavior, and a way to restore focus when a row re-enters the viewport.\n\nServer-side paging or windowed fetching may still be required; virtualization only reduces DOM cost, not network, memory, sorting, or filtering cost. Inline edits should survive unmounting, and validation errors need a navigation path back to the row. Accessibility is challenging because screen readers expect coherent position and count information, so I would test the chosen grid or virtualizer rather than assuming visual performance is sufficient.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates logical state from mounted DOM.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would “select all” work when only one page is loaded?**\n- **What makes variable-height virtualization expensive?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates logical state from mounted DOM.\n✅ Covers data fetching, identity, focus, editing, and accessibility.\n✅ Recognizes virtualization does not solve backend scale.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Stores row selection only inside row components.\n⚠️ Assumes rendering fewer rows solves sorting and network costs.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates logical state from mounted DOM.",
+      "tags": [
+        "performance",
+        "Performance / Interaction Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_fe_01",
+      "deckId": "deck_performance",
+      "front": "A product manager says, “The application feels slow.” How would you turn that into an actionable frontend performance investigation?",
+      "back": "I would first define the slow journey, user group, device, network, and expected outcome. “Slow” may mean initial load, delayed input response, janky scrolling, a late API, or confusing feedback. I would compare real-user telemetry with a controlled reproduction and break the journey into network, JavaScript, rendering, and backend time.\n\n**Key Points:**\n- Clarifies the journey and affected population.\n- Separates network, main thread, rendering, and backend contributions.\n- Defines a measurable target and validates with user-relevant data.",
+      "notes": "### Comprehensive Senior Answer\nI would first define the slow journey, user group, device, network, and expected outcome. “Slow” may mean initial load, delayed input response, janky scrolling, a late API, or confusing feedback. I would compare real-user telemetry with a controlled reproduction and break the journey into network, JavaScript, rendering, and backend time.\n\nFor loading, I would inspect resource waterfalls, bundle execution, critical rendering, and meaningful content timing. For interaction, I would profile main-thread tasks, component updates, layout, and paint. I would correlate frontend spans with API traces where possible. Then I would choose the largest verified bottleneck, set a measurable target and performance budget, change one relevant factor, and validate on representative hardware. A faster benchmark that does not improve the user's task is not a successful optimization.\n\n### 💡 Senior Engine & Architecture Insight\n> Clarifies the journey and affected population.\n\n### 🎯 Probable Interviewer Follow-ups\n- **How would you investigate a problem that occurs only on low-end mobile devices?**\n- **Which performance metrics would you track for an internal business application?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Clarifies the journey and affected population.\n✅ Separates network, main thread, rendering, and backend contributions.\n✅ Defines a measurable target and validates with user-relevant data.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Starts optimizing code before reproducing the issue.\n⚠️ Uses only a local desktop Lighthouse score as evidence.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Clarifies the journey and affected population.",
+      "tags": [
+        "performance",
+        "Performance / Investigation",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_fe_03",
+      "deckId": "deck_performance",
+      "front": "A page scrolls smoothly until live updates start arriving every second. How would you determine whether the problem is rendering, layout, or the update architecture?",
+      "back": "I would record a performance trace during the transition and inspect long tasks, scripting, style recalculation, layout, paint, and frame timing. I would correlate update events with component render or change-detection profiles and inspect whether each update rebuilds large collections, changes layout-critical dimensions, or causes repeated read/write layout cycles.\n\n**Key Points:**\n- Uses a browser trace and framework profiler together.\n- Considers batching, identity, derivation, virtualization, and layout.\n- Preserves product correctness while controlling update frequency.",
+      "notes": "### Comprehensive Senior Answer\nI would record a performance trace during the transition and inspect long tasks, scripting, style recalculation, layout, paint, and frame timing. I would correlate update events with component render or change-detection profiles and inspect whether each update rebuilds large collections, changes layout-critical dimensions, or causes repeated read/write layout cycles.\n\nThe architecture may need batching, coalescing, normalized updates, memoized derivation, stable row identity, or virtualization. If values change more frequently than users can perceive, I may sample or schedule visual updates while preserving the underlying data. CSS containment or animation choices may reduce layout and paint cost, but only after proving those stages dominate. I would test with production-like row counts and update rates and make sure throttling does not hide time-sensitive information users actually need.\n\n### 💡 Senior Engine & Architecture Insight\n> Uses a browser trace and framework profiler together.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is layout thrashing?**\n- **How would you distinguish data frequency from visual refresh frequency?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Uses a browser trace and framework profiler together.\n✅ Considers batching, identity, derivation, virtualization, and layout.\n✅ Preserves product correctness while controlling update frequency.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Assumes the network frequency is automatically the render frequency.\n⚠️ Adds CSS `will-change` broadly without measuring paint behavior.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Uses a browser trace and framework profiler together.",
+      "tags": [
+        "performance",
+        "Rendering / Debugging",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_perf_01",
+      "deckId": "deck_performance",
+      "front": "What are Core Web Vitals (LCP, INP, CLS)? How do you audit, diagnose, and optimize each in an enterprise Single Page Application?",
+      "back": "Core Web Vitals are Google’s user-experience metrics: 1) **LCP (Largest Contentful Paint, <= 2.5s)**: Loading speed of main viewport content (hero image/h1). 2) **INP (Interaction to Next Paint, <= 200ms)**: Responsiveness to user clicks/keys (replaces FID). 3) **CLS (Cumulative Layout Shift, <= 0.1)**: Visual stability. Audit via Chrome DevTools Performance panel, PageSpeed Insights, and the `web-vitals` library.\n\n**Key Points:**\n- LCP (<=2.5s), INP (<=200ms, replaces FID), CLS (<=0.1)\n- LCP fixes: fetchpriority=\"high\", preloading, modern image formats (AVIF/WebP), SSR\n- INP fixes: break long tasks (>50ms) via scheduler.yield(), offload to Web Workers\n- CLS fixes: aspect-ratio on images/ads, skeleton dimensions, font-display: swap",
+      "notes": "### Comprehensive Senior Answer\nCore Web Vitals measure real-world user experience across 3 pillars:\n1. **LCP (Largest Contentful Paint - target <= 2.5s)**:\n   - *Bottlenecks*: Slow server TTFB, render-blocking JS/CSS bundles, unoptimized hero images.\n   - *Fixes*: Use Server-Side Rendering (SSR) / Edge caching, add `<link rel=\"preload\">` and `fetchpriority=\"high\"` on hero images, and compress images with WebP/AVIF.\n2. **INP (Interaction to Next Paint - target <= 200ms)**:\n   - *Bottlenecks*: Long tasks (> 50ms) blocking the main thread during user clicks, heavy React/Angular state reconciliations.\n   - *Fixes*: Break long tasks using `scheduler.yield()` or `setTimeout`, offload calculations to Web Workers, and use `useTransition` / Signals.\n3. **CLS (Cumulative Layout Shift - target <= 0.1)**:\n   - *Bottlenecks*: Images or ads loading without explicit dimensions, dynamic content inserted above existing content, FOIT/FOUT web fonts.\n   - *Fixes*: Always set `width` and `height` attributes or CSS `aspect-ratio` on images, use `font-display: swap` with size-adjust fallbacks, and use skeleton loaders with reserved dimensions.\n\n### Code Example\n```html\n<!-- 1. LCP Optimization: High-priority preloaded hero image -->\n<link rel=\"preload\" as=\"image\" href=\"/hero.webp\" fetchpriority=\"high\" />\n\n<img \n  src=\"/hero.webp\" \n  alt=\"Main Dashboard Banner\" \n  width=\"1200\" \n  height=\"600\" \n  fetchpriority=\"high\" \n  decoding=\"async\" \n/>\n\n<!-- 2. CLS Prevention: Reserve layout box with CSS aspect-ratio -->\n<style>\n  .ad-slot {\n    width: 100%;\n    aspect-ratio: 16 / 9; /* Prevents layout shift when ad finishes loading! */\n    background-color: #f3f4f6;\n  }\n</style>\n```\n_Optimizes LCP with fetchpriority=\"high\" and prevents CLS with explicit aspect-ratio._\n\n### 💡 Senior Engine & Architecture Insight\n> INP measures all interactions across the full page lifecycle, taking the worst 98th-percentile interaction delay. Unlike legacy FID (which only measured the very first click), INP catches laggy dropdowns, slow autocomplete inputs, and stuttering filter tabs throughout the session.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you break up a long JavaScript task to optimize INP in modern browsers?**\n  *A:* Use `await scheduler.yield()` (or fallback to `new Promise(resolve => setTimeout(resolve, 0))`) inside long computation loops to yield the main thread back to the browser for rendering and input handling.\n- **Q: What is the difference between Lab Data (Lighthouse) and Field Data (CrUX)?**\n  *A:* Lab data is collected on simulated throttling in a clean environment. Field data (Chrome User Experience Report) is collected from real users on diverse devices, network conditions, and interactions, and directly impacts Google search rankings.",
+      "spokenTip": "LCP measures loading of main content, INP measures click responsiveness by breaking long tasks, and CLS measures visual stability with reserved dimensions.",
+      "tags": [
+        "performance",
+        "core-web-vitals",
+        "lcp",
+        "inp",
+        "cls",
+        "lighthouse",
+        "optimization"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_perf_02",
+      "deckId": "deck_performance",
+      "front": "How does Virtual Scrolling (Windowing) render 100,000 records smoothly? Explain viewport math, spacer offsets, and dynamic item heights.",
+      "back": "Virtual scrolling renders only the small subset of DOM items currently visible in the scroll viewport (~20-40 elements) plus a small overscan buffer. It creates top and bottom spacer padding (or a `transform: translateY()`) to simulate the full scrollbar height, keeping memory low and DOM nodes constant regardless of list size.\n\n**Key Points:**\n- Concept: rendering only visible viewport items (~30 DOM nodes) regardless of list size\n- Mathematical formulas for start index, end index, and translateY transform offset\n- Overscan buffer for smooth scrolling\n- Dynamic height challenges solved via ResizeObserver size caching",
+      "notes": "### Comprehensive Senior Answer\nRendering 100,000 DOM elements causes browser tabs to crash due to massive memory allocations and seconds-long layout calculations.\n\n**Virtual Scrolling Architecture**:\n1. **Viewport Calculation**: An outer container with `overflow-y: auto` listens to `scroll` events.\n2. **Index Math**: Given total items $N$ and item height $H$:\n   - Total Scrollable Height = $N \\times H$\n   - First Visible Index = $\\lfloor \\text{scrollTop} / H \\rfloor$\n   - Visible Count = $\\lceil \\text{viewportHeight} / H \\rceil$\n   - Overscan: Add 3-5 buffer items above and below to prevent blank flickering during fast scrolls.\n3. **DOM Virtualization**: Only the 30 active items are rendered into the DOM. An absolute `transform: translateY(firstIndex * itemHeight)` or top spacer padding offsets the items to their exact scroll position.\n4. **Dynamic Item Heights**: Use a binary search tree or index map to cache measured DOM heights dynamically via `ResizeObserver`.\n\n### Code Example\n```typescript\nimport { Component, ChangeDetectionStrategy, signal } from '@angular/core';\nimport { ScrollingModule } from '@angular/cdk/scrolling';\n\n@Component({\n  selector: 'app-virtual-list',\n  standalone: true,\n  imports: [ScrollingModule],\n  changeDetection: ChangeDetectionStrategy.OnPush,\n  template: `\n    <!-- Angular CDK Virtual Scroll Viewport -->\n    <cdk-virtual-scroll-viewport itemSize=\"50\" class=\"viewport\">\n      <div *cdkVirtualFor=\"let item of items(); trackBy: trackById\" class=\"item-row\">\n        <span>#{{ item.id }}</span> - <span>{{ item.name }}</span>\n      </div>\n    </cdk-virtual-scroll-viewport>\n  `,\n  styles: [`\n    .viewport { height: 400px; width: 100%; border: 1px solid #ccc; }\n    .item-row { height: 50px; display: flex; align-items: center; padding: 0 16px; }\n  `]\n})\nexport class VirtualListComponent {\n  // 100,000 records handled with zero DOM lag!\n  items = signal(Array.from({ length: 100000 }, (_, i) => ({ id: i, name: `Customer ${i}` })));\n  trackById = (index: number, item: any) => item.id;\n}\n```\n_Uses Angular CDK Virtual Scroll Viewport to render 100k items maintaining ~30 active DOM nodes._\n\n### 💡 Senior Engine & Architecture Insight\n> Ensure you apply `contain: strict` (or `contain: layout size`) on the virtual scroll container in CSS. This isolates layout recalculations inside the container, preventing list scrolls from triggering global page reflows.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the purpose of the overscan / buffer parameter in virtual scrolling?**\n  *A:* Overscan renders a few extra items just outside the visible viewport boundary so that fast scrolling does not expose brief blank flashes before new items mount.\n- **Q: How do you handle keyboard navigation and accessibility in a virtualized list?**\n  *A:* Manage focus with `aria-activedescendant` on the container or automatically programmatically scroll the viewport (`scrollToIndex`) when the user presses ArrowUp or ArrowDown.",
+      "spokenTip": "Virtual scrolling renders only visible items plus an overscan buffer, using CSS transform offsets to simulate full scrollbar height.",
+      "tags": [
+        "performance",
+        "virtual-scrolling",
+        "cdk",
+        "windowing",
+        "dom-optimization",
+        "angular"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_perf_03",
+      "deckId": "deck_performance",
+      "front": "How do modern bundlers perform Tree-Shaking? Explain `\"sideEffects\": false`, Barrel File traps, and Dynamic Imports.",
+      "back": "Tree-shaking relies on static ES Module (`import`/`export`) analysis to eliminate dead code. `\"sideEffects\": false` in `package.json` tells bundlers that unused module exports can be safely pruned without executing initialization code. **Barrel files (`index.ts`)** can accidentally pull in massive circular dependency graphs if not configured properly.\n\n**Key Points:**\n- Static ESM (import/export) requirements for tree-shaking vs CommonJS limitations\n- \"sideEffects\": false in package.json to prune unreferenced modules\n- Barrel file (index.ts) bundling pitfalls and import bloat\n- /* @__PURE__ */ annotations on top-level function calls\n- Dynamic imports (import()) for route and component code-splitting",
+      "notes": "### Comprehensive Senior Answer\nModern bundlers (Webpack, Rollup, Vite/esbuild) optimize production bundles through static analysis:\n1. **ESM Static Analysis**: Unlike CommonJS `require()`, ES6 `import`/`export` syntax is strictly static. The bundler builds an Abstract Syntax Tree (AST) and traces all reachable symbols from the entry point.\n2. **`\"sideEffects\": false` in `package.json`**: By default, bundlers assume importing a file might execute global side-effects (like modifying `window` or polyfilling prototypes). Declaring `\"sideEffects\": false` (or an array of paths) gives the bundler permission to skip unused files completely.\n3. **The Barrel File Trap (`index.ts`)**: Re-exporting 50 components from an `index.ts` barrel file can cause the bundler to load and parse all 50 files when a component only imports one icon, slowing down dev builds and ballooning bundle size.\n4. **Dynamic Imports (`import(\\'./widget\\')`)**: Creates separate async chunks loaded on demand via code splitting (e.g. route-level lazy loading and Angular `@defer`).\n\n### Code Example\n```json\n// package.json: Enabling aggressive tree-shaking\n{\n  \"name\": \"my-ui-library\",\n  \"version\": \"1.0.0\",\n  \"sideEffects\": [\n    \"*.css\",\n    \"*.scss\",\n    \"./src/polyfills.ts\"\n  ]\n}\n\n// Dynamic Import (Code Splitting in TypeScript / Angular / React)\nasync function openHeavyExportModal() {\n  // Lazy loads the 500KB XLSX library ONLY when the user clicks Export!\n  const { exportToExcel } = await import('./excel-exporter');\n  exportToExcel(this.dataset);\n}\n```\n_Configuring package.json sideEffects and dynamic runtime imports for code splitting._\n\n### 💡 Senior Engine & Architecture Insight\n> Common tree-shaking killer: Top-level function calls (like `export const defaultClient = createApiClient();`). Even if `defaultClient` is never imported, the bundler cannot prove `createApiClient()` is pure and must retain it unless annotated with `/* @__PURE__ */`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What does the `/* @__PURE__ */` comment tell the minifier?**\n  *A:* It instructs tools like Terser and esbuild that the function call has no side effects, allowing the bundler to safely drop the assignment if the variable is unused.\n- **Q: Why does CommonJS (`require()`) prevent effective tree-shaking?**\n  *A:* CommonJS imports and exports are dynamic and evaluated at runtime (e.g. `if (condition) require(...)`), making it impossible for the bundler to statically guarantee which exports are unused at compile-time.",
+      "spokenTip": "Tree-shaking removes unused code using static ESM analysis and \"sideEffects\": false. Avoid massive barrel files that pull in unwanted modules.",
+      "tags": [
+        "performance",
+        "tree-shaking",
+        "bundling",
+        "vite",
+        "webpack",
+        "code-splitting"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_perf_04",
+      "deckId": "deck_performance",
+      "front": "How do you detect and fix Memory Leaks in a Single Page Application? Walk through taking Heap Snapshots, finding Detached DOM Trees, and analyzing Retaining Paths.",
+      "back": "Take three successive Heap Snapshots in Chrome DevTools: 1) Baseline, 2) After performing user action, 3) After closing/navigating away. Filter by \"Objects allocated between Snapshot 1 and 2\" or search for `Detached` to find detached HTML elements. Follow the **Retainer Path** from the detached element up to the root window/closure to identify the exact uncleaned event listener, subscription, or global array keeping it alive.\n\n**Key Points:**\n- Detached DOM nodes: elements removed from DOM but held by JS closures/listeners\n- Heap snapshot diagnostic procedure (Snapshot 1 baseline -> Action -> Snapshot 2 compare)\n- Retainers panel inspection to trace root holding path\n- Shallow Size vs Retained Size",
+      "notes": "### Comprehensive Senior Answer\nIn single-page applications that run for hours without full page reloads, memory leaks degrade browser responsiveness and eventually cause tab crashes:\n\n1. **Detached DOM Tree**: Occurs when a component is unmounted and removed from the DOM tree, but a JavaScript reference (e.g. an uncancelled `addEventListener`, RxJS subscription, or global array) still holds a pointer to an element inside it. The entire DOM subtree stays pinned in browser RAM.\n2. **Diagnostic Workflow in Chrome DevTools**:\n   - Open DevTools -> **Memory** tab -> Select **Heap snapshot**.\n   - Take Snapshot 1 (baseline) -> Open a modal/feature -> Close the modal -> Take Snapshot 2.\n   - Filter class filter by `Detached` (e.g. `Detached HTMLDivElement`).\n   - Click the detached node and inspect the bottom **Retainers** panel. Trace the yellow/red references to find the exact variable or closure retaining the object.\n3. **Resolution**: Unregister native listeners in teardown, use `takeUntilDestroyed()`, disconnect `ResizeObserver`/`IntersectionObserver` instances, and clear global cache maps.\n\n### Code Example\n```typescript\n// ❌ LEAK: Global array retains destroyed component instance\nconst telemetryQueue: Array<() => void> = [];\n\nexport class LeakingModalComponent implements OnInit {\n  ngOnInit() {\n    // Closure captures 'this' (the component instance!) indefinitely\n    telemetryQueue.push(() => this.sendAnalytics());\n  }\n}\n\n// ✅ FIXED: Clean up callback or use WeakRef\nexport class CleanModalComponent implements OnInit, OnDestroy {\n  private handler = () => this.sendAnalytics();\n\n  ngOnInit() {\n    telemetryQueue.push(this.handler);\n  }\n\n  ngOnDestroy() {\n    const idx = telemetryQueue.indexOf(this.handler);\n    if (idx !== -1) telemetryQueue.splice(idx, 1);\n  }\n}\n```\n_Shows closure retention leak in global arrays and proper teardown in ngOnDestroy._\n\n### 💡 Senior Engine & Architecture Insight\n> Understand **Shallow Size vs Retained Size**: Shallow Size is the memory held by the object itself (primitive fields). Retained Size is the total memory that will be freed automatically once the object is garbage collected. Look for objects with huge Retained Size in heap snapshots.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the purpose of `WeakMap` and `WeakSet` in preventing memory leaks?**\n  *A:* `WeakMap` holds weak references to its key objects. If no other references to the key object exist, the entry is automatically garbage collected without manual deletion.\n- **Q: Why do detached DOM nodes consume significantly more memory than plain JavaScript objects?**\n  *A:* Because a detached DOM element retains its entire subtree, native C++ DOM bindings, computed style trees, and attached event listener tables in browser memory.",
+      "spokenTip": "Take before-and-after heap snapshots, search for \"Detached\" elements, and follow the Retainer tree up to the uncleaned listener or subscription.",
+      "tags": [
+        "performance",
+        "memory-leaks",
+        "heap-snapshot",
+        "devtools",
+        "profiling",
+        "garbage-collection"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_perf_05",
+      "deckId": "deck_performance",
+      "front": "How do Web Workers achieve zero-lag UI responsiveness for heavy client-side computations? What are the limitations and communication trade-offs?",
+      "back": "Web Workers run JavaScript on a separate OS background thread, keeping the main thread free for 60fps rendering, smooth scrolling, and instant user input handling (INP < 50ms). They communicate with the main thread via asynchronous message passing (`postMessage` / `Structured Clone` or `SharedArrayBuffer`). They cannot access the DOM or `window` directly.\n\n**Key Points:**\n- Main thread protection: keeping long tasks (<50ms) off the main thread to optimize INP\n- No DOM / window access inside worker scope\n- Data transfer mechanisms: Structured Clone (copy) vs Transferable Objects (zero-copy)\n- Worker pools and Comlink RPC abstraction",
+      "notes": "### Comprehensive Senior Answer\nThe browser runs JavaScript, layout, and painting on a single Main Thread. Any CPU computation taking over 50ms (e.g. client-side Excel CSV parsing, image resizing/filtering, client-side vector search, cryptography) freezes the UI, causing jank and failing INP.\n\n**Web Worker Architecture**:\n1. **Thread Isolation**: The worker operates in its own execution context (`DedicatedWorkerGlobalScope`). It has access to `fetch`, `IndexedDB`, and `WebSockets`, but **no access to the DOM, `document`, or `window`**.\n2. **Data Transfer Performance**:\n   - *Structured Clone*: Default `postMessage(data)` clones data via serialization, adding minor latency for large objects.\n   - *Transferable Objects*: By transferring ownership of an `ArrayBuffer` (`postMessage(buffer, [buffer])`), data is moved with **zero copy and zero latency ($O(1)$ transfer)**.\n3. **Modern DX (Comlink)**: Libraries like Google's `Comlink` use `Proxy` objects to expose worker functions as simple async Promise calls on the main thread.\n\n### Code Example\n```typescript\n// 1. worker.ts (Runs on background thread)\nself.onmessage = (event: MessageEvent<ArrayBuffer>) => {\n  const dataView = new Uint8Array(event.data);\n  // Perform heavy image processing / crypto hashing...\n  for (let i = 0; i < dataView.length; i++) {\n    dataView[i] = dataView[i] ^ 0xFF; // Invert pixels\n  }\n  // Zero-copy transfer back to main thread\n  self.postMessage(event.data, [event.data]);\n};\n\n// 2. main.ts (Main UI thread)\nconst worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });\n\nfunction processHeavyData(buffer: ArrayBuffer) {\n  // Transfer buffer ownership to worker with 0ms copy overhead!\n  worker.postMessage(buffer, [buffer]);\n\n  worker.onmessage = (event) => {\n    console.log('Processed buffer received without blocking main UI thread!');\n    renderImage(event.data);\n  };\n}\n```\n_Uses Web Worker with Transferable Objects for zero-copy background data processing._\n\n### 💡 Senior Engine & Architecture Insight\n> Web Workers have an initialization overhead (~10ms-30ms to boot the worker thread). Do not spin up and destroy workers for micro-tasks; keep a persistent worker pool for background tasks.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between Web Workers and Service Workers?**\n  *A:* Web Workers are dedicated background threads for heavy computations. Service Workers are event-driven network proxies that intercept HTTP requests and manage caching offline.\n- **Q: How does `SharedArrayBuffer` with `Atomics` differ from standard `postMessage`?**\n  *A:* `SharedArrayBuffer` allows the main thread and worker to read/write the exact same shared memory address simultaneously without message passing, using `Atomics` for thread-safe lock synchronization.",
+      "spokenTip": "Offload heavy computations (>50ms) to Web Workers using Transferable Objects or Comlink so your main UI thread never drops below 60fps.",
+      "tags": [
+        "performance",
+        "web-workers",
+        "multithreading",
+        "inp",
+        "transferable-objects",
+        "comlink"
+      ],
+      "difficulty": "Senior",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

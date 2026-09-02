@@ -1,0 +1,276 @@
+{
+  "version": "2.0.0",
+  "updatedAt": "2026-09-02T10:59:47.366Z",
+  "decks": [
+    {
+      "id": "deck_javascript",
+      "category": "javascript",
+      "name": "JavaScript Core & Deep Dive",
+      "description": "Scope, Closures, Event Loop, Microtasks/Macrotasks, Prototypes, Execution Context, this, Promises, and Concurrency.",
+      "color": "#F59E0B",
+      "iconName": "FileCode",
+      "cardCount": 12,
+      "filename": "javascript.json"
+    },
+    {
+      "id": "deck_typescript",
+      "category": "typescript",
+      "name": "TypeScript Mastery",
+      "description": "Type inference, Interfaces vs Types, Generics, any/unknown/never, Type Guards, Discriminated Unions, and Utility Types.",
+      "color": "#3B82F6",
+      "iconName": "FileCode2",
+      "cardCount": 13,
+      "filename": "typescript.json"
+    },
+    {
+      "id": "deck_angular",
+      "category": "angular",
+      "name": "Angular — Modern & Deep Dive",
+      "description": "Signals, @defer, Change Detection & OnPush, DI Injector Hierarchy, Typed Forms, HTTP Interceptors, and Zoneless.",
+      "color": "#EF4444",
+      "iconName": "Boxes",
+      "cardCount": 21,
+      "filename": "angular.json"
+    },
+    {
+      "id": "deck_rxjs",
+      "category": "rxjs",
+      "name": "RxJS Reactive Programming",
+      "description": "Observables, Subjects, Higher-order operators (switchMap/mergeMap/concatMap/exhaustMap), Combinators, and Leak Prevention.",
+      "color": "#EC4899",
+      "iconName": "GitMerge",
+      "cardCount": 12,
+      "filename": "rxjs.json"
+    },
+    {
+      "id": "deck_statemanagement",
+      "category": "statemanagement",
+      "name": "State Management & NgRx",
+      "description": "Local vs Global state, NgRx Store, Selectors, Effects, Entity Adapters, NgRx SignalStore, and Normalization.",
+      "color": "#8B5CF6",
+      "iconName": "Layers",
+      "cardCount": 9,
+      "filename": "statemanagement.json"
+    },
+    {
+      "id": "deck_htmlcss",
+      "category": "htmlcss",
+      "name": "HTML5 & Modern CSS",
+      "description": "Semantic HTML, Box Model, Stacking Context & z-index, Flexbox vs Grid, Container Queries, Cascade Layers, and Specificity.",
+      "color": "#F97316",
+      "iconName": "Palette",
+      "cardCount": 8,
+      "filename": "htmlcss.json"
+    },
+    {
+      "id": "deck_browser",
+      "category": "browser",
+      "name": "Web Browser Fundamentals",
+      "description": "Critical Rendering Path, Layout Thrashing, Reflow/Repaint, Web Workers, Service Workers, IndexedDB, and SOP/CORS.",
+      "color": "#06B6D4",
+      "iconName": "Globe",
+      "cardCount": 6,
+      "filename": "browser.json"
+    },
+    {
+      "id": "deck_performance",
+      "category": "performance",
+      "name": "Frontend Performance & Vitals",
+      "description": "Core Web Vitals (LCP, INP, CLS), Virtual Scrolling 100k items, Tree Shaking, Bundle Optimization, and Code Splitting.",
+      "color": "#10B981",
+      "iconName": "Zap",
+      "cardCount": 8,
+      "filename": "performance.json"
+    },
+    {
+      "id": "deck_architecture",
+      "category": "architecture",
+      "name": "Frontend Architecture & Clean Code",
+      "description": "Feature-based architecture, Nx Monorepos, Micro-Frontends Module Federation, API abstraction, and Zod validation.",
+      "color": "#6366F1",
+      "iconName": "LayoutGrid",
+      "cardCount": 10,
+      "filename": "architecture.json"
+    },
+    {
+      "id": "deck_security",
+      "category": "security",
+      "name": "Frontend Security & Auth",
+      "description": "XSS Defense, CSRF, CSP, DomSanitizer, Secure Cookie JWT Storage, and Frontend vs Backend Authorization.",
+      "color": "#F43F5E",
+      "iconName": "ShieldCheck",
+      "cardCount": 5,
+      "filename": "security.json"
+    },
+    {
+      "id": "deck_testing",
+      "category": "testing",
+      "name": "Testing & Quality Assurance",
+      "description": "Unit testing, TestBed, HttpTestingController, fakeAsync, Signals testing, Marble testing, and over-mocking pitfalls.",
+      "color": "#14B8A6",
+      "iconName": "CheckCircle",
+      "cardCount": 5,
+      "filename": "testing.json"
+    },
+    {
+      "id": "deck_patterns",
+      "category": "patterns",
+      "name": "Frontend Design Patterns",
+      "description": "Facade, Adapter, Strategy, State Machines (FSM), Observer, and Compound Component Patterns with practical TS examples.",
+      "color": "#A855F7",
+      "iconName": "Sparkles",
+      "cardCount": 8,
+      "filename": "patterns.json"
+    },
+    {
+      "id": "deck_a11y",
+      "category": "a11y",
+      "name": "Accessibility (a11y) & WCAG",
+      "description": "Accessible modal focus traps, keyboard navigation, aria-live, aria-describedby, screen readers, and WCAG AA standards.",
+      "color": "#84CC16",
+      "iconName": "Eye",
+      "cardCount": 5,
+      "filename": "a11y.json"
+    },
+    {
+      "id": "deck_tooling",
+      "category": "tooling",
+      "name": "Build, Tooling & Bundlers",
+      "description": "Vite vs Webpack vs esbuild, native ESM dev server, SemVer, npm ci, peerDependencies, and CI/CD pipelines.",
+      "color": "#0284C7",
+      "iconName": "Cpu",
+      "cardCount": 4,
+      "filename": "tooling.json"
+    },
+    {
+      "id": "deck_gitworkflow",
+      "category": "gitworkflow",
+      "name": "Git & Engineering Workflow",
+      "description": "Trunk-Based vs GitFlow, Merge vs Rebase, Conventional Commits, Husky, lint-staged, and automated SemVer release.",
+      "color": "#D97706",
+      "iconName": "GitBranch",
+      "cardCount": 4,
+      "filename": "gitworkflow.json"
+    },
+    {
+      "id": "deck_fesystemdesign",
+      "category": "fesystemdesign",
+      "name": "Frontend System Design",
+      "description": "Real-time telemetry dashboards (500Hz), Autocomplete search systems, 1M row virtual tables, and multi-file resumable uploaders.",
+      "color": "#D946EF",
+      "iconName": "Network",
+      "cardCount": 5,
+      "filename": "fesystemdesign.json"
+    },
+    {
+      "id": "deck_fescenarios",
+      "category": "fescenarios",
+      "name": "Frontend Real Scenarios & Triage",
+      "description": "Stale search race conditions, 10k row slow page optimization, Chrome DevTools memory leak triage, and 401 token refresh queueing.",
+      "color": "#DC2626",
+      "iconName": "AlertCircle",
+      "cardCount": 8,
+      "filename": "fescenarios.json"
+    },
+    {
+      "id": "deck_reactcore",
+      "category": "reactcore",
+      "name": "React.js — Core & Fundamentals",
+      "description": "React philosophy vs Angular, JSX, Virtual DOM/Reconciliation, useEffect/useLayoutEffect/useRef, list keys, and hooks.",
+      "color": "#06B6D4",
+      "iconName": "Atom",
+      "cardCount": 18,
+      "filename": "reactcore.json"
+    },
+    {
+      "id": "deck_reactadvanced",
+      "category": "reactadvanced",
+      "name": "React.js — Advanced & Scenarios",
+      "description": "TanStack Query (Server State) vs Zustand, React Server Components (RSC), Next.js App Router, re-render elimination, and scenarios.",
+      "color": "#2563EB",
+      "iconName": "Flame",
+      "cardCount": 17,
+      "filename": "reactadvanced.json"
+    },
+    {
+      "id": "deck_web",
+      "category": "web",
+      "name": "Web / HTTP / REST",
+      "description": "HTTP methods, headers, status codes, cookies/sessions, HTTPS/TLS, HTTP versions, REST semantics, CORS, and pagination.",
+      "color": "#3B82F6",
+      "iconName": "Globe",
+      "cardCount": 15,
+      "filename": "web.json"
+    },
+    {
+      "id": "deck_dotnet",
+      "category": "dotnet",
+      "name": ".NET / ASP.NET Core",
+      "description": "Request pipeline, middleware, DI lifetimes, async/await, thread pool, exception handling, JWT auth, and options pattern.",
+      "color": "#8B5CF6",
+      "iconName": "Cpu",
+      "cardCount": 17,
+      "filename": "dotnet.json"
+    },
+    {
+      "id": "deck_efcore",
+      "category": "efcore",
+      "name": "EF Core",
+      "description": "DbContext, LINQ IQueryable vs IEnumerable, Change Tracking, AsNoTracking, Eager/Lazy loading, N+1 problem, and Dapper.",
+      "color": "#EC4899",
+      "iconName": "Layers",
+      "cardCount": 15,
+      "filename": "efcore.json"
+    },
+    {
+      "id": "deck_sql",
+      "category": "sql",
+      "name": "SQL / Database",
+      "description": "Indexes (clustered vs non-clustered), JOINs, ACID properties, isolation levels, execution plans, and deadlocks.",
+      "color": "#F59E0B",
+      "iconName": "Database",
+      "cardCount": 10,
+      "filename": "sql.json"
+    },
+    {
+      "id": "deck_apidesign",
+      "category": "apidesign",
+      "name": "API Design",
+      "description": "Resource-oriented APIs, versioning, DTOs, ProblemDetails error formats, rate limiting, and payment idempotency.",
+      "color": "#10B981",
+      "iconName": "Code2",
+      "cardCount": 7,
+      "filename": "apidesign.json"
+    },
+    {
+      "id": "deck_microservices",
+      "category": "microservices",
+      "name": "Microservices",
+      "description": "Monolith vs Microservices, sync vs async messaging (RabbitMQ/Kafka), Circuit Breaker, Saga pattern, and Outbox pattern.",
+      "color": "#06B6D4",
+      "iconName": "Boxes",
+      "cardCount": 11,
+      "filename": "microservices.json"
+    },
+    {
+      "id": "deck_systemdesign",
+      "category": "systemdesign",
+      "name": "System Design",
+      "description": "Practical architectures: E-commerce, Search/Autocomplete, Real-Time Telemetry Dashboard, File Upload, and Full-Stack Scale.",
+      "color": "#6366F1",
+      "iconName": "LayoutGrid",
+      "cardCount": 11,
+      "filename": "systemdesign.json"
+    },
+    {
+      "id": "deck_scenarios",
+      "category": "scenarios",
+      "name": "Real Scenarios & Triage",
+      "description": "Cross-stack troubleshooting: Angular search debouncing, 5s latency investigation, frontend vs backend debate, and outage fallbacks.",
+      "color": "#EF4444",
+      "iconName": "Sparkles",
+      "cardCount": 8,
+      "filename": "scenarios.json"
+    }
+  ]
+}

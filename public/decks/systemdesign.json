@@ -1,0 +1,210 @@
+{
+  "deck": {
+    "id": "deck_systemdesign",
+    "name": "System Design",
+    "description": "Practical architectures: E-commerce, Search/Autocomplete, Real-Time Telemetry Dashboard, File Upload, and Full-Stack Scale.",
+    "category": "systemdesign",
+    "color": "#6366F1",
+    "iconName": "LayoutGrid",
+    "isDefault": true,
+    "totalCards": 11
+  },
+  "cards": [
+    {
+      "id": "card_gpt_sd_02",
+      "deckId": "deck_systemdesign",
+      "front": "An Order Service depends on Payment and Inventory services. How would you design communication and failure handling when submission must not create inconsistent business outcomes?",
+      "back": "I would start with business invariants: whether inventory must be reserved before payment, how long reservations last, what happens after payment succeeds but order persistence fails, and which outcomes can be compensated. A distributed transaction across services is usually not practical, so I would model an explicit workflow or saga with durable states and idempotent commands.\n\n**Key Points:**\n- Begins with business invariants and compensation semantics.\n- Uses durable workflow state, idempotency, and outbox-style delivery.\n- Represents unknown outcomes and operational recovery.",
+      "notes": "### Comprehensive Senior Answer\nI would start with business invariants: whether inventory must be reserved before payment, how long reservations last, what happens after payment succeeds but order persistence fails, and which outcomes can be compensated. A distributed transaction across services is usually not practical, so I would model an explicit workflow or saga with durable states and idempotent commands.\n\nThe Order Service can own the orchestration, persist state and an outbox event transactionally, then request reservation and payment with idempotency keys. Each response advances the workflow; timeouts produce an unknown or retryable state, not an automatic duplicate charge. Compensation might release inventory or refund payment, but compensation can also fail and needs operations visibility. The API returns a stable order status resource, and the frontend shows pending, failed, and recoverable states. Traces, correlation IDs, retry budgets, dead-letter handling, and reconciliation jobs are required.\n\n### 💡 Senior Engine & Architecture Insight\n> Begins with business invariants and compensation semantics.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would you reserve inventory or charge payment first?**\n- **How would choreography change the ownership of the workflow?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Begins with business invariants and compensation semantics.\n✅ Uses durable workflow state, idempotency, and outbox-style delivery.\n✅ Represents unknown outcomes and operational recovery.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Calls three services synchronously and rolls back with one catch block.\n⚠️ Assumes retries can make payment exactly once without idempotency.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Begins with business invariants and compensation semantics.",
+      "tags": [
+        "systemdesign",
+        "Microservices / Failure Handling",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_04",
+      "deckId": "deck_systemdesign",
+      "front": "How would you design a multi-tenant SaaS feature so data, caches, logs, frontend state, and background jobs cannot leak across tenants?",
+      "back": "Tenant identity should come from validated authentication and server-side membership, not a request field trusted by itself. Every data access path must apply tenant scope, ideally through deliberate repository or context conventions plus database constraints or stronger isolation where risk requires it. Authorization checks both user permission and resource tenant.\n\n**Key Points:**\n- Scopes identity through data, caches, jobs, storage, and live channels.\n- Treats browser tenant switch as a state-isolation boundary.\n- Includes database controls and cross-tenant negative tests.",
+      "notes": "### Comprehensive Senior Answer\nTenant identity should come from validated authentication and server-side membership, not a request field trusted by itself. Every data access path must apply tenant scope, ideally through deliberate repository or context conventions plus database constraints or stronger isolation where risk requires it. Authorization checks both user permission and resource tenant.\n\nTenant identity belongs in API cache keys, query keys, job payloads, object-storage paths, and real-time channels. Switching tenants in the browser is a session-boundary event: cancel old requests, clear or partition feature caches, and render a neutral transition state. Logs and traces can include a controlled tenant identifier for diagnosis, while metrics avoid unbounded high-cardinality labels. Background workers revalidate tenant context rather than trusting stale claims. I would create explicit cross-tenant negative tests, code-review checks, and security monitoring because one missing filter is a critical incident.\n\n### 💡 Senior Engine & Architecture Insight\n> Scopes identity through data, caches, jobs, storage, and live channels.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would you choose a database per tenant?**\n- **How would tenant switching work in multiple tabs?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Scopes identity through data, caches, jobs, storage, and live channels.\n✅ Treats browser tenant switch as a state-isolation boundary.\n✅ Includes database controls and cross-tenant negative tests.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Trusts a tenant ID sent in the request body.\n⚠️ Relies on developers remembering to add a filter manually everywhere.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Scopes identity through data, caches, jobs, storage, and live channels.",
+      "tags": [
+        "systemdesign",
+        "Multi-Tenancy / Security",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_05",
+      "deckId": "deck_systemdesign",
+      "front": "A regulated workflow requires a tamper-evident history of who changed what, while users need a readable timeline in the UI. How would you design it?",
+      "back": "I would separate the immutable audit record from the presentation timeline. The server creates audit entries from authenticated, authorized operations rather than accepting actor or timestamp fields from the client. Each entry includes the business action, entity, actor reference, server timestamp, correlation ID, version, and a carefully selected change summary. Sensitive values may be redacted or represented by safe classifications.\n\n**Key Points:**\n- Separates immutable evidence from readable presentation.\n- Creates audit records server-side and transactionally.\n- Matches tamper controls and retention to explicit requirements.",
+      "notes": "### Comprehensive Senior Answer\nI would separate the immutable audit record from the presentation timeline. The server creates audit entries from authenticated, authorized operations rather than accepting actor or timestamp fields from the client. Each entry includes the business action, entity, actor reference, server timestamp, correlation ID, version, and a carefully selected change summary. Sensitive values may be redacted or represented by safe classifications.\n\nCurrent-state update and audit append occur in one transaction when possible. Stronger tamper evidence may use append-only storage, restricted write paths, hash chaining, signatures, or external archival depending on the compliance requirement; I would not claim ordinary logs are tamper-proof. The UI paginates by stable cursor, localizes labels from structured event types, and clearly distinguishes system from user actions. Access, retention, export, and deletion exceptions need legal and security input.\n\n### 💡 Senior Engine & Architecture Insight\n> Separates immutable evidence from readable presentation.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Would you store full before-and-after objects?**\n- **How would you verify a hash-chained audit sequence?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Separates immutable evidence from readable presentation.\n✅ Creates audit records server-side and transactionally.\n✅ Matches tamper controls and retention to explicit requirements.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Uses editable application log files as compliance evidence.\n⚠️ Lets the frontend submit the actor and timestamp.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Separates immutable evidence from readable presentation.",
+      "tags": [
+        "systemdesign",
+        "Auditability / Compliance",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_07",
+      "deckId": "deck_systemdesign",
+      "front": "A team proposes splitting a modular monolith into microservices because deployments are becoming difficult. What questions would you ask before agreeing?",
+      "back": "I would ask whether the pain comes from service boundaries or from coupling, tests, ownership, build times, database migrations, and deployment automation. Microservices can enable independent scaling and ownership, but they add network failure, data consistency, tracing, versioned contracts, duplicated infrastructure, and operational burden. Splitting a poorly modularized application often distributes the same coupling.\n\n**Key Points:**\n- Diagnoses the actual delivery constraint first.\n- Balances autonomy against distributed-system costs.\n- Uses modularization and incremental extraction with success criteria.",
+      "notes": "### Comprehensive Senior Answer\nI would ask whether the pain comes from service boundaries or from coupling, tests, ownership, build times, database migrations, and deployment automation. Microservices can enable independent scaling and ownership, but they add network failure, data consistency, tracing, versioned contracts, duplicated infrastructure, and operational burden. Splitting a poorly modularized application often distributes the same coupling.\n\nI would identify business capabilities with distinct change cadence, scaling, security, or team ownership and measure whether they can be separated with clear data ownership. First, a modular monolith with enforced boundaries, independent modules, and improved CI/CD may solve most deployment pain. If extraction is justified, I would start with a low-coupling capability, define its API and events, migrate data ownership carefully, and observe operational cost. The decision should have success criteria beyond the number of services.\n\n### 💡 Senior Engine & Architecture Insight\n> Diagnoses the actual delivery constraint first.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What is a good first service to extract?**\n- **How would you handle reporting that needs data from several services?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Diagnoses the actual delivery constraint first.\n✅ Balances autonomy against distributed-system costs.\n✅ Uses modularization and incremental extraction with success criteria.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Equates microservices with scalability automatically.\n⚠️ Splits services by database table or technical layer.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Diagnoses the actual delivery constraint first.",
+      "tags": [
+        "systemdesign",
+        "Architecture Trade-off",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_sd_10",
+      "deckId": "deck_systemdesign",
+      "front": "A release causes a major production incident affecting checkout. What would you do during the incident, and what should happen afterward?",
+      "back": "During the incident I would establish an incident lead, communication channel, impact statement, and timeline. The immediate priority is reducing user harm: disable the feature flag, roll back or roll forward, isolate a dependency, or degrade safely. Changes should be logged and based on evidence from metrics, traces, logs, and release comparison. Communication to support and stakeholders should be factual and time-stamped without speculative blame.\n\n**Key Points:**\n- Prioritizes harm reduction, roles, evidence, and clear communication.\n- Uses blameless causal analysis rather than one root-cause label.\n- Creates owned, verifiable safeguards and shares learning.",
+      "notes": "### Comprehensive Senior Answer\nDuring the incident I would establish an incident lead, communication channel, impact statement, and timeline. The immediate priority is reducing user harm: disable the feature flag, roll back or roll forward, isolate a dependency, or degrade safely. Changes should be logged and based on evidence from metrics, traces, logs, and release comparison. Communication to support and stakeholders should be factual and time-stamped without speculative blame.\n\nAfter recovery, I would preserve evidence and run a blameless review focused on contributing conditions: contract assumptions, missing tests, rollout size, alerts, runbooks, ownership, and why safeguards did not contain impact. Actions need owners, priority, and verification—such as a compatibility test, canary metric, idempotency control, or rollback exercise. The output is not only a document; it should improve the system and response process, and significant learnings should be shared across teams.\n\n### 💡 Senior Engine & Architecture Insight\n> Prioritizes harm reduction, roles, evidence, and clear communication.\n\n### 🎯 Probable Interviewer Follow-ups\n- **When would you roll forward instead of rolling back?**\n- **What makes a post-incident action item effective?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Prioritizes harm reduction, roles, evidence, and clear communication.\n✅ Uses blameless causal analysis rather than one root-cause label.\n✅ Creates owned, verifiable safeguards and shares learning.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Debugs indefinitely before considering mitigation.\n⚠️ Ends with “developer error” and no system changes.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Prioritizes harm reduction, roles, evidence, and clear communication.",
+      "tags": [
+        "systemdesign",
+        "Incident Leadership",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Architecture / System Design",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-ecommerce-system",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you design a scalable E-Commerce System (Product Catalog, Cart, Checkout)?",
+      "back": "I would design a decoupled system with an Angular SPA/SSR on Cloudflare CDN, ASP.NET Core API Gateway, dedicated services for Catalog (Read-heavy, Redis/Elasticsearch cache), Cart (Redis key-value store), and Order/Payment (ACID SQL with transactional Outbox and Sagas).\n\n**Key Points:**\n- Separation of Read-heavy Catalog from Write-critical Orders\n- Cart stored in Redis with TTL for rapid updates\n- Elasticsearch for full-text product search and faceted filtering\n- Idempotent checkout and inventory reservation\n- Asynchronous event-driven order post-processing via RabbitMQ/Kafka",
+      "notes": "### Comprehensive Senior Answer\nWhen designing an e-commerce platform, I split the system based on traffic patterns: The **Product Catalog** is 95% reads, so we use CDN edge caching and Redis/Elasticsearch for fast search, faceting, and product views. The **Shopping Cart** requires fast, transient read/writes, which we store in Redis keyed by `cart:{userId}` or a session token with a 14-day TTL. The **Checkout & Order Service** is write-intensive and requires strict data consistency. We use SQL database (PostgreSQL/SQL Server) for order tables with optimistic concurrency and inventory locks. During checkout, we generate an Idempotency Key, reserve inventory, process payment with Stripe, and publish an `OrderPlacedEvent` to RabbitMQ for asynchronous receipt generation and warehouse notification.\n\n### Code Example\n```text\n[Angular 18 SSR / CDN]\n         │\n         ▼\n[Cloudflare Edge / API Gateway]\n   ├──> [Catalog Service] ──────> [Redis / Elasticsearch] (Read Heavy)\n   ├──> [Cart Service] ─────────> [Redis Hashes TTL: 14d] (Transient R/W)\n   └──> [Order/Checkout Service] ─> [PostgreSQL ACID] ──> [RabbitMQ Outbox] ──> [Payment / Fulfillment]\n```\n_Architectural overview separating read-heavy catalog caching from write-critical ACID order processing._\n\n### 💡 Senior Engine & Architecture Insight\n> During flash sales (high stock contention), decrement inventory atomically in Redis using a Lua script (`DECRBY stock:sku 1`) before committing the SQL order transaction. This prevents 10,000 users from hitting the database simultaneously when only 5 items remain.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you prevent shopping cart data loss if Redis crashes?**\n  *A:* Configure Redis with AOF (Append-Only File) persistence or Redis Enterprise replication across availability zones, with asynchronous backup snapshots synced to a PostgreSQL secondary table.\n- **Q: How do you handle flash sales where 100,000 users try to buy 100 items at the exact same second?**\n  *A:* Place a virtual waiting room queue (Cloudflare Waiting Room / Redis Token Bucket) in front of the checkout endpoint, and use Redis atomic decrement Lua scripts to serialize inventory claims.",
+      "spokenTip": "I separate the architecture by read-heavy traffic (Catalog on Redis/Elasticsearch) versus write-critical transactions (Cart in Redis, Orders in SQL with ACID guarantees).",
+      "tags": [
+        "System Design",
+        "E-Commerce",
+        "Redis",
+        "Elasticsearch",
+        "SQL",
+        "Saga"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-search-autocomplete",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you design a high-throughput Search and Autocomplete / Typeahead system?",
+      "back": "I would use an Angular frontend with RxJS `debounceTime` and `switchMap`, an API Gateway with edge rate limiting, a fast in-memory Trie / Redis prefix cache for top queries, and an Elasticsearch cluster for fuzzy full-text indexing.\n\n**Key Points:**\n- Frontend RxJS operators: debounceTime, distinctUntilChanged, switchMap\n- Redis Sorted Sets (ZRANGEBYLEX) or Trie for prefix suggestions (<10ms)\n- Elasticsearch with edge-ngram analyzer for typo tolerance and relevance ranking\n- Nightly popularity score aggregation via Kafka / Spark\n- Local browser sessionStorage caching for recent user searches",
+      "notes": "### Comprehensive Senior Answer\nFor search typeahead, latency is everything—users expect suggestions under 50ms as they type. On the frontend, Angular binds the search input to an RxJS stream using `debounceTime(250)`, `distinctUntilChanged()`, and `switchMap()` to discard stale out-of-order network responses. On the backend, we implement a two-tier architecture: 1) **Tier 1 (Instant Autocomplete)**: An in-memory Trie or Redis Sorted Sets (`ZRANGEBYLEX`) holding the top 100,000 popular search queries and product prefixes for sub-5ms responses. 2) **Tier 2 (Full Search)**: Elasticsearch cluster configured with edge-ngram tokenizers for fuzzy matching, typos, and ranking by popularity score. A background analytics job aggregates click-through rates from Kafka logs nightly to update suggestion rankings.\n\n### Code Example\n```text\n[User Input] -> [RxJS: debounce(200) | switchMap()]\n                       │\n                       ▼ (HTTP GET /api/search?q=iph)\n               [API Gateway / CDN]\n                       │\n             ┌─────────┴─────────┐\n             ▼                   ▼\n    [Redis Prefix Cache]  [Elasticsearch Cluster]\n     - Top 100k queries    - Edge N-Gram analyzer\n     - Sub-5ms latency     - Typo tolerance & scoring\n```\n_Two-tier search architecture: in-memory Redis sorted sets for sub-5ms suggestions and Elasticsearch for full text search._\n\n### 💡 Senior Engine & Architecture Insight\n> Pre-aggregating popular prefixes into Redis Sorted Sets (`ZADD autocomplete 0 \"iphone:100\"`) allows the backend to return top 5 suggestions instantly using `ZRANGEBYLEX` without executing full Elasticsearch queries for 90% of user keystrokes.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you handle typo tolerance (e.g. searching for \"iphoen\" instead of \"iphone\") in autocomplete?**\n  *A:* In Elasticsearch, use Fuzzy Matching with Levenshtein distance (`fuzziness: \"AUTO\"`) on the edge-ngram tokenized index.\n- **Q: How do you collect data to rank autocomplete suggestions by real popularity?**\n  *A:* Emit an event to an Apache Kafka topic whenever a user clicks an autocomplete result. A nightly Spark/Flink job calculates click-through rates and updates the popularity weight scores in the index.",
+      "spokenTip": "On the frontend we use RxJS debounce and switchMap to avoid request flooding, and on the backend we use Redis sorted sets or Elasticsearch edge-ngrams.",
+      "tags": [
+        "System Design",
+        "Search",
+        "Autocomplete",
+        "Elasticsearch",
+        "Redis",
+        "Angular",
+        "RxJS"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-realtime-dashboard",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you design a Real-Time Dashboard (e.g. live metrics, order updates, IoT telemetry)?",
+      "back": "I would use an Angular frontend with SignalR / WebSockets, ASP.NET Core SignalR hubs with a Redis Backplane for horizontal scaling, RabbitMQ/Kafka for event ingestion, and a TimescaleDB/InfluxDB time-series database.\n\n**Key Points:**\n- WebSocket / ASP.NET Core SignalR for bidirectional push communication\n- Redis Backplane for scaling SignalR across multiple server nodes\n- Kafka / Event Hubs for high-throughput metric ingestion\n- Time-series storage (TimescaleDB / InfluxDB) for historical trend charting\n- Angular RxJS subjects managing live data buffers without UI freezing",
+      "notes": "### Comprehensive Senior Answer\nFor a real-time dashboard displaying thousands of metrics per second, HTTP polling is inefficient. We use a **WebSocket / SignalR** connection. The Angular frontend connects to an ASP.NET Core SignalR Hub. When multiple server instances are deployed in Kubernetes, we use **Redis Backplane** or Azure SignalR Service so that a message broadcast from Server A reaches connected clients on Server B. Incoming data streams from IoT devices or microservices are ingested into Apache Kafka. A .NET streaming worker processes events in batches, updates in-memory live aggregates in Redis, writes time-series historical data to TimescaleDB or PostgreSQL, and broadcasts delta updates over SignalR to the relevant client subscription groups.\n\n### Code Example\n```text\n[IoT / Microservices] ──> [Kafka Topic: telemetry-raw]\n                                  │\n                                  ▼\n                         [.NET Streaming Worker]\n                           ├──> [TimescaleDB] (Historical time-series)\n                           └──> [Redis Live State]\n                                  │\n                                  ▼\n                   [ASP.NET Core SignalR Hubs]\n                   [Redis Backplane Scale-Out]\n                                  │\n                                  ▼ (WebSocket / Push)\n                       [Angular UI / Signals]\n```\n_Real-time telemetry pipeline from Kafka ingestion to TimescaleDB storage and SignalR WebSocket broadcast._\n\n### 💡 Senior Engine & Architecture Insight\n> To prevent UI freezing when handling thousands of WebSocket events per second, buffer incoming SignalR messages in an Angular service and flush updates to the UI at 60fps using `requestAnimationFrame` or RxJS `sampleTime(100ms)`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why is a Redis Backplane necessary when scaling SignalR across multiple server pods?**\n  *A:* WebSocket connections are stateful TCP sockets held on a specific server pod. When Server 1 wants to broadcast an alert to all connected users, without a Redis backplane it cannot reach users whose WebSocket connections are held by Server 2.\n- **Q: How do you handle client authentication during the initial WebSocket handshake?**\n  *A:* Standard browser WebSocket API does not support custom HTTP headers; pass the JWT access token in the query string (`/hub?access_token=...`) and validate it in ASP.NET Core `OnMessageReceived` options.",
+      "spokenTip": "We use SignalR WebSockets with a Redis backplane for horizontal scale, paired with Kafka for stream ingestion and Redis for live metric caching.",
+      "tags": [
+        "System Design",
+        "Real-Time",
+        "SignalR",
+        "WebSockets",
+        "Redis",
+        "Angular",
+        "Kafka"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-large-file-upload",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you design a Resilient Large File Upload System (e.g. 5GB video/dataset uploads)?",
+      "back": "I would use direct-to-cloud upload via Presigned URLs (AWS S3 or Azure Blob Storage) with client-side chunking / multipart upload, bypassing the web application servers to avoid bandwidth bottlenecks.\n\n**Key Points:**\n- Direct browser-to-cloud upload using Presigned S3/Azure Blob URLs\n- Client-side chunking (HTML5 File Blob slice) for pause/resume capability\n- Zero server bandwidth consumption for actual file bytes\n- Cloud storage event trigger for asynchronous background virus scan and transcoding\n- Database stores file metadata and processing status",
+      "notes": "### Comprehensive Senior Answer\nUploading large multi-gigabyte files directly through your ASP.NET Core web server is an anti-pattern—it exhausts server bandwidth, memory buffers, and thread pool workers. Instead, we use **Direct-to-Cloud Presigned URLs with Multipart Upload**. Here is the flow: 1) The Angular frontend splits the file into 10MB chunks using the HTML5 File API Blob slice. 2) Angular calls our ASP.NET Core API (`POST /api/uploads/initiate`) to request presigned upload URLs for each chunk. 3) Angular uploads chunks directly to Azure Blob Storage / S3 in parallel (e.g. 3 concurrent chunk uploads) with pause, resume, and retry on failed chunks. 4) When all chunks finish, Angular calls `POST /api/uploads/complete`. 5) Cloud storage triggers an event (AWS S3 Event / Azure Event Grid) to a background worker queue to assemble, virus scan, and transcode the file.\n\n### Code Example\n```text\n[Angular Frontend (5GB File)]\n   │ 1. Split into 10MB Chunks via Blob.slice()\n   │ 2. POST /api/uploads/initiate\n   ▼\n[ASP.NET Core API] ──> Returns Presigned S3/Blob URLs\n   │\n   │ 3. Parallel direct PUT of chunks (bypasses API server!)\n   ▼\n[Cloud Storage (S3 / Azure Blob)]\n   │ 4. S3 Event Grid Notification on Complete\n   ▼\n[.NET Background Worker (ECS / K8s)] ──> Virus Scan / Transcoding ──> [PostgreSQL DB]\n```\n_Direct browser-to-cloud upload pipeline using presigned URLs and async event worker processing._\n\n### 💡 Senior Engine & Architecture Insight\n> Storing uploaded chunk IDs and upload state in browser `IndexedDB` allows users to refresh the page or resume a 4GB upload seamlessly from the exact last uploaded chunk rather than restarting from 0%.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you verify that uploaded chunks are not corrupted in transit?**\n  *A:* Calculate MD5 / SHA-256 checksums per chunk in the browser and pass `Content-MD5` header to S3/Blob Storage; the cloud provider rejects the chunk if the checksum mismatches.\n- **Q: How do you secure access to uploaded private files?**\n  *A:* Keep the S3 bucket completely private and generate time-limited Presigned Download URLs (valid for 15 minutes) only after authenticating user permissions in the API.",
+      "spokenTip": "Never route large file byte streams through your API servers. Generate Presigned S3/Blob URLs and upload chunks directly from the browser to cloud storage.",
+      "tags": [
+        "System Design",
+        "File Upload",
+        "S3",
+        "Azure Blob",
+        "Angular",
+        "Scalability"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-scalable-angular-dotnet-app",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you architect a modern, scalable, high-performance Angular + ASP.NET Core enterprise application?",
+      "back": "I would structure the frontend using Angular Standalone Components, Signals/NgRx, and Lazy-Loaded Feature Modules behind a Cloudflare CDN. The backend uses ASP.NET Core Clean Architecture (CQRS with MediatR), EF Core with PostgreSQL, Redis for distributed caching, and OpenTelemetry observability.\n\n**Key Points:**\n- Angular: Standalone components, Signals, Lazy Loading, HTTP Interceptors for JWT\n- Backend: Clean Architecture (Domain, Application, Infrastructure, API)\n- CQRS pattern with MediatR for clean separation of commands and queries\n- Database & Caching: EF Core with PostgreSQL + Redis distributed caching\n- Observability & CI/CD: OpenTelemetry, Serilog structured logs, Docker containerization",
+      "notes": "### Comprehensive Senior Answer\nAs a full-stack developer, I design the entire system with clean boundaries: **Frontend (Angular)**: We use standalone components, Angular Signals for local component reactivity, and NgRx for global state. We split the app into lazy-loaded feature modules with route guards and HTTP interceptors for automatic JWT token injection, refresh-token rotation, and global error handling. **Backend (ASP.NET Core)**: We follow **Clean Architecture** with four layers: Domain (entities, business rules), Application (CQRS Commands and Queries using MediatR and FluentValidation), Infrastructure (EF Core DbContext, Redis Cache, External APIs), and Presentation (Minimal APIs / Controllers). We use `AsNoTracking()` and DTO projections for read endpoints, Redis for query caching, and health check endpoints (`/health/live`, `/health/ready`) for Kubernetes orchestration.\n\n### Code Example\n```text\n[Angular 18 SPA (Cloudflare CDN / Pages)]\n                   │ (HTTPS / REST / SignalR)\n                   ▼\n       [Cloudflare WAF / Ingress]\n                   │\n                   ▼\n┌─────────────────────────────────────────────────────────────┐\n│  ASP.NET Core (.NET 8 Clean Architecture)                   │\n│   ├── Presentation: Versioned Controllers & ProblemDetails   │\n│   ├── Application: MediatR CQRS (Commands/Queries/Validation)│\n│   ├── Domain: Core Entities & Domain Events                 │\n│   └── Infrastructure: EF Core, Redis Caching, MassTransit    │\n└─────────────────────────────────────────────────────────────┘\n                   │\n         ┌─────────┴─────────┐\n         ▼                   ▼\n[PostgreSQL Database]  [Redis Cache Cluster]\n```\n_End-to-end full-stack architecture combining Angular standalone frontend with .NET Clean Architecture backend._\n\n### 💡 Senior Engine & Architecture Insight\n> Implementing the CQRS pattern with MediatR decouples command write pipelines (with strict validation and transactions) from read query pipelines (which use Dapper or EF Core AsNoTracking with Redis caching) for independent optimization.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should you separate Commands (writes) from Queries (reads) in Clean Architecture?**\n  *A:* Queries are read-only, need no change tracking, and benefit from aggressive caching and flat DTO projections. Commands require business invariants, transactions, validation, and domain event publishing.\n- **Q: How do you handle database migrations safely in zero-downtime Kubernetes deployments?**\n  *A:* Run EF Core database migrations in a dedicated Kubernetes init-container or pre-deployment CI/CD job using expand-and-contract schema design before rolling out new API container pods.",
+      "spokenTip": "I use Angular Standalone Components with Signals and route-level lazy loading on the frontend, and ASP.NET Core Clean Architecture with CQRS and Redis caching on the backend.",
+      "tags": [
+        "System Design",
+        "Angular",
+        "ASP.NET Core",
+        "Clean Architecture",
+        "CQRS",
+        "Full-Stack"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_sys-design-notification-system",
+      "deckId": "deck_systemdesign",
+      "front": "System Design: How would you design a scalable Multi-Channel Notification System (Email, Push, SMS, In-App)?",
+      "back": "I would design an event-driven system with a Notification Gateway, user notification preference engine, priority-based message queues (RabbitMQ/Kafka), dedicated workers for each provider (SendGrid, Twilio, Firebase Cloud Messaging), and SignalR for in-app popups.\n\n**Key Points:**\n- Priority Queues: Critical OTP codes isolated from bulk marketing emails\n- User preference engine (channel opt-ins and Do Not Disturb hours)\n- Rate limiting and deduplication using Redis\n- Worker pools for third-party providers (SendGrid, Twilio, FCM)\n- SignalR for live in-app notification bell count",
+      "notes": "### Comprehensive Senior Answer\nA notification system must handle millions of notifications while respecting user preferences, rate limits, and priority levels. The core components are: 1) **Ingestion API**: Other microservices post events like `POST /api/notifications` with payload `{ userId, templateId, data, priority }`. 2) **Preference & Deduplication Engine**: Checks if user disabled SMS or has \"Do Not Disturb\" on, and checks Redis to deduplicate spam (e.g. not sending 10 emails for 10 comment likes in 1 minute). 3) **Priority Queues**: High-priority (OTP / Password Reset) uses a dedicated high-speed queue; Low-priority (Marketing / Weekly Digest) uses a bulk queue. 4) **Channel Workers**: Scalable .NET workers integrate with third-party providers: SendGrid (Email), Twilio (SMS), FCM/APNs (Mobile/Web Push), and SignalR Hub (live in-app notification bell).\n\n### Code Example\n```text\n[Internal Microservices] ──> [Notification API]\n                                     │\n                                     ▼\n                    [Preference & Dedup Engine (Redis)]\n                                     │\n                 ┌───────────────────┼───────────────────┐\n                 ▼                   ▼                   ▼\n        [Queue: High (OTP)]  [Queue: Normal]     [Queue: Bulk/Marketing]\n                 │                   │                   │\n                 ▼                   ▼                   ▼\n           [SMS Worker]       [Push Worker]       [Email Worker]\n             (Twilio)             (FCM)             (SendGrid)\n                                                         │\n                                               [In-App SignalR Hub]\n```\n_Event-driven notification system with priority queues isolating time-sensitive OTP codes from bulk marketing._\n\n### 💡 Senior Engine & Architecture Insight\n> Notification deduplication using Redis: When a user receives high-frequency events (e.g. 50 likes on a photo), set `SETNX notif:like:{userId}:{photoId} 1 EX 300` and aggregate them into a single summary notification (\"Sarah and 49 others liked your post\") instead of spamming 50 push notifications.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: How do you handle third-party provider rate limits (e.g. Twilio SMS throttling)?**\n  *A:* Use rate-limiting token bucket policies on worker consumers to throttle dispatch rates and buffer messages in the message queue until provider quota refills.\n- **Q: What happens if SendGrid has an outage while sending password reset emails?**\n  *A:* Configure a Polly fallback policy in the Email Worker to automatically switch to a secondary backup provider (like AWS SES or Mailgun) after 3 consecutive failures.",
+      "spokenTip": "Separate notification queues by priority so critical OTP codes never wait behind slow bulk marketing emails.",
+      "tags": [
+        "System Design",
+        "Notifications",
+        "RabbitMQ",
+        "Redis",
+        "SignalR",
+        "Workers"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

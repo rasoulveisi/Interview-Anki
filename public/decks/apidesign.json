@@ -1,0 +1,136 @@
+{
+  "deck": {
+    "id": "deck_apidesign",
+    "name": "API Design",
+    "description": "Resource-oriented APIs, versioning, DTOs, ProblemDetails error formats, rate limiting, and payment idempotency.",
+    "category": "apidesign",
+    "color": "#10B981",
+    "iconName": "Code2",
+    "isDefault": true,
+    "totalCards": 7
+  },
+  "cards": [
+    {
+      "id": "card_gpt_net_05",
+      "deckId": "deck_apidesign",
+      "front": "Where should request validation, business-rule validation, and database constraints live, and how should failures reach the frontend?",
+      "back": "Request validation checks transport shape and basic invariants such as required fields, format, and range. Business rules belong in the application or domain layer because they may depend on current state and must apply regardless of which endpoint calls them. Database constraints remain the final protection for uniqueness and referential integrity under concurrency.\n\n**Key Points:**\n- Places validation according to responsibility and race safety.\n- Uses database constraints as final enforcement.\n- Provides structured, safe frontend errors.",
+      "notes": "### Comprehensive Senior Answer\nRequest validation checks transport shape and basic invariants such as required fields, format, and range. Business rules belong in the application or domain layer because they may depend on current state and must apply regardless of which endpoint calls them. Database constraints remain the final protection for uniqueness and referential integrity under concurrency.\n\nThe API should translate expected failures into a consistent problem response with a stable code, status, safe message, optional field details, trace identifier, and perhaps current version for conflicts. I would not expose stack traces or database messages. Duplicate checks performed before saving improve user feedback but do not replace a unique constraint; the save can still race and must translate that violation. Tests should cover each layer and the final HTTP contract.\n\n### 💡 Senior Engine & Architecture Insight\n> Places validation according to responsibility and race safety.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What status would you use for a concurrency conflict?**\n- **How would you avoid leaking database details in a uniqueness error?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Places validation according to responsibility and race safety.\n✅ Uses database constraints as final enforcement.\n✅ Provides structured, safe frontend errors.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Relies only on client validation.\n⚠️ Returns raw exception messages in a 500 response.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Places validation according to responsibility and race safety.",
+      "tags": [
+        "apidesign",
+        "Validation / Error Contract",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_gpt_net_07",
+      "deckId": "deck_apidesign",
+      "front": "Design an API operation that changes an order from `Draft` to `Submitted`. Would you use a generic update endpoint or an explicit action?",
+      "back": "If submission has meaningful business rules and side effects, I prefer an explicit command-shaped endpoint rather than asking the client to PATCH the status field. The request expresses intent, for example submitting a specific order with its expected version and any required confirmation data. The server loads the order, authorizes the operation, validates the transition, commits it transactionally, and returns the new representation or a clear result.\n\n**Key Points:**\n- Models business intent rather than raw state mutation.\n- Includes authorization, concurrency, transaction, and idempotency.\n- Uses generic updates only for appropriate fields.",
+      "notes": "### Comprehensive Senior Answer\nIf submission has meaningful business rules and side effects, I prefer an explicit command-shaped endpoint rather than asking the client to PATCH the status field. The request expresses intent, for example submitting a specific order with its expected version and any required confirmation data. The server loads the order, authorizes the operation, validates the transition, commits it transactionally, and returns the new representation or a clear result.\n\nThe operation should define idempotency. Repeating the same submission may return the already-submitted result, while a conflicting state returns a structured conflict. A generic update endpoint is suitable for ordinary editable fields, but it can expose internal state transitions and make authorization ambiguous. The URI and method matter less than preserving resource semantics, concurrency, and a stable contract.\n\n### 💡 Senior Engine & Architecture Insight\n> Models business intent rather than raw state mutation.\n\n### 🎯 Probable Interviewer Follow-ups\n- **What status code would you return when submission starts an asynchronous process?**\n- **How would the client protect against double submission?**\n\n### 🔍 Interview Evaluation Signals\n**Strong Signals (What interviewers look for):**\n✅ Models business intent rather than raw state mutation.\n✅ Includes authorization, concurrency, transaction, and idempotency.\n✅ Uses generic updates only for appropriate fields.\n\n**Warning Signals (Pitfalls to avoid):**\n⚠️ Lets the client write any status value directly.\n⚠️ Assumes disabling the frontend button guarantees one submission.",
+      "spokenTip": "I approach this by distinguishing the core boundary: Models business intent rather than raw state mutation.",
+      "tags": [
+        "apidesign",
+        "REST / Contract Design",
+        "Candidate-Calibrated"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_api-resource-naming-conventions",
+      "deckId": "deck_apidesign",
+      "front": "What makes a good REST API design, and what are the standard resource naming conventions?",
+      "back": "A good REST API is resource-oriented, predictable, consistent, uses plural nouns for endpoints, uses standard HTTP methods for actions, returns proper HTTP status codes, and provides standardized error schemas.\n\n**Key Points:**\n- Resource-oriented: URLs use plural nouns, not verbs\n- HTTP methods define the actions (GET, POST, PUT, PATCH, DELETE)\n- Sub-resources model relationships (/users/1/orders)\n- Query parameters handle filtering, sorting, and pagination\n- Consistent casing (kebab-case URLs, camelCase JSON properties)",
+      "notes": "### Comprehensive Senior Answer\nIn API design, the Golden Rule is that URIs should represent nouns (resources), not actions (verbs). The actions are expressed through standard HTTP methods (GET, POST, PUT, DELETE). For example, use `/api/orders` (plural noun), not `/api/getOrders` or `/api/createOrder`. For nested hierarchical relationships, use natural paths like `/api/orders/{orderId}/items/{itemId}`. Keep naming consistent across the entire API using kebab-case or camelCase, use query parameters for filtering, sorting, and pagination (e.g. `/api/products?category=electronics&sort=-price&page=2`), and always return descriptive JSON payloads with RFC 7807 ProblemDetails for errors.\n\n### Code Example\n```http\n// GOOD Resource-Oriented REST API:\nGET    /api/v1/customers                -> List customers (with ?page=1&limit=20)\nPOST   /api/v1/customers                -> Create customer (returns 201 Created)\nGET    /api/v1/customers/42             -> Get customer 42\nPUT    /api/v1/customers/42             -> Full replace customer 42\nPATCH  /api/v1/customers/42             -> Partial update customer 42\nDELETE /api/v1/customers/42             -> Delete customer 42 (returns 204)\nGET    /api/v1/customers/42/orders      -> List orders for customer 42\n\n// BAD RPC-Style REST API (Anti-pattern):\nPOST   /api/getAllCustomers\nPOST   /api/deleteCustomerById?id=42\n```\n_Clean REST resource hierarchy vs messy RPC URLs._\n\n### 💡 Senior Engine & Architecture Insight\n> For non-CRUD business actions that don't map cleanly to a standard verb (e.g. \"Canceling an order\" or \"Resending an email\"), model them as sub-resource state transitions or controllers, such as `POST /api/orders/{id}/cancel` or `POST /api/invoices/{id}/send-email`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Should endpoint URLs use plural or singular nouns?**\n  *A:* Plural nouns (`/api/users`, `/api/products`) are the industry standard because `/api/users` represents the collection and `/api/users/{id}` represents a single item in that collection.\n- **Q: How deep should nested resource URLs go?**\n  *A:* Limit nesting to maximum 2 levels deep (e.g. `/orders/{id}/items`). Beyond 2 levels (e.g. `/users/1/orders/2/items/3/taxes`), flatten the endpoint to top-level resources: `/order-items/{id}/taxes`.\n- **Q: What is HATEOAS (Hypermedia As The Engine Of Application State)?**\n  *A:* A REST constraint where API responses include hypermedia links (`_links`) pointing clients to valid subsequent actions (e.g. payment link, cancel link), reducing client-side hardcoded endpoint coupling.",
+      "spokenTip": "URIs should represent nouns, while HTTP methods express the verbs.",
+      "tags": [
+        "API Design",
+        "REST",
+        "Architecture",
+        "Best Practices"
+      ],
+      "difficulty": "Beginner",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_api-versioning-strategies-breaking-changes",
+      "deckId": "deck_apidesign",
+      "front": "How do you handle API Versioning, and what is the difference between Breaking and Non-Breaking changes?",
+      "back": "API versioning can be done via URI path (`/api/v1/orders`), Query parameter (`/api/orders?v=1.0`), Custom Headers (`X-API-Version: 1.0`), or Content Negotiation (`Accept: application/vnd.mycompany.v1+json`). A breaking change requires existing clients to alter their code, whereas non-breaking changes remain backwards-compatible.\n\n**Key Points:**\n- URI path versioning (/v1/) vs Header vs Query parameter\n- Non-breaking: adding optional fields, new endpoints, new query filters\n- Breaking: renaming/removing fields, changing data types, new mandatory params\n- Deprecation policy: Sunset headers, parallel version support during transition\n- Defensive frontend parsing to ignore new unknown fields",
+      "notes": "### Comprehensive Senior Answer\nIn my experience, **URI Versioning** (`/api/v1/orders`) is the most widely adopted and practical strategy because it is immediately visible in browser URLs, easily cacheable by CDNs, and works seamlessly in OpenAPI/Swagger documentation. Non-breaking changes include: adding a new optional property to a response DTO, adding a new optional query parameter, or adding a new endpoint. Breaking changes include: renaming or removing a field, changing field data types (e.g. string to integer), making an optional parameter required, or altering status code meanings. When breaking changes are unavoidable, we introduce `v2`, maintain `v1` in parallel with a deprecation notice (`Sunset` HTTP header), and coordinate with frontend and mobile teams before decommissioning.\n\n### Code Example\n```csharp\n// ASP.NET Core API Versioning (Asp.Versioning.Mvc)\n[ApiVersion(\"1.0\")]\n[ApiVersion(\"2.0\")]\n[Route(\"api/v{version:apiVersion}/[controller]\")]\npublic class OrdersController : ControllerBase\n{\n    [HttpGet]\n    [MapToApiVersion(\"1.0\")]\n    public ActionResult<List<OrderDtoV1>> GetV1() => Ok();\n\n    [HttpGet]\n    [MapToApiVersion(\"2.0\")]\n    public ActionResult<List<OrderDtoV2>> GetV2() => Ok();\n}\n```\n_Asp.Versioning package in ASP.NET Core supporting URL path versioning._\n\n### 💡 Senior Engine & Architecture Insight\n> To ensure the Angular/React frontend doesn't break when the backend adds new fields, frontend TypeScript DTOs should ignore extra unrecognized JSON properties rather than doing strict runtime shape validations on read.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the `Sunset` HTTP Header?**\n  *A:* An HTTP response header (RFC 8594) returning a future date when an API endpoint or version will be permanently shut down.\n- **Q: What are the pros and cons of Header Versioning vs URI Versioning?**\n  *A:* Header versioning keeps URLs clean and REST-pure, but breaks browser URL testing, complicates CDN caching, and makes Postman/Swagger exploration harder.",
+      "spokenTip": "URI versioning is the clearest for frontend clients and Swagger; never break existing consumers without a new version and deprecation period.",
+      "tags": [
+        "API Design",
+        "Versioning",
+        "Breaking Changes",
+        "ASP.NET Core",
+        "Architecture"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_api-design-order-creation-endpoint",
+      "deckId": "deck_apidesign",
+      "front": "How would you design a production-ready API for creating an Order in an e-commerce system?",
+      "back": "I would create a `POST /api/v1/orders` endpoint accepting an `Idempotency-Key` header, validating input via FluentValidation, using a scoped database transaction to reserve inventory and create the order, and returning a `201 Created` with a `Location` header and created order summary.\n\n**Key Points:**\n- POST /api/v1/orders returning 201 Created with Location header\n- Idempotency-Key header to prevent duplicate orders on network retry\n- Server-side price calculation (never trust client prices)\n- Input validation via FluentValidation / ProblemDetails\n- Transactional inventory reservation\n- 202 Accepted + SignalR for long-running workflows",
+      "notes": "### Comprehensive Senior Answer\nHere is how I would design the order creation endpoint in a real ASP.NET Core project: 1) **Endpoint & Contract**: `POST /api/v1/orders` with an `Idempotency-Key` header (UUID) generated by the Angular frontend to prevent duplicate charges on retry. 2) **Request DTO**: Contains customer info, shipping address ID, and an array of items (`sku`, `quantity`). We deliberately omit prices from the client request DTO—prices MUST be fetched server-side from the catalog database to prevent tampering. 3) **Validation**: FluentValidation checks for non-empty items, valid quantities (> 0), and valid addresses (returning 400 or 422 ProblemDetails on failure). 4) **Processing**: Inside a database transaction, check stock availability, decrement inventory, calculate totals with taxes and discounts, and save the order in `PendingPayment` status. 5) **Response**: Return `201 Created` with `Location: /api/v1/orders/ORD-9872` and the created order DTO.\n\n### Code Example\n```csharp\n[HttpPost]\n[ProducesResponseType(typeof(OrderResponseDto), StatusCodes.Status201Created)]\n[ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]\n[ProducesResponseType(StatusCodes.Status409Conflict)]\npublic async Task<IActionResult> CreateOrder(\n    [FromBody] CreateOrderRequestDto request,\n    [FromHeader(Name = \"Idempotency-Key\")] string? idempotencyKey,\n    CancellationToken ct)\n{\n    if (string.IsNullOrEmpty(idempotencyKey))\n        return BadRequest(new ProblemDetails { Detail = \"Idempotency-Key header is required.\" });\n\n    var result = await _orderService.CreateOrderAsync(request, idempotencyKey, ct);\n    \n    return CreatedAtAction(\n        nameof(GetOrderById), \n        new { id = result.OrderId }, \n        result\n    );\n}\n```\n_Clean order creation endpoint with idempotency and 201 Created response._\n\n### 💡 Senior Engine & Architecture Insight\n> If payment processing or external courier booking is synchronous and takes 3+ seconds, transition the endpoint to an **Asynchronous Request-Reply pattern**: return `202 Accepted` with a `Location: /api/v1/orders/{id}/status` polling endpoint or push real-time completion status to the Angular frontend via SignalR WebSockets.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: Why should prices never be sent in the client request body?**\n  *A:* Because any user can modify client-side JavaScript or intercept requests via DevTools/Postman and change an item price from $500 to $1.\n- **Q: What is the Asynchronous Request-Reply pattern in REST APIs?**\n  *A:* The server accepts a long-running request, returns `202 Accepted` with a `Location` header to a status check endpoint, and processes the job asynchronously in a background worker.",
+      "spokenTip": "One critical security rule: never trust product prices sent by the client frontend. Always calculate prices server-side.",
+      "tags": [
+        "API Design",
+        "Architecture",
+        "E-Commerce",
+        "Scenarios",
+        "Security"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_api-design-payment-idempotency-duplicate-charges",
+      "deckId": "deck_apidesign",
+      "front": "How do you design a payment API endpoint so duplicate requests (e.g. double-clicking or network timeout retries) do not charge the customer twice?",
+      "back": "By implementing Idempotency Keys stored in a fast distributed store (like Redis or a SQL unique constraint table). If a request with an existing idempotency key arrives, the server returns the cached initial response without re-executing the payment charge.\n\n**Key Points:**\n- Frontend generates unique Idempotency-Key UUID\n- Backend uses atomic check-and-insert in Redis or SQL table\n- Pass idempotency key to Payment Gateway (Stripe)\n- Cache and replay initial response on duplicate calls\n- Angular UI: disable button, use RxJS exhaustMap to drop duplicate clicks",
+      "notes": "### Comprehensive Senior Answer\nDouble-charging is a nightmare in payment systems. It happens when a user double-clicks the \"Pay\" button or when the client times out while the server actually succeeded in charging the card. Here is the architecture: The Angular frontend generates a unique UUID (the `Idempotency-Key`) when the checkout page loads. When calling `POST /api/payments`, this key is passed in the header. On the backend, we check Redis or a `PaymentRequests` database table using an atomic insert or lock: If the key doesn't exist, we insert it with status `PROCESSING`. We call the Payment Gateway (Stripe/Adyen) passing the same idempotency key. When the gateway responds, we update our record to `COMPLETED` and cache the response payload. If a duplicate request arrives while `PROCESSING`, we return `409 Conflict` or wait. If it arrives after `COMPLETED`, we simply return the cached response payload immediately without calling the payment gateway again.\n\n### Code Example\n```csharp\n// ASP.NET Core Idempotency Middleware / Service\npublic async Task<PaymentResultDto> ProcessPaymentAsync(PaymentRequestDto req, string idempotencyKey)\n{\n    // 1. Check if idempotency key already processed\n    var existingRecord = await _db.IdempotentRequests\n        .FirstOrDefaultAsync(r => r.Key == idempotencyKey);\n\n    if (existingRecord != null)\n    {\n        // Replay cached original response\n        return JsonSerializer.Deserialize<PaymentResultDto>(existingRecord.ResponseJson)!;\n    }\n\n    // 2. Execute Payment with Gateway\n    var gatewayResult = await _stripeService.ChargeAsync(req.Amount, req.Currency, idempotencyKey);\n\n    // 3. Save response atomically\n    _db.IdempotentRequests.Add(new IdempotentRequest {\n        Key = idempotencyKey,\n        ResponseJson = JsonSerializer.Serialize(gatewayResult),\n        CreatedAt = DateTime.UtcNow\n    });\n    await _db.SaveChangesAsync();\n\n    return gatewayResult;\n}\n```\n_Server-side idempotency tracking to prevent double charges._\n\n### 💡 Senior Engine & Architecture Insight\n> On the frontend (Angular), also implement UI-level protection: disable the Submit button immediately on click, display a loading spinner, and prevent multiple clicks using RxJS `exhaustMap` instead of `mergeMap`.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between RxJS `exhaustMap` and `switchMap` for a payment button?**\n  *A:* `exhaustMap` ignores all new clicks until the current HTTP request finishes (preventing double submission). `switchMap` cancels the previous request and starts a new one (great for search typeaheads, but dangerous for payments).\n- **Q: How long should idempotency keys be retained in Redis / Database?**\n  *A:* Typically 24 to 48 hours with a TTL. After 24 hours, checkout sessions expire and duplicate attempts should be treated as fresh new transactions.",
+      "spokenTip": "The client sends a unique Idempotency-Key UUID. The server locks the key, processes the payment, stores the result, and replays that result for any duplicate requests.",
+      "tags": [
+        "API Design",
+        "Idempotency",
+        "Payments",
+        "Security",
+        "Angular",
+        "RxJS"
+      ],
+      "difficulty": "Strong Mid",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    },
+    {
+      "id": "card_api-rate-limiting-and-protection",
+      "deckId": "deck_apidesign",
+      "front": "What is Rate Limiting in API design, what algorithms are used, and how is it implemented in ASP.NET Core?",
+      "back": "Rate Limiting restricts the number of API requests a client can make in a given time window. Common algorithms are Fixed Window, Sliding Window, and Token Bucket. When exceeded, the server returns HTTP 429 Too Many Requests with a `Retry-After` header.\n\n**Key Points:**\n- Protects APIs from DoS, brute force, and runaway client loops\n- Algorithms: Fixed Window, Sliding Window, Token Bucket, Concurrency\n- Returns 429 Too Many Requests + Retry-After header\n- Built-in ASP.NET Core RateLimiter middleware\n- Distributed rate limiting via Redis or API Gateways for multi-pod setups",
+      "notes": "### Comprehensive Senior Answer\nRate limiting protects your backend APIs from denial-of-service attacks, brute-force login attempts, web scrapers, and accidental client infinite loops. In ASP.NET Core (.NET 7+ built-in `Microsoft.AspNetCore.RateLimiting`), we configure rate limiting middleware with policies: 1) **Fixed Window** (e.g. 100 requests per 1-minute window), 2) **Sliding Window** (smooths out boundary spikes), 3) **Token Bucket** (allows short bursts up to a bucket capacity while refilling tokens steadily), and 4) **Concurrency Limiter** (caps simultaneous active requests). We can partition policies by IP address, authenticated User ID, or API Client Key. If a client exceeds the limit, our API returns `429 Too Many Requests` along with a `Retry-After: 30` header indicating how many seconds the client must wait.\n\n### Code Example\n```csharp\n// .NET Built-in Rate Limiting in Program.cs\nbuilder.Services.AddRateLimiter(options =>\n{\n    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;\n    \n    // Policy for public login endpoint (stricter!)\n    options.AddFixedWindowLimiter(\"auth-policy\", opt => {\n        opt.PermitLimit = 5;\n        opt.Window = TimeSpan.FromMinutes(1);\n    });\n\n    // Policy by User ID or IP address\n    options.AddSlidingWindowLimiter(\"api-policy\", opt => {\n        opt.PermitLimit = 100;\n        opt.Window = TimeSpan.FromMinutes(1);\n        opt.SegmentsPerWindow = 4;\n    });\n});\n\napp.UseRateLimiter();\n\n[EnableRateLimiter(\"auth-policy\")]\n[HttpPost(\"api/auth/login\")]\npublic IActionResult Login([FromBody] LoginDto dto) => Ok();\n```\n_Configuring native rate limiting in ASP.NET Core._\n\n### 💡 Senior Engine & Architecture Insight\n> In distributed multi-instance container environments (Kubernetes / Cloud Run), in-memory rate limiting only limits requests hitting that specific pod. For true global rate limiting across 20 pods, rate limiting is placed at the API Gateway level (Cloudflare / Nginx / Azure API Management) backed by Redis.\n\n### 🎯 Probable Interviewer Follow-ups\n- **Q: What is the difference between Fixed Window and Sliding Window rate limiting?**\n  *A:* Fixed Window can allow 2x traffic spikes at window boundaries (e.g. 100 requests at 0:59 and 100 requests at 1:01). Sliding Window divides the window into segments to provide smooth continuous enforcement.\n- **Q: What is the Token Bucket algorithm and when is it best used?**\n  *A:* A bucket holds tokens up to a capacity and refills at a constant rate. Requests consume a token. It allows temporary bursts of traffic while enforcing a steady long-term rate limit.",
+      "spokenTip": "Rate limiting protects against brute force and abuse by capping requests per time window and returning 429 Too Many Requests.",
+      "tags": [
+        "Rate Limiting",
+        "Security",
+        "API Design",
+        "ASP.NET Core",
+        "Performance"
+      ],
+      "difficulty": "Intermediate",
+      "createdAt": "2026-09-02T10:59:47.366Z",
+      "updatedAt": "2026-09-02T10:59:47.366Z"
+    }
+  ]
+}

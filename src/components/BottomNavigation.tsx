@@ -9,17 +9,16 @@ import {
 interface BottomNavigationProps {
   currentTab: 'decks' | 'study' | 'add' | 'browser' | 'stats';
   onTabChange: (tab: 'decks' | 'study' | 'add' | 'browser' | 'stats') => void;
-  dueCount: number;
+  dueCount?: number;
 }
 
-export function BottomNavigation({ currentTab, onTabChange, dueCount }: BottomNavigationProps) {
+export function BottomNavigation({ currentTab, onTabChange }: BottomNavigationProps) {
   const tabs = [
     { id: 'decks' as const, label: 'Decks', icon: FolderKanban },
     { 
       id: 'study' as const, 
       label: 'Study', 
-      icon: Sparkles,
-      badge: dueCount > 0 ? dueCount : undefined
+      icon: Sparkles
     },
     { id: 'add' as const, label: 'Add Card', icon: PlusCircle },
     { id: 'browser' as const, label: 'Cards', icon: Search },
@@ -45,11 +44,6 @@ export function BottomNavigation({ currentTab, onTabChange, dueCount }: BottomNa
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                {tab.badge !== undefined && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center shadow-md animate-bounce">
-                    {tab.badge > 99 ? '99+' : tab.badge}
-                  </span>
-                )}
               </div>
               <span className="text-[11px] mt-1 tracking-tight leading-none">
                 {tab.label}

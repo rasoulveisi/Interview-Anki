@@ -13,6 +13,7 @@ import { CardEditorModal } from './components/CardEditorModal';
 import { CardBrowserView } from './components/CardBrowserView';
 import { StatsView } from './components/StatsView';
 import { UserProfileModal } from './components/UserProfileModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
@@ -445,6 +446,9 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Bottom Navigation & Indicators */}
+      <OfflineIndicator />
 
       {/* Fixed Bottom Navigation Bar (Mobile First) */}
       <BottomNavigation

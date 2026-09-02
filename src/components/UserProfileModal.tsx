@@ -14,6 +14,7 @@ import {
 import { UserProfile } from '../types';
 import { auth } from '../firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -272,6 +273,11 @@ export function UserProfileModal({
             {authError}
           </p>
         )}
+
+        {/* PWA App Installation Option */}
+        <div className="pt-2 border-t border-slate-800 space-y-2">
+          <PWAInstallButton variant="modal" />
+        </div>
 
         {/* Data Backup & Export Section */}
         <div className="pt-2 border-t border-slate-800 space-y-2">

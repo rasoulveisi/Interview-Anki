@@ -138,5 +138,20 @@ If you connect your own custom Firebase project via `firebase-applet-config.json
 
 ### 3. Offline / Local Fallback
 - If you do not sign in, the app automatically runs in **Anonymous / Local Mode**.
-- All decks, cards, review logs, and SM-2 calculations are saved directly to `localStorage` and will sync to the cloud whenever you sign in.
+- All decks, cards, review logs, and SM-2 calculations are saved directly to `localStorage` and will sync to the cloud whenever you sync or sign in.
+
+---
+
+## 📱 Progressive Web App (PWA) & Offline Mode
+
+AnkiDroid Web is configured with full **PWA (Progressive Web App)** compliance and Service Worker offline caching via `vite-plugin-pwa`:
+
+- **Installable Application**:
+  - On **Desktop & Android (Chrome/Edge/Brave)**: Click the **"Install App"** button in the top navigation bar or banner to install AnkiDroid as a native desktop/mobile window.
+  - On **iOS (Safari on iPhone/iPad)**: Tap **Share** -> **"Add to Home Screen"** for full-screen offline practice.
+- **Offline Service Worker**:
+  - Precaches all application bundles, CSS, HTML, and web fonts.
+  - Reviews and cards are completely usable without an active internet connection.
+  - When reconnected, data syncs with your Firebase Cloud Firestore backend.
+
 

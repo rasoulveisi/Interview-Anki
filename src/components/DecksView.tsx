@@ -17,6 +17,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { Card, Deck } from '../types';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface DecksViewProps {
   decks: Deck[];
@@ -187,6 +188,9 @@ export function DecksView({
           </div>
         </div>
       </div>
+
+      {/* PWA Install Banner (Hides automatically if already running standalone or not installable) */}
+      <PWAInstallButton variant="banner" />
 
       {/* Track Filters (Frontend vs Full-Stack vs Custom) */}
       <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 border border-slate-800 rounded-xl overflow-x-auto scrollbar-none">

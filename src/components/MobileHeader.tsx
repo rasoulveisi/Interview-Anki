@@ -14,6 +14,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Deck, UserProfile } from '../types';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface MobileHeaderProps {
   currentTab: string;
@@ -90,9 +91,12 @@ export function MobileHeader({
           </div>
         </div>
 
-        {/* Right: Streak & Cloud Status & Profile */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right: Streak & Cloud Status & Install & Profile */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           
+          {/* PWA Install Button (renders when installable) */}
+          <PWAInstallButton variant="header" />
+
           {/* Daily Streak */}
           <div 
             className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold"

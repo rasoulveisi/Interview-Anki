@@ -8,16 +8,23 @@
     <meta property="og:title" content="AnkiDroid Web - Cloud Flashcards & SRS" />
     <meta property="og:description" content="Mobile-first Anki-style spaced repetition flashcard app with real-time Firebase cloud synchronization, custom deck builder, SM-2 review engine, and comprehensive Senior Frontend & Full-Stack interview mastery suites." />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#4f46e5" />
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AnkiDroid" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-slate-900 text-slate-100 selection:bg-indigo-600 selection:text-white font-sans antialiased min-h-screen">
+  <body class="bg-slate-950 text-slate-100 selection:bg-indigo-600 selection:text-white font-sans antialiased min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

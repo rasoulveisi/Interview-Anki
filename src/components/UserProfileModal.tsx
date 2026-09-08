@@ -20,7 +20,7 @@ interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: UserProfile | null;
-  syncStatus: 'synced' | 'syncing' | 'offline';
+  syncStatus: 'synced' | 'syncing' | 'offline' | 'local-only';
   totalCards: number;
   totalDecks: number;
   onExportData: () => void;
@@ -131,7 +131,15 @@ export function UserProfileModal({
         {/* Sync Status Banner */}
         <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-400' : 'bg-indigo-400 animate-ping'}`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${
+              syncStatus === 'synced'
+                ? 'bg-emerald-400'
+                : syncStatus === 'syncing'
+                ? 'bg-indigo-400 animate-ping'
+                : syncStatus === 'local-only'
+                ? 'bg-amber-300 animate-pulse'
+                : 'bg-rose-400'
+            }`} />
             <span className="text-slate-300 font-medium capitalize">
               Status: <b className="text-white">{syncStatus}</b>
             </span>

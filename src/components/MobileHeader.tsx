@@ -20,7 +20,7 @@ interface MobileHeaderProps {
   currentTab: string;
   selectedDeck: Deck | null;
   profile: UserProfile | null;
-  syncStatus: 'synced' | 'syncing' | 'offline';
+  syncStatus: 'synced' | 'syncing' | 'offline' | 'local-only';
   streak: number;
   onOpenProfile: () => void;
   onOpenDeckSettings?: () => void;
@@ -114,12 +114,15 @@ export function MobileHeader({
                 ? 'bg-emerald-950/40 border-emerald-800/40 text-emerald-400'
                 : syncStatus === 'syncing'
                 ? 'bg-indigo-950/40 border-indigo-800/40 text-indigo-400 animate-pulse'
+                : syncStatus === 'local-only'
+                ? 'bg-amber-950/40 border-amber-800/40 text-amber-300'
                 : 'bg-rose-950/40 border-rose-800/40 text-rose-400'
             }`}
-            title={`Firebase Status: ${syncStatus}`}
+            title={syncStatus === 'local-only' ? 'Storage fallback: IndexedDB unavailable, using memory only' : `Firebase Status: ${syncStatus}`}
           >
             {syncStatus === 'synced' && <CloudCheck className="w-3.5 h-3.5" />}
             {syncStatus === 'syncing' && <Cloud className="w-3.5 h-3.5" />}
+            {syncStatus === 'local-only' && <CloudOff className="w-3.5 h-3.5" />}
             {syncStatus === 'offline' && <CloudOff className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline capitalize text-[11px]">{syncStatus}</span>
           </button>

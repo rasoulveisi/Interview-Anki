@@ -114,6 +114,7 @@ Your app is now completely connected to your own private Google Cloud / Firebase
 | Command | Description |
 | :--- | :--- |
 | `npm run dev` | Starts the Vite dev server on `http://localhost:3000` |
+| `npm run test:scheduler` | Runs deterministic scheduler tests for the SM-2 review rules |
 | `npm run build` | Builds the production bundle into `/dist` |
 | `npm run preview` | Previews the production build locally |
 | `npm run lint` | Runs TypeScript type checking (`tsc --noEmit`) |
@@ -138,7 +139,9 @@ If you connect your own custom Firebase project via `firebase-applet-config.json
 
 ### 3. Offline / Local Fallback
 - If you do not sign in, the app automatically runs in **Anonymous / Local Mode**.
-- All decks, cards, review logs, and SM-2 calculations are saved directly to `localStorage` and will sync to the cloud whenever you sync or sign in.
+- Deck templates and study progress are saved to browser **IndexedDB**.
+- If IndexedDB is unavailable or blocked, the app falls back to an in-memory session cache so the current session continues to work, but saved data may not survive page reload.
+- Signed-in users sync progress and backups through Firestore; unsigned-in users keep local progress and can export/import JSON backups.
 
 ---
 
@@ -155,3 +158,21 @@ AnkiDroid Web is configured with full **PWA (Progressive Web App)** compliance a
   - When reconnected, data syncs with your Firebase Cloud Firestore backend.
 
 
+## 🧪 Focused Study Engine Notes
+
+- Scheduler logic is in `src/utils/srs.ts` and follows a deterministic SM-2-style policy.
+- Scheduler tests are implemented in `src/utils/srs.test.ts`.
+- To validate scheduler transitions locally, run:
+```bash
+npm run test:scheduler
+```
+
+## 📚 One Study Session Behavior (What actually persists)
+
+- Start a study session in **Study** for any deck.
+- Rate cards with `again`, `hard`, `good`, or `easy`.
+- Cards are updated immediately in local state and persisted through the app storage layer.
+- Storage behavior is visible in the top right cloud badge:
+  - `synced` means DB writes are going to IndexedDB and local sync path.
+  - `local-only` means storage is running on in-memory fallback for this browser session.
+  - `offline` means cloud sync is currently unavailable.

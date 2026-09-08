@@ -22,7 +22,13 @@ export default function App() {
   const [cards, setCards] = useState<Card[]>([]);
   const [currentTab, setCurrentTab] = useState<'decks' | 'study' | 'add' | 'browser' | 'stats'>('decks');
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'local-only'>('synced');
+
+  const refreshStorageStatus = useCallback(() => {
+    if (appStorage.getPersistenceMode() === 'memory-only') {
+      setSyncStatus((prev) => (prev === 'offline' ? 'offline' : 'local-only'));
+    }
+  }, []);
   
   // Modals state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -45,6 +51,9 @@ export default function App() {
         setDecks(initial.decks);
         setCards(initial.cards);
       }
+      if (isMounted) {
+        refreshStorageStatus();
+      }
     }
 
     loadLocalFirst();
@@ -66,6 +75,7 @@ export default function App() {
           });
         }
         setSyncStatus('synced');
+        refreshStorageStatus();
       }).catch(() => setSyncStatus('offline'));
     };
 
@@ -82,7 +92,7 @@ export default function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [currentUser]);
+  }, [currentUser, refreshStorageStatus]);
 
   // 3. Initialize Firebase Auth & Cloud Sync
   useEffect(() => {
@@ -100,6 +110,7 @@ export default function App() {
           setCards(initialCards);
           setProfile(userProfile);
           setSyncStatus('synced');
+          refreshStorageStatus();
         } catch (err) {
           console.warn('Initial data load notice, local fallback active:', err);
           setSyncStatus('offline');
@@ -134,7 +145,7 @@ export default function App() {
     return () => {
       unsubProgress();
     };
-  }, [currentUser]);
+  }, [currentUser, refreshStorageStatus]);
 
   // Compute Total Due Count
   const now = Date.now();
@@ -178,6 +189,7 @@ export default function App() {
     };
 
     await DatabaseService.logReview(reviewLog, updatedCard);
+    refreshStorageStatus();
   }, [currentUser]);
 
   // Card Management Handlers
@@ -193,11 +205,13 @@ export default function App() {
     });
 
     await DatabaseService.saveCard(savedCard);
+    refreshStorageStatus();
   };
 
   const handleDeleteCard = async (cardId: string) => {
     setCards(prev => prev.filter(c => c.id !== cardId));
     await DatabaseService.deleteCard(cardId, currentUser?.uid || 'local_user');
+    refreshStorageStatus();
   };
 
   const handleResetCardSRS = async (card: Card) => {
@@ -214,6 +228,7 @@ export default function App() {
 
     setCards(prev => prev.map(c => c.id === card.id ? resetCard : c));
     await DatabaseService.saveCard(resetCard);
+    refreshStorageStatus();
   };
 
   const handleToggleSuspend = async (card: Card) => {
@@ -225,6 +240,7 @@ export default function App() {
 
     setCards(prev => prev.map(c => c.id === card.id ? toggledCard : c));
     await DatabaseService.saveCard(toggledCard);
+    refreshStorageStatus();
   };
 
   const handleToggleFavorite = async (card: Card) => {
@@ -236,6 +252,7 @@ export default function App() {
 
     setCards(prev => prev.map(c => c.id === card.id ? favCard : c));
     await DatabaseService.saveCard(favCard);
+    refreshStorageStatus();
   };
 
   // Deck Management Handlers
@@ -259,6 +276,7 @@ export default function App() {
 
     setDecks(prev => [...prev, newDeck]);
     await DatabaseService.saveDeck(newDeck);
+    refreshStorageStatus();
   };
 
   const handleDeleteDeck = async (deckId: string) => {
@@ -268,6 +286,7 @@ export default function App() {
       setSelectedDeck(null);
     }
     await DatabaseService.deleteDeck(deckId, currentUser?.uid || 'local_user');
+    refreshStorageStatus();
   };
 
   const handleResetDeckSRS = async (deckId: string) => {
@@ -292,6 +311,7 @@ export default function App() {
     for (const c of updatedCards.filter(c => c.deckId === deckId)) {
       await DatabaseService.saveCard(c);
     }
+    refreshStorageStatus();
   };
 
   // Sync / Restore All Default 27 Decks from Content Library
@@ -303,6 +323,7 @@ export default function App() {
       const refreshed = await loadFullDecksAndCards(userId);
       setDecks(refreshed.decks);
       setCards(refreshed.cards);
+      refreshStorageStatus();
       setSyncStatus('synced');
     } catch (err) {
       console.warn('Sync default decks error:', err);
@@ -341,7 +362,7 @@ export default function App() {
           for (const card of parsed.cards) {
             await DatabaseService.saveCard({ ...card, userId });
           }
-          if (parsed.decks && Array.isArray(parsed.decks)) {
+        if (parsed.decks && Array.isArray(parsed.decks)) {
             for (const deck of parsed.decks) {
               await DatabaseService.saveDeck({ ...deck, userId });
             }
@@ -349,6 +370,7 @@ export default function App() {
           const refreshed = await loadFullDecksAndCards(userId);
           setDecks(refreshed.decks);
           setCards(refreshed.cards);
+          refreshStorageStatus();
           alert(`Successfully restored ${parsed.cards.length} cards!`);
         } else {
           alert('Invalid backup format. File must contain "cards" array.');
@@ -498,6 +520,7 @@ export default function App() {
               setCards(res.cards);
               setProfile(res.profile);
               setSyncStatus('synced');
+              refreshStorageStatus();
             } catch {
               setSyncStatus('offline');
             }
